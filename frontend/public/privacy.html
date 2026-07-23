@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Privacy Policy — Relay</title>
+    <style>
+      :root {
+        --bg: #1a1c22;
+        --bg-2: #23262e;
+        --line: #343945;
+        --text: #e6e8ec;
+        --muted: #8b90a0;
+        --accent: #5b8cff;
+        --warn: #ffb454;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 40px 20px 80px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      main { max-width: 760px; margin: 0 auto; }
+      h1 { font-size: 28px; margin: 0 0 4px; }
+      h2 {
+        font-size: 19px;
+        margin: 36px 0 10px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+      h2:first-of-type { border-top: none; padding-top: 0; }
+      p, li { color: #d3d7df; }
+      ul { padding-left: 22px; }
+      li { margin: 6px 0; }
+      a { color: var(--accent); }
+      .updated { color: var(--muted); font-size: 14px; margin: 0 0 28px; }
+      .lede { color: var(--muted); }
+      .callout {
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--warn);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 16px 0;
+      }
+      .callout strong { color: var(--warn); }
+      .back {
+        display: inline-block;
+        margin-bottom: 28px;
+        color: var(--muted);
+        text-decoration: none;
+      }
+      .back:hover { color: var(--text); }
+      footer {
+        margin-top: 40px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 14px;
+      }
+      code {
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 1px 5px;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/">&lsaquo; Back to Relay</a>
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: 23 July 2026</p>
+
+      <p class="lede">
+        Relay is a small, self-hosted chat service. It is not a commercial
+        product: there are no ads, no analytics, no trackers, and nothing is
+        sold or shared with advertisers. This page explains, in plain terms,
+        what the software actually stores and who can see it.
+      </p>
+
+      <h2>Who runs this service</h2>
+      <p>
+        This is a private instance of Relay, run on a server controlled by its
+        operator. Your data lives on that server. If you have questions about
+        your data, or want your account or content removed, contact the person
+        who runs this instance — the site administrator.
+      </p>
+
+      <h2>What is stored</h2>
+      <ul>
+        <li>
+          <strong>Account details</strong> — your username, email address,
+          display name, and optional bio and pronouns. Your password is stored
+          only as an Argon2 hash; the plain password is never saved.
+        </li>
+        <li>
+          <strong>Google sign-in</strong> — if you sign in with Google, basic
+          profile information (email address and name) is received from Google
+          to create and identify your account. No other provider is used.
+        </li>
+        <li>
+          <strong>Messages</strong> — the content of everything you post,
+          including direct messages, along with timestamps, sender, reactions,
+          mentions, edits, and thread relationships.
+        </li>
+        <li>
+          <strong>Files you upload</strong> — attachments and images, stored on
+          the server's disk.
+        </li>
+        <li>
+          <strong>Presence</strong> — whether you are online, when you are
+          typing, and any "away" status. This is shown live to other users and
+          is not kept as long-term history.
+        </li>
+        <li>
+          <strong>Moderation records</strong> — when an administrator or channel
+          operator performs a privileged action (kick, ban, granting operator
+          status, deleting a channel), the action, who did it, who it affected,
+          and a short note are recorded for accountability.
+        </li>
+      </ul>
+
+      <h2>Messages are not end-to-end encrypted</h2>
+      <div class="callout">
+        <p style="margin:0">
+          <strong>Please read this one.</strong> Traffic between your browser
+          and the server is encrypted with HTTPS, but messages are stored in the
+          server's database as ordinary text. That means the operator of this
+          server — and anyone with access to the database or its backups — is
+          technically able to read any message, <em>including direct
+          messages</em>. Treat Relay as private-ish, not as a secure messenger.
+          Do not use it for information that would be harmful if read by the
+          server's administrator.
+        </p>
+      </div>
+
+      <h2>File uploads are served from public links</h2>
+      <div class="callout">
+        <p style="margin:0">
+          <strong>Uploads are not access-controlled.</strong> Each uploaded file
+          gets a hard-to-guess random address (for example
+          <code>/api/uploads/&lt;random-id&gt;</code>). Anyone who has that link
+          can open the file without logging in, whether or not they belong to
+          the channel it was shared in. The link is not published or guessable,
+          but it is the only thing protecting the file — so treat anything you
+          upload as shareable.
+        </p>
+      </div>
+      <p>Other details about uploads:</p>
+      <ul>
+        <li>
+          <strong>Photos have their location data removed.</strong> JPEG, PNG,
+          and WebP images are re-encoded inside your browser before they are
+          sent. That process discards embedded metadata, including EXIF GPS
+          coordinates, so the original file with your location never leaves your
+          device. If an image cannot be re-encoded, the upload is refused rather
+          than sending the untouched original.
+        </li>
+        <li>
+          <strong>GIFs and documents are uploaded exactly as they are.</strong>
+          They are not modified, so any metadata inside them — author names,
+          location, editing history — is uploaded and served along with the
+          file. Strip these yourself first if that matters to you.
+        </li>
+        <li>
+          Uploads are capped at 10&nbsp;MB per file and 5 uploads per minute,
+          and only images and common document formats are accepted.
+        </li>
+      </ul>
+
+      <h2>Your IP address</h2>
+      <p>
+        Your IP address is used briefly to limit repeated failed sign-in
+        attempts. It is held in a short-lived cache (about a minute) and is not
+        attached to your profile or message history. As with any website, the
+        server software may record ordinary request metadata in its logs.
+      </p>
+
+      <h2>Third parties</h2>
+      <ul>
+        <li>
+          <strong>GIF search</strong> — searches are relayed through this server
+          rather than sent from your browser, so Giphy does not receive your IP
+          address when you search.
+        </li>
+        <li>
+          <strong>Images hosted elsewhere</strong> — when a message contains a
+          Giphy or Imgur image, your browser loads that image directly from
+          those services in order to display it. This reveals your IP address
+          and browser details to them, exactly as visiting any web page
+          containing their images would.
+        </li>
+        <li>
+          <strong>Google</strong> — only if you choose to sign in with Google.
+        </li>
+      </ul>
+      <p>There are no other third parties, and no advertising or analytics services of any kind.</p>
+
+      <h2>What is kept in your browser</h2>
+      <p>
+        Relay does not use tracking cookies. It stores two things locally in
+        your browser: your sign-in tokens (so you stay logged in) and your list
+        of ignored users (which never leaves your device). Logging out removes
+        the tokens.
+      </p>
+
+      <h2>Deletion and retention</h2>
+      <ul>
+        <li>
+          <strong>Deleting a message hides it, but does not erase it.</strong>
+          A deleted message disappears for everyone in the app, and its record
+          is retained in the database marked as deleted. Assume an
+          administrator can still recover it.
+        </li>
+        <li>
+          <strong>Uploaded files are not deleted</strong> when the message
+          containing them is removed. The file stays on the server and its link
+          keeps working.
+        </li>
+        <li>
+          Account information is kept until the operator removes it. Ask the
+          administrator if you want your account and content deleted.
+        </li>
+      </ul>
+
+      <h2>How your data is protected</h2>
+      <p>
+        Passwords are hashed with Argon2. Connections use HTTPS. Sign-in
+        attempts are rate-limited, uploads are restricted by file type and
+        served with headers that stop the browser from treating them as code,
+        and every message is escaped when displayed so it cannot run scripts.
+        No system is perfectly secure, and this one is maintained by a small
+        operator — please keep that in mind when deciding what to share.
+      </p>
+
+      <h2>Changes</h2>
+      <p>
+        If this policy changes, the date at the top of this page will change
+        with it. Significant changes will be posted in the
+        <strong>#whatsnew</strong> channel.
+      </p>
+
+      <footer>
+        Relay is free, open-source software released under the GNU GPL&#8209;3.0.
+      </footer>
+    </main>
+  </body>
+</html>
