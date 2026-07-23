@@ -367,6 +367,48 @@ async def unban_member(
         await db.commit()
 
 
+@router.post("/{channel_id}/invite", status_code=status.HTTP_204_NO_CONTENT)
+async def invite_member(
+    channel_id: str, body: ModerateIn, db: DB, user: CurrentUser
+) -> None:
+    """Add a user to a channel (any member may invite; key for private channels)."""
+    ch = await db.get(Channel, channel_id)
+    if ch is None:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    if ch.kind == KIND_DM:
+        raise HTTPException(status_code=400, detail="Not applicable to direct messages")
+    await require_membership(db, channel_id, user.id)
+
+    target = await db.get(User, body.user_id)
+    if target is None or not target.is_active:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    banned = (
+        await db.execute(
+            select(ChannelBan).where(
+                ChannelBan.channel_id == channel_id,
+                ChannelBan.user_id == target.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if banned is not None:
+        raise HTTPException(
+            status_code=403, detail="That user is banned from this channel"
+        )
+
+    existing = await _target_member(db, channel_id, target.id)
+    if existing is None:
+        db.add(
+            ChannelMember(channel_id=channel_id, user_id=target.id, role=ROLE_MEMBER)
+        )
+        await announce_action(
+            db, channel_id, user, f"added @{target.username} to the channel"
+        )
+        await manager.publish_user(
+            target.id, {"type": "channel_added", "data": {"channel_id": channel_id}}
+        )
+
+
 @router.post("/{channel_id}/role", status_code=status.HTTP_204_NO_CONTENT)
 async def set_member_role(
     channel_id: str, body: RoleUpdate, db: DB, user: CurrentUser

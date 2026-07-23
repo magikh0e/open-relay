@@ -2,10 +2,16 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import or_, select
 
 from ..deps import DB, CurrentUser
-from ..models import User
-from ..redis_client import online_user_ids
+from ..models import ChannelMember, User
+from ..redis_client import (
+    away_map,
+    clear_away,
+    online_user_ids,
+    set_away,
+)
 from ..sanitize import sanitize_text
-from ..schemas import ProfileOut, ProfileUpdate, UserOut, UserPublic
+from ..schemas import AwayIn, ProfileOut, ProfileUpdate, UserOut, UserPublic
+from ..ws_manager import manager
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -55,6 +61,41 @@ async def search(q: str, db: DB, user: CurrentUser) -> list[User]:
 async def online(user: CurrentUser) -> list[str]:
     """Return the set of currently-online user ids."""
     return list(await online_user_ids())
+
+
+@router.get("/away")
+async def away(user: CurrentUser) -> dict[str, str]:
+    """Map of user_id -> away message for everyone currently away."""
+    return await away_map()
+
+
+@router.post("/away", status_code=204)
+async def set_away_status(body: AwayIn, db: DB, user: CurrentUser) -> None:
+    msg = sanitize_text(body.message or "", max_length=140)
+    if msg:
+        await set_away(user.id, msg)
+    else:
+        await clear_away(user.id)
+    # Notify every channel the user is in so member lists update.
+    channel_ids = (
+        await db.execute(
+            select(ChannelMember.channel_id).where(
+                ChannelMember.user_id == user.id
+            )
+        )
+    ).scalars().all()
+    for cid in channel_ids:
+        await manager.publish_room(
+            cid,
+            {
+                "type": "away",
+                "data": {
+                    "user_id": user.id,
+                    "away": bool(msg),
+                    "message": msg,
+                },
+            },
+        )
 
 
 # NOTE: declared last so the fixed paths above (/me, /search, /online) are not

@@ -42,6 +42,7 @@ export default function ChatShell() {
   const [dms, setDms] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [online, setOnline] = useState(new Set());
+  const [awayMap, setAwayMap] = useState({}); // userId -> away message
   const [typing, setTyping] = useState({}); // channelId -> {userId: expiresAt}
   const [profileUserId, setProfileUserId] = useState(null);
   const [membersByChannel, setMembersByChannel] = useState({});
@@ -58,14 +59,16 @@ export default function ChatShell() {
   threadRootIdRef.current = threadRootId;
 
   const refreshLists = useCallback(async () => {
-    const [chs, dmList, on] = await Promise.all([
+    const [chs, dmList, on, aw] = await Promise.all([
       api("/channels"),
       api("/dms"),
       api("/users/online"),
+      api("/users/away"),
     ]);
     setChannels(chs);
     setDms(dmList);
     setOnline(new Set(on));
+    setAwayMap(aw || {});
   }, []);
 
   useEffect(() => {
@@ -158,7 +161,14 @@ export default function ChatShell() {
           [data.user_id]: Date.now() + 4000,
         },
       }));
-    } else if (type === "dm_opened") {
+    } else if (type === "away") {
+      setAwayMap((prev) => {
+        const next = { ...prev };
+        if (data.away) next[data.user_id] = data.message || "away";
+        else delete next[data.user_id];
+        return next;
+      });
+    } else if (type === "dm_opened" || type === "channel_added") {
       refreshLists();
     } else if (type === "member_removed" || type === "member_updated") {
       // Roster changed (kick/ban or role change) — refresh it.
@@ -318,7 +328,7 @@ export default function ChatShell() {
         return {
           ok: true,
           message:
-            "/me · /nick <name> · /join <#chan> · /part · /query <user> · /whois <user> · /names · /ignore <user> · /clear · /quit · /topic · /kick · /ban · /unban · /op · /deop · /dm · /slap · /shrug · /version",
+            "/me · /nick <name> · /join <#chan> · /part · /invite <user> · /query <user> · /whois <user> · /names · /away [msg] · /back · /ignore <user> · /clear · /quit · /topic · /kick · /ban · /unban · /op · /deop · /dm · /slap · /shrug · /version",
         };
       case "version":
       case "health": {
@@ -459,6 +469,25 @@ export default function ChatShell() {
         const content = (argStr ? argStr + " " : "") + "¯\\_(ツ)_/¯";
         await post("/messages", { content });
         return { ok: true };
+      }
+      case "invite": {
+        const u = await resolveUser(args[0]);
+        await post("/invite", { user_id: u.id });
+        return { ok: true, message: `Invited ${u.display_name} to the channel` };
+      }
+      case "away": {
+        await api("/users/away", {
+          method: "POST",
+          body: { message: argStr },
+        });
+        return {
+          ok: true,
+          message: argStr ? `You're now away: ${argStr}` : "You're back.",
+        };
+      }
+      case "back": {
+        await api("/users/away", { method: "POST", body: { message: "" } });
+        return { ok: true, message: "Welcome back." };
       }
       default:
         throw new Error(`Unknown command: /${cmd} — try /help`);
@@ -601,6 +630,7 @@ export default function ChatShell() {
           <MemberList
             members={activeMembers}
             online={online}
+            awayMap={awayMap}
             onOpenProfile={setProfileUserId}
             canModerate={canModerate}
             canManageRoles={canManageRoles}

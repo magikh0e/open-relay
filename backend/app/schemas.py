@@ -186,6 +186,10 @@ class DMCreate(BaseModel):
     user_id: str
 
 
+class AwayIn(BaseModel):
+    message: str | None = None  # empty/absent clears away status
+
+
 # --- Search ---------------------------------------------------------------
 
 class SearchResult(BaseModel):

@@ -392,6 +392,12 @@ button.primary:disabled {
   background: var(--online);
   border: 2px solid var(--bg-2);
 }
+.presence-dot.away {
+  background: #f2c94c; /* amber for away */
+}
+.member-name.is-away {
+  opacity: 0.6;
+}
 .member-name {
   white-space: nowrap;
   overflow: hidden;

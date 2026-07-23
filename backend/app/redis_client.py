@@ -53,3 +53,19 @@ async def mark_offline(user_id: str) -> int:
 async def online_user_ids() -> set[str]:
     data = await redis_client.hgetall(PRESENCE_KEY)
     return set(data.keys())
+
+
+# Away status: user_id -> away message ("" is treated as not-away).
+AWAY_KEY = "presence:away"
+
+
+async def set_away(user_id: str, message: str) -> None:
+    await redis_client.hset(AWAY_KEY, user_id, message or "away")
+
+
+async def clear_away(user_id: str) -> None:
+    await redis_client.hdel(AWAY_KEY, user_id)
+
+
+async def away_map() -> dict[str, str]:
+    return await redis_client.hgetall(AWAY_KEY)

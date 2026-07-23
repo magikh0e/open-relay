@@ -5,6 +5,7 @@ import Avatar from "./Avatar.jsx";
 export default function MemberList({
   members,
   online,
+  awayMap = {},
   onOpenProfile,
   canModerate,
   canManageRoles,
@@ -18,6 +19,7 @@ export default function MemberList({
 
   const shared = {
     online,
+    awayMap,
     onOpenProfile,
     canModerate,
     canManageRoles,
@@ -50,6 +52,7 @@ function Section({
   title,
   members,
   isOnline,
+  awayMap = {},
   onOpenProfile,
   canModerate,
   canManageRoles,
@@ -74,13 +77,23 @@ function Section({
             <button
               className="member-main"
               onClick={() => onOpenProfile?.(m.id)}
-              title={`@${m.username}`}
+              title={
+                awayMap[m.id]
+                  ? `@${m.username} — away: ${awayMap[m.id]}`
+                  : `@${m.username}`
+              }
             >
               <span className="member-avatar-wrap">
                 <Avatar name={m.display_name} admin={m.is_admin} />
-                {isOnline && <span className="presence-dot" />}
+                {isOnline && (
+                  <span
+                    className={`presence-dot ${awayMap[m.id] ? "away" : ""}`}
+                  />
+                )}
               </span>
-              <span className="member-name">{m.display_name}</span>
+              <span className={`member-name ${awayMap[m.id] ? "is-away" : ""}`}>
+                {m.display_name}
+              </span>
               {m.role === "owner" && <span className="role-tag">owner</span>}
               {isOp && <span className="role-tag op">op</span>}
             </button>
