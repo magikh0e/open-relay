@@ -27,6 +27,7 @@ export default function MessagePane({
   onCommand,
   onBack,
   onToggleRoster,
+  canPost = true,
 }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
@@ -56,7 +57,7 @@ export default function MessagePane({
     Array.from(e.dataTransfer?.types || []).includes("Files");
 
   function onDragEnter(e) {
-    if (!isFileDrag(e)) return;
+    if (!canPost || !isFileDrag(e)) return;
     e.preventDefault();
     dragDepth.current += 1;
     setDragging(true);
@@ -75,7 +76,7 @@ export default function MessagePane({
     }
   }
   function onDrop(e) {
-    if (!isFileDrag(e)) return;
+    if (!canPost || !isFileDrag(e)) return;
     e.preventDefault();
     dragDepth.current = 0;
     setDragging(false);
@@ -90,7 +91,7 @@ export default function MessagePane({
   });
 
   async function uploadFile(file) {
-    if (!file) return;
+    if (!file || !canPost) return;
     setUploading(true);
     setError("");
     try {
@@ -424,7 +425,7 @@ export default function MessagePane({
               ⚙
             </button>
           )}
-          {canDelete && !isDm && (
+          {canDelete && !isDm && !channel.read_only && (
             <button
               className="act danger"
               title="Delete channel"
@@ -449,6 +450,10 @@ export default function MessagePane({
           const mine = m.sender_id === user.id;
           const editing = editingId === m.id;
           const mentionsMe = (m.mentions || []).some((x) => x.id === user.id);
+          // Seeded announcements have no sender; show them as from the app.
+          const authorName =
+            m.sender?.display_name ||
+            (channel.read_only ? "Relay" : "Unknown");
           return (
             <div
               key={m.id}
@@ -460,10 +465,7 @@ export default function MessagePane({
               }
             >
               {!grouped && (
-                <Avatar
-                  name={m.sender?.display_name}
-                  admin={m.sender?.is_admin}
-                />
+                <Avatar name={authorName} admin={m.sender?.is_admin} />
               )}
               <div className="msg-body">
                 {m.reply_to && (
@@ -484,7 +486,7 @@ export default function MessagePane({
                           m.sender_id && onOpenProfile?.(m.sender_id)
                         }
                       >
-                        {m.sender?.display_name || "Unknown"}
+                        {authorName}
                       </button>
                       {online.has(m.sender_id) && (
                         <span className="online-dot" title="online" />
@@ -532,7 +534,7 @@ export default function MessagePane({
                         m.sender_id && onOpenProfile?.(m.sender_id)
                       }
                     >
-                      {m.sender?.display_name || "Unknown"}
+                      {authorName}
                     </button>{" "}
                     <MessageContent
                       content={m.content.slice(4)}
@@ -610,27 +612,31 @@ export default function MessagePane({
               {/* hover actions */}
               {!editing && (
                 <div className="msg-actions">
-                  <button
-                    className="act"
-                    title="Reply"
-                    onClick={() => {
-                      setReplyingTo({
-                        id: m.id,
-                        sender_name: m.sender?.display_name || "Unknown",
-                        content: (m.content || "").slice(0, 140),
-                      });
-                      requestAnimationFrame(() => inputRef.current?.focus());
-                    }}
-                  >
-                    ↩
-                  </button>
-                  <button
-                    className="act"
-                    title="Reply in thread"
-                    onClick={() => onOpenThread?.(m)}
-                  >
-                    🧵
-                  </button>
+                  {canPost && (
+                    <button
+                      className="act"
+                      title="Reply"
+                      onClick={() => {
+                        setReplyingTo({
+                          id: m.id,
+                          sender_name: m.sender?.display_name || "Unknown",
+                          content: (m.content || "").slice(0, 140),
+                        });
+                        requestAnimationFrame(() => inputRef.current?.focus());
+                      }}
+                    >
+                      ↩
+                    </button>
+                  )}
+                  {canPost && (
+                    <button
+                      className="act"
+                      title="Reply in thread"
+                      onClick={() => onOpenThread?.(m)}
+                    >
+                      🧵
+                    </button>
+                  )}
                   <button
                     className="act"
                     title="React"
@@ -727,6 +733,13 @@ export default function MessagePane({
       )}
 
       <div className="composer-wrap">
+        {!canPost ? (
+          <div className="readonly-note">
+            🔒 Announcements only — react to updates below, but posting is
+            disabled here.
+          </div>
+        ) : (
+          <>
         {gifOpen && (
           <GifPicker onPick={sendGif} onClose={() => setGifOpen(false)} />
         )}
@@ -789,6 +802,8 @@ export default function MessagePane({
             Send
           </button>
         </form>
+          </>
+        )}
       </div>
     </main>
   );

@@ -4,9 +4,10 @@ from sqlalchemy import func, or_, select
 from ..audit import client_ip
 from ..config import settings
 from ..deps import DB
-from ..models import User
+from ..models import Channel, ChannelMember, ROLE_MEMBER, User
 from ..redis_client import rate_limit_hit
 from ..schemas import LoginIn, RefreshIn, RegisterIn, TokenPair, UserOut
+from ..seed import WHATSNEW_SLUG
 from ..security import (
     create_access_token,
     create_refresh_token,
@@ -43,6 +44,16 @@ async def register(body: RegisterIn, db: DB) -> TokenPair:
         display_name=body.display_name or body.username,
     )
     db.add(user)
+    await db.flush()
+    # Auto-join the read-only #whatsnew announcement channel so updates reach
+    # everyone without a manual join.
+    wn = (
+        await db.execute(select(Channel).where(Channel.slug == WHATSNEW_SLUG))
+    ).scalar_one_or_none()
+    if wn is not None:
+        db.add(
+            ChannelMember(channel_id=wn.id, user_id=user.id, role=ROLE_MEMBER)
+        )
     await db.commit()
     return TokenPair(
         access_token=create_access_token(user.id),

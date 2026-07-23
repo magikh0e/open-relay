@@ -80,6 +80,7 @@ def _to_out(ch: Channel, member_count: int, is_member: bool) -> ChannelOut:
         topic=ch.topic,
         created_by=ch.created_by,
         created_at=ch.created_at,
+        read_only=ch.read_only,
         member_count=member_count,
         is_member=is_member,
     )
@@ -209,6 +210,12 @@ async def join_channel(channel_id: str, db: DB, user: CurrentUser) -> ChannelOut
 @router.post("/{channel_id}/leave", status_code=status.HTTP_204_NO_CONTENT)
 async def leave_channel(channel_id: str, db: DB, user: CurrentUser) -> None:
     member = await require_membership(db, channel_id, user.id)
+    ch = await db.get(Channel, channel_id)
+    if ch is not None and ch.read_only:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can't leave the announcements channel.",
+        )
     await db.delete(member)
     await db.commit()
 
@@ -517,6 +524,10 @@ async def delete_channel(channel_id: str, db: DB, user: CurrentUser) -> None:
     if ch.kind == KIND_DM:
         raise HTTPException(
             status_code=400, detail="Direct messages cannot be deleted"
+        )
+    if ch.read_only:
+        raise HTTPException(
+            status_code=403, detail="The announcements channel can't be deleted."
         )
     if not user.is_admin:
         member = await _target_member(db, channel_id, user.id)

@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from ..config import settings
 from ..deps import DB, CurrentUser, require_membership
-from ..models import Message, MessageMention, MessageReaction, Upload, User
+from ..models import Channel, Message, MessageMention, MessageReaction, Upload, User
 from ..redis_client import redis_client
 from ..sanitize import extract_mention_usernames, sanitize_text
 from ..schemas import (
@@ -286,6 +286,13 @@ async def post_message(
     channel_id: str, body: MessageCreate, db: DB, user: CurrentUser
 ) -> MessageOut:
     await require_membership(db, channel_id, user.id)
+    # Read-only (announcement) channels: only site admins may post.
+    channel = await db.get(Channel, channel_id)
+    if channel is not None and channel.read_only and not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This channel is read-only — you can react but not post.",
+        )
     if await rate_limited(user.id):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

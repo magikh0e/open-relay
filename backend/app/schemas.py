@@ -125,6 +125,7 @@ class ChannelOut(BaseModel):
     topic: str
     created_by: str | None
     created_at: datetime
+    read_only: bool = False
     member_count: int | None = None
     is_member: bool | None = None
 

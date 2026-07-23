@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import Base, engine
+from .seed import ensure_whatsnew
 from .routers import (
     auth,
     channels,
@@ -29,13 +30,14 @@ async def lifespan(app: FastAPI):
     if settings.auto_create_tables:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+    await ensure_whatsnew()
     await manager.start()
     yield
     await manager.stop()
     await engine.dispose()
 
 
-APP_VERSION = "1.5.0"
+APP_VERSION = "1.6.0"
 
 app = FastAPI(title="Relay API", version=APP_VERSION, lifespan=lifespan)
 

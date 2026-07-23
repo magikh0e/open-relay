@@ -534,6 +534,8 @@ export default function ChatShell() {
   const canModerate = user.is_admin || isOwner || myRole === "mod";
   const canDelete = user.is_admin || isOwner;
   const canManageRoles = user.is_admin || isOwner;
+  // Read-only (announcement) channels: only site admins may post.
+  const canPost = !!active && (!active.read_only || user.is_admin);
 
   async function setRole(channelId, member, role) {
     try {
@@ -624,6 +626,7 @@ export default function ChatShell() {
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenThread={openThread}
             onCommand={runCommand}
+            canPost={canPost}
             onBack={() => {
               setActiveId(null);
               setRosterOpen(false);
@@ -644,6 +647,7 @@ export default function ChatShell() {
             messages={threadMessages}
             onClose={closeThread}
             onOpenProfile={setProfileUserId}
+            canPost={canPost}
           />
         ) : active && active.kind !== "dm" ? (
           <>

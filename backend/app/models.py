@@ -77,6 +77,9 @@ class Channel(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Read-only (announcement) channels: only site admins may post; everyone
+    # else can read and react but not send. Used by the seeded #whatsnew channel.
+    read_only: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     members: Mapped[list["ChannelMember"]] = relationship(
         back_populates="channel", cascade="all, delete-orphan"

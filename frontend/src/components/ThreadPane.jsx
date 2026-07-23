@@ -6,7 +6,13 @@ import MessageContent from "./MessageContent.jsx";
 
 // Right-hand thread panel: the root message + its replies + a reply composer.
 // `messages` is [root, ...replies]. New replies arrive live via the WS event.
-export default function ThreadPane({ channel, messages, onClose, onOpenProfile }) {
+export default function ThreadPane({
+  channel,
+  messages,
+  onClose,
+  onOpenProfile,
+  canPost = true,
+}) {
   const { user } = useAuth();
   const [text, setText] = useState("");
   const [error, setError] = useState("");
@@ -65,17 +71,21 @@ export default function ThreadPane({ channel, messages, onClose, onOpenProfile }
         ))}
       </div>
       {error && <div className="error compose-error">{error}</div>}
-      <form className="composer" onSubmit={send}>
-        <input
-          placeholder="Reply in thread…"
-          value={text}
-          autoFocus
-          onChange={(e) => setText(e.target.value)}
-        />
-        <button className="primary" disabled={!text.trim()}>
-          Send
-        </button>
-      </form>
+      {canPost ? (
+        <form className="composer" onSubmit={send}>
+          <input
+            placeholder="Reply in thread…"
+            value={text}
+            autoFocus
+            onChange={(e) => setText(e.target.value)}
+          />
+          <button className="primary" disabled={!text.trim()}>
+            Send
+          </button>
+        </form>
+      ) : (
+        <div className="readonly-note">🔒 React only — replies are disabled.</div>
+      )}
     </aside>
   );
 }

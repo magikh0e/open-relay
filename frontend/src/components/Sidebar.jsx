@@ -54,7 +54,9 @@ export default function Sidebar({
             className={`row ${c.id === activeId ? "active" : ""}`}
             onClick={() => onOpen(c.id)}
           >
-            <span className="hash">{c.kind === "private" ? "🔒" : "#"}</span>
+            <span className="hash">
+              {c.read_only ? "📣" : c.kind === "private" ? "🔒" : "#"}
+            </span>
             <span className="row-name">{c.name}</span>
           </button>
         ))}

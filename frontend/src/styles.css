@@ -502,11 +502,14 @@ button.primary:disabled {
   background: rgba(255, 255, 255, 0.02);
 }
 
-/* hover actions (react / edit / delete) */
+/* hover actions (react / edit / delete) — anchored to the left, aligned with
+   the message content column (42px) so they sit next to the message rather
+   than out at the far-right edge of a wide pane. */
 .msg-actions {
   position: absolute;
-  top: -10px;
-  right: 8px;
+  top: -12px;
+  left: 42px;
+  right: auto;
   display: none;
   gap: 2px;
   background: var(--bg-3);
@@ -1251,6 +1254,15 @@ button.primary:disabled {
   flex: 1;
 }
 
+/* Read-only channel notice shown in place of the composer. */
+.readonly-note {
+  padding: 14px 18px 18px;
+  color: var(--muted);
+  font-size: 13.5px;
+  text-align: center;
+  line-height: 1.4;
+}
+
 /* --- Modal --------------------------------------------------------------- */
 .modal-backdrop {
   position: fixed;
@@ -1358,6 +1370,7 @@ button.primary:disabled {
     display: flex;
     top: 2px;
     right: 4px;
+    left: auto;
     background: var(--bg-2);
     border: 1px solid var(--line);
     border-radius: 8px;
