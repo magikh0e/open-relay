@@ -5,7 +5,7 @@ import Avatar from "./Avatar.jsx";
 
 // View a user's profile; if it's you, edit it. All fields render as text
 // (React-escaped) — never innerHTML.
-export default function Profile({ userId, onClose }) {
+export default function Profile({ userId, onClose, onMessage }) {
   const { user, updateUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
@@ -160,6 +160,17 @@ export default function Profile({ userId, onClose }) {
                     Edit profile
                   </button>
                 )}
+              </div>
+            )}
+
+            {!isMe && (
+              <div className="profile-actions">
+                <button
+                  className="primary"
+                  onClick={() => onMessage?.(profile.id)}
+                >
+                  💬 Message
+                </button>
               </div>
             )}
           </>

@@ -264,6 +264,17 @@ export default function ChatShell() {
     setThreadMessages([]);
   }
 
+  async function openDM(userId) {
+    try {
+      const dm = await api("/dms", { method: "POST", body: { user_id: userId } });
+      setProfileUserId(null);
+      await refreshLists(); // ensure the DM shows in the sidebar
+      openChannel(dm.id);
+    } catch (e) {
+      window.alert(e.message);
+    }
+  }
+
   async function joinAndOpen(channel) {
     await api(`/channels/${channel.id}/join`, { method: "POST" });
     await refreshLists();
@@ -411,6 +422,7 @@ export default function ChatShell() {
         <Profile
           userId={profileUserId}
           onClose={() => setProfileUserId(null)}
+          onMessage={openDM}
         />
       )}
 
