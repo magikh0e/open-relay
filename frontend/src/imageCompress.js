@@ -35,9 +35,16 @@ function reFile(original, blob, type) {
   });
 }
 
-// Returns a re-encoded (usually smaller) File. The original is passed through
-// untouched only when it isn't a compressible raster image, when decoding
-// fails, or when the browser can't encode at all.
+// Thrown when a raster image can't be re-encoded. We refuse the upload rather
+// than silently sending the original, which would carry its EXIF/GPS to a
+// publicly-served URL.
+const FAILED_MSG =
+  "This image couldn't be processed in your browser, so it wasn't uploaded. " +
+  "Images are re-encoded on your device to remove location data.";
+
+// Returns a re-encoded (usually smaller) File. Non-raster files (GIF, docs) are
+// passed through untouched; a raster image that can't be decoded or encoded
+// throws instead of falling back to the original.
 export async function maybeCompressImage(
   file,
   { maxDim = IMAGE_MAX_DIM, quality = IMAGE_QUALITY } = {}
@@ -50,7 +57,7 @@ export async function maybeCompressImage(
     // (metadata-stripped) copy isn't left sideways.
     bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   } catch {
-    return file;
+    throw new Error(FAILED_MSG);
   }
 
   try {
@@ -63,7 +70,7 @@ export async function maybeCompressImage(
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return file;
+    if (!ctx) throw new Error(FAILED_MSG);
     ctx.drawImage(bitmap, 0, 0, w, h);
 
     const encode = (type, q) =>
@@ -77,7 +84,8 @@ export async function maybeCompressImage(
     const [type, q] = FALLBACK_ENCODE[file.type];
     const same = await encode(type, q);
     if (same) return reFile(file, same, type);
-    return file; // browser can't encode at all; nothing more we can do
+    // Browser produced no encoded output — refuse rather than send the original.
+    throw new Error(FAILED_MSG);
   } finally {
     bitmap.close?.();
   }

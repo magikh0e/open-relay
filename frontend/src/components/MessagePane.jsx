@@ -95,7 +95,9 @@ export default function MessagePane({
     setUploading(true);
     setError("");
     try {
-      // Shrink large images client-side before uploading (no-op for docs/GIFs).
+      // Re-encode images client-side before uploading (docs/GIFs pass through).
+      // Throws if a raster image can't be re-encoded, aborting the upload so an
+      // un-stripped original is never sent.
       const toSend = await maybeCompressImage(file);
       const form = new FormData();
       form.append("file", toSend);
