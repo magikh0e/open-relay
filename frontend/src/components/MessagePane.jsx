@@ -18,6 +18,7 @@ export default function MessagePane({
   onDeleteChannel,
   canManage,
   onSetTopic,
+  onOpenSettings,
 }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
@@ -243,6 +244,15 @@ export default function MessagePane({
         <div className="pane-head-right">
           {!isDm && (
             <span className="muted small">{channel.member_count} members</span>
+          )}
+          {canManage && !isDm && (
+            <button
+              className="act"
+              title="Channel settings"
+              onClick={onOpenSettings}
+            >
+              ⚙
+            </button>
           )}
           {canDelete && !isDm && (
             <button

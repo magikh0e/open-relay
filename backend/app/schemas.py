@@ -132,6 +132,7 @@ class ChannelOut(BaseModel):
 class ChannelUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=64)
     topic: str | None = Field(default=None, max_length=512)
+    is_private: bool | None = None
 
 
 # --- Messages -------------------------------------------------------------

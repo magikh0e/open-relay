@@ -124,6 +124,7 @@ container startup.
 - [x] Channel moderation: kick / ban / unban + admin crowns + owner/mod roles
 - [x] Delete channels (site admin or channel owner) — cascades + audited
 - [x] Channel operators (IRC-style op = mod role): owner/admin grant/revoke, editable topic
+- [x] Channel settings panel: name/topic/privacy, role management, ownership transfer, delete
 - [ ] Role management UI (promote to mod, transfer ownership)
 - [ ] Threads (grouped reply views)
 - [ ] File & image uploads

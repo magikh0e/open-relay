@@ -230,13 +230,20 @@ async def update_channel(
         ch.name = sanitize_text(body.name, max_length=64) or ch.name
     if body.topic is not None:
         ch.topic = sanitize_text(body.topic, max_length=512)
+    if body.is_private is not None and ch.kind != KIND_DM:
+        ch.kind = KIND_PRIVATE if body.is_private else KIND_PUBLIC
     await db.commit()
     # Push the change to everyone viewing the channel.
     await manager.publish_room(
         channel_id,
         {
             "type": "channel_updated",
-            "data": {"channel_id": channel_id, "name": ch.name, "topic": ch.topic},
+            "data": {
+                "channel_id": channel_id,
+                "name": ch.name,
+                "topic": ch.topic,
+                "kind": ch.kind,
+            },
         },
     )
     return _to_out(ch, await _member_count(db, ch.id), True)
@@ -369,18 +376,18 @@ async def set_member_role(
         raise HTTPException(status_code=404, detail="Channel not found")
     if ch.kind == KIND_DM:
         raise HTTPException(status_code=400, detail="Not applicable to direct messages")
-    if body.role not in (ROLE_MOD, ROLE_MEMBER):
+    if body.role not in (ROLE_OWNER, ROLE_MOD, ROLE_MEMBER):
         raise HTTPException(
-            status_code=400, detail="Role must be 'mod' or 'member'"
+            status_code=400, detail="Role must be 'owner', 'mod', or 'member'"
         )
 
-    # Only the channel owner or a site admin can assign operators.
+    # Only the channel owner or a site admin can assign roles.
     if not user.is_admin:
         me = await _target_member(db, channel_id, user.id)
         if me is None or me.role != ROLE_OWNER:
             raise HTTPException(
                 status_code=403,
-                detail="Only the channel owner or a site admin can set operators",
+                detail="Only the channel owner or a site admin can set roles",
             )
     if body.user_id == user.id:
         raise HTTPException(status_code=400, detail="You cannot change your own role")
@@ -388,16 +395,31 @@ async def set_member_role(
     target = await _target_member(db, channel_id, body.user_id)
     if target is None:
         raise HTTPException(status_code=404, detail="User is not a member")
-    if target.role == ROLE_OWNER:
-        raise HTTPException(status_code=403, detail="Cannot change the owner's role")
 
-    target.role = body.role
+    if body.role == ROLE_OWNER:
+        # Ownership transfer: demote the current owner(s) to mod, promote target.
+        current_owners = (
+            await db.execute(
+                select(ChannelMember).where(
+                    ChannelMember.channel_id == channel_id,
+                    ChannelMember.role == ROLE_OWNER,
+                )
+            )
+        ).scalars().all()
+        for owner in current_owners:
+            owner.role = ROLE_MOD
+        target.role = ROLE_OWNER
+        action = "channel.transfer_owner"
+    else:
+        if target.role == ROLE_OWNER:
+            raise HTTPException(
+                status_code=403, detail="Demote via ownership transfer instead"
+            )
+        target.role = body.role
+        action = "channel.op" if body.role == ROLE_MOD else "channel.deop"
+
     record_audit(
-        db,
-        user.id,
-        "channel.op" if body.role == ROLE_MOD else "channel.deop",
-        target_user_id=body.user_id,
-        channel_id=channel_id,
+        db, user.id, action, target_user_id=body.user_id, channel_id=channel_id
     )
     await db.commit()
     await manager.publish_room(

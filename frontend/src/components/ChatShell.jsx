@@ -6,6 +6,7 @@ import Sidebar from "./Sidebar.jsx";
 import MessagePane from "./MessagePane.jsx";
 import MemberList from "./MemberList.jsx";
 import Profile from "./Profile.jsx";
+import ChannelSettings from "./ChannelSettings.jsx";
 
 // Reconcile a reaction delta ({emoji, count, user_id, added}) into a message's
 // reaction summary list. Counts come authoritatively from the server; we only
@@ -34,6 +35,7 @@ export default function ChatShell() {
   const [typing, setTyping] = useState({}); // channelId -> {userId: expiresAt}
   const [profileUserId, setProfileUserId] = useState(null);
   const [membersByChannel, setMembersByChannel] = useState({});
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Messages cached per channel so switching back is instant.
   const [msgsByChannel, setMsgsByChannel] = useState({});
@@ -142,7 +144,12 @@ export default function ChatShell() {
       setChannels((prev) =>
         prev.map((c) =>
           c.id === data.channel_id
-            ? { ...c, name: data.name, topic: data.topic }
+            ? {
+                ...c,
+                name: data.name,
+                topic: data.topic,
+                kind: data.kind ?? c.kind,
+              }
             : c
         )
       );
@@ -205,6 +212,7 @@ export default function ChatShell() {
 
   async function openChannel(id) {
     setActiveId(id);
+    setSettingsOpen(false);
     send({ type: "subscribe", channel_id: id }); // ensure live delivery
   }
 
@@ -259,10 +267,17 @@ export default function ChatShell() {
     }
   }
 
-  async function setChannelTopic(channelId, topic) {
-    await api(`/channels/${channelId}`, { method: "PATCH", body: { topic } });
+  async function updateChannel(channelId, patch) {
+    const updated = await api(`/channels/${channelId}`, {
+      method: "PATCH",
+      body: patch,
+    });
     setChannels((prev) =>
-      prev.map((c) => (c.id === channelId ? { ...c, topic } : c))
+      prev.map((c) =>
+        c.id === channelId
+          ? { ...c, name: updated.name, topic: updated.topic, kind: updated.kind }
+          : c
+      )
     );
   }
 
@@ -314,7 +329,8 @@ export default function ChatShell() {
             canDelete={canDelete}
             onDeleteChannel={() => deleteChannel(active)}
             canManage={canDelete}
-            onSetTopic={(topic) => setChannelTopic(active.id, topic)}
+            onSetTopic={(topic) => updateChannel(active.id, { topic })}
+            onOpenSettings={() => setSettingsOpen(true)}
           />
         ) : (
           <div className="center muted pane">Pick a channel to start chatting</div>
@@ -339,6 +355,24 @@ export default function ChatShell() {
         <Profile
           userId={profileUserId}
           onClose={() => setProfileUserId(null)}
+        />
+      )}
+
+      {settingsOpen && active && active.kind !== "dm" && (
+        <ChannelSettings
+          channel={active}
+          members={activeMembers}
+          myId={user.id}
+          onUpdate={(patch) => updateChannel(active.id, patch)}
+          onSetRole={(m, role) => setRole(active.id, m, role)}
+          onKick={(m) => moderate("kick", active.id, m)}
+          onBan={(m) => moderate("ban", active.id, m)}
+          onDelete={() => {
+            setSettingsOpen(false);
+            deleteChannel(active);
+          }}
+          onOpenProfile={setProfileUserId}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
     </div>

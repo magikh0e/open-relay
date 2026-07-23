@@ -598,6 +598,79 @@ button.primary:disabled {
   background: var(--bg-3);
 }
 
+/* channel settings modal */
+.settings-modal {
+  width: 460px;
+  max-width: 92vw;
+  max-height: 86vh;
+  overflow-y: auto;
+}
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-section > label,
+.settings-danger > label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.settings-members {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.settings-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px;
+  border-radius: 6px;
+}
+.settings-member:hover {
+  background: var(--bg-3);
+}
+.settings-member-main {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 120px;
+  text-align: left;
+  color: var(--text);
+}
+.settings-member-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.settings-danger {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.danger-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-weight: 600;
+}
+.danger-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
 /* reply preview above a message */
 .reply-preview {
   display: flex;
