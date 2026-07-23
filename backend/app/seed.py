@@ -205,20 +205,40 @@ async def ensure_whatsnew() -> None:
                 canonical[version] = m
 
         now = datetime.now(timezone.utc)
+        total = len(WHATSNEW_POSTS)
+
+        def slot(i: int) -> datetime:
+            """Timestamp for position i — one second apart, oldest first."""
+            return now - timedelta(seconds=total - i)
+
         for i, (version, content) in enumerate(WHATSNEW_POSTS):
             found = canonical.get(version)
             if found is None:
-                db.add(
-                    Message(
-                        channel_id=ch.id,
-                        sender_id=None,  # system authored
-                        content=content,
-                        # Stagger so ordering by created_at is deterministic.
-                        created_at=now
-                        - timedelta(seconds=len(WHATSNEW_POSTS) - i),
-                    )
+                created = Message(
+                    channel_id=ch.id,
+                    sender_id=None,  # system authored
+                    content=content,
+                    created_at=slot(i),
                 )
+                db.add(created)
+                canonical[version] = created
             elif found.content != content:
                 found.content = content
+
+        # The channel is ordered by created_at, but each note otherwise keeps
+        # the timestamp of whichever deploy first posted it — so a version
+        # backfilled later (or re-added after ageing out) sorts into the wrong
+        # place. Renormalise, but only when the order is actually wrong, so the
+        # timestamps don't churn on every boot.
+        seq = [canonical[v] for v, _ in WHATSNEW_POSTS if v in canonical]
+        out_of_order = any(
+            seq[k].created_at >= seq[k + 1].created_at
+            for k in range(len(seq) - 1)
+        )
+        if out_of_order:
+            for i, (version, _) in enumerate(WHATSNEW_POSTS):
+                msg = canonical.get(version)
+                if msg is not None:
+                    msg.created_at = slot(i)
 
         await db.commit()
