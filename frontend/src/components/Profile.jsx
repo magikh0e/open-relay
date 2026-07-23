@@ -12,6 +12,7 @@ export default function Profile({ userId, onClose, onMessage }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ display_name: "", pronouns: "", bio: "" });
   const [saving, setSaving] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
 
   const isMe = user?.id === userId;
 
@@ -19,6 +20,7 @@ export default function Profile({ userId, onClose, onMessage }) {
     let alive = true;
     setProfile(null);
     setEditing(false);
+    setPwOpen(false);
     setError("");
     api(`/users/${userId}`)
       .then((p) => {
@@ -156,12 +158,24 @@ export default function Profile({ userId, onClose, onMessage }) {
                     </button>
                   </>
                 ) : (
-                  <button className="mini" onClick={() => setEditing(true)}>
-                    Edit profile
-                  </button>
+                  <>
+                    <button className="mini" onClick={() => setEditing(true)}>
+                      Edit profile
+                    </button>
+                    <button
+                      className="mini"
+                      onClick={() => setPwOpen((o) => !o)}
+                    >
+                      {user?.has_password === false
+                        ? "Set a password"
+                        : "Change password"}
+                    </button>
+                  </>
                 )}
               </div>
             )}
+
+            {isMe && pwOpen && <PasswordForm hasPassword={user?.has_password !== false} />}
 
             {!isMe && (
               <div className="profile-actions">
@@ -177,5 +191,97 @@ export default function Profile({ userId, onClose, onMessage }) {
         )}
       </div>
     </div>
+  );
+}
+
+// Change (or first-time set) your own password. SSO accounts have no existing
+// password to confirm, so the current-password field is skipped for them.
+function PasswordForm({ hasPassword }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError("");
+    if (next !== confirm) {
+      setError("Those passwords don't match.");
+      return;
+    }
+    if (next.length < 8) {
+      setError("Use at least 8 characters.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await api("/users/me/password", {
+        method: "POST",
+        body: {
+          current_password: hasPassword ? current : null,
+          new_password: next,
+        },
+      });
+      setDone(true);
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (done) {
+    return (
+      <div className="pw-form">
+        <div className="pw-ok">
+          ✓ Password updated. Sessions already signed in on other devices stay
+          signed in.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form className="pw-form" onSubmit={submit}>
+      {hasPassword && (
+        <input
+          type="password"
+          placeholder="Current password"
+          autoComplete="current-password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+        />
+      )}
+      <input
+        type="password"
+        placeholder="New password"
+        autoComplete="new-password"
+        value={next}
+        onChange={(e) => setNext(e.target.value)}
+      />
+      <input
+        type="password"
+        placeholder="Confirm new password"
+        autoComplete="new-password"
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+      />
+      {error && <div className="error">{error}</div>}
+      <button
+        className="primary"
+        disabled={busy || !next || (hasPassword && !current)}
+      >
+        {busy ? "Saving…" : hasPassword ? "Change password" : "Set password"}
+      </button>
+      <div className="muted small">
+        This is separate from your message-encryption passphrase — changing it
+        won't affect encrypted DMs.
+      </div>
+    </form>
   );
 }

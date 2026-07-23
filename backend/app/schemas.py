@@ -51,6 +51,15 @@ class UserOut(BaseModel):
     display_name: str
     avatar_url: str
     is_admin: bool
+    # False for accounts created purely via SSO, which have no password yet —
+    # the UI asks them to set one rather than confirm an existing one.
+    has_password: bool = False
+
+
+class PasswordChange(BaseModel):
+    # Omitted only by SSO accounts that have never set a password.
+    current_password: str | None = None
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class UserPublic(BaseModel):

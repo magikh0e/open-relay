@@ -338,6 +338,18 @@ export default function ChatShell() {
     setThreadMessages([]);
   }
 
+  // Land in #whatsnew on sign-in so release notes are the first thing seen.
+  // Guarded by a ref so it only happens once — re-renders (or the user closing
+  // the channel) must not yank them back here.
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (autoOpenedRef.current || activeId || !channels.length) return;
+    const wn = channels.find((c) => c.slug === "whatsnew");
+    if (!wn) return;
+    autoOpenedRef.current = true;
+    openChannel(wn.id);
+  }, [channels, activeId]);
+
   // Closing a DM only hides it for you — nothing is deleted, and it comes back
   // if either of you sends a new message.
   async function closeDM(channel) {

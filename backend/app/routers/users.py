@@ -7,18 +7,34 @@ from ..redis_client import (
     away_map,
     clear_away,
     online_user_ids,
+    rate_limit_hit,
     set_away,
 )
 from ..sanitize import sanitize_text
-from ..schemas import AwayIn, ProfileOut, ProfileUpdate, UserOut, UserPublic
+from ..schemas import (
+    AwayIn,
+    PasswordChange,
+    ProfileOut,
+    ProfileUpdate,
+    UserOut,
+    UserPublic,
+)
+from ..security import hash_password, verify_password
 from ..ws_manager import manager
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("/me", response_model=UserOut)
-async def me(user: CurrentUser) -> User:
-    return user
+async def me(user: CurrentUser) -> UserOut:
+    return UserOut(
+        id=user.id,
+        username=user.username,
+        display_name=user.display_name,
+        avatar_url=user.avatar_url,
+        is_admin=user.is_admin,
+        has_password=bool(user.password_hash),
+    )
 
 
 @router.patch("/me", response_model=ProfileOut)
@@ -35,6 +51,36 @@ async def update_me(body: ProfileUpdate, db: DB, user: CurrentUser) -> User:
         user.pronouns = sanitize_text(body.pronouns, max_length=40)
     await db.commit()
     return user
+
+
+@router.post("/me/password", status_code=204)
+async def change_password(body: PasswordChange, db: DB, user: CurrentUser) -> None:
+    """Change (or, for SSO-only accounts, first set) your own password."""
+    # Confirming the current password is a guessable secret, so throttle it the
+    # way login is throttled rather than allowing unlimited attempts.
+    if await rate_limit_hit(f"rl:pw:{user.id}", 5, 300):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many attempts — wait a few minutes and try again.",
+        )
+
+    if user.password_hash:
+        if not body.current_password or not verify_password(
+            body.current_password, user.password_hash
+        ):
+            raise HTTPException(
+                status_code=403, detail="Current password is incorrect"
+            )
+        if body.current_password == body.new_password:
+            raise HTTPException(
+                status_code=422,
+                detail="New password must be different from the current one",
+            )
+    # Accounts with no password (signed up via SSO) are setting one for the
+    # first time; the authenticated session is the proof of identity.
+
+    user.password_hash = hash_password(body.new_password)
+    await db.commit()
 
 
 @router.get("/search", response_model=list[UserPublic])
