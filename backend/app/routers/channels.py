@@ -125,8 +125,29 @@ async def list_channels(db: DB, user: CurrentUser) -> list[ChannelOut]:
     return out
 
 
+# Non-admin users may create at most this many channels (DMs don't count).
+MAX_CHANNELS_PER_USER = 2
+
+
 @router.post("", response_model=ChannelOut, status_code=status.HTTP_201_CREATED)
 async def create_channel(body: ChannelCreate, db: DB, user: CurrentUser) -> ChannelOut:
+    if not user.is_admin:
+        created = (
+            await db.execute(
+                select(func.count())
+                .select_from(Channel)
+                .where(Channel.created_by == user.id, Channel.kind != KIND_DM)
+            )
+        ).scalar_one()
+        if created >= MAX_CHANNELS_PER_USER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    f"You can create at most {MAX_CHANNELS_PER_USER} channels. "
+                    "Delete one first, or ask an admin."
+                ),
+            )
+
     existing = (
         await db.execute(select(Channel).where(Channel.slug == body.slug))
     ).scalar_one_or_none()
