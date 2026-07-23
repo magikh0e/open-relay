@@ -113,6 +113,12 @@ async def upload_file(
 
 @router.get("/{upload_id}")
 async def serve_file(upload_id: str, db: DB):
+    # Reject anything that isn't a well-formed UUID before it reaches the DB —
+    # the UUID column raises on malformed input, which would otherwise 500.
+    try:
+        uuid.UUID(upload_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Not found")
     up = await db.get(Upload, upload_id)
     if up is None:
         raise HTTPException(status_code=404, detail="Not found")
