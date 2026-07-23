@@ -1303,3 +1303,113 @@ button.primary:disabled {
 .result:hover {
   background: var(--bg-3);
 }
+
+/* --- Responsive / mobile ------------------------------------------------- */
+/* Controls that only appear on narrow screens (back button, roster toggle). */
+.mobile-only {
+  display: none;
+}
+.back-btn {
+  font-size: 24px;
+  line-height: 1;
+  padding: 0 8px;
+  margin-right: 2px;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: inline-flex;
+  }
+
+  /* Single-pane navigation: the sidebar is the "home" view; opening a channel
+     swaps to the message pane full-width (a back button returns home). */
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .main-area {
+    display: none;
+  }
+  .shell.has-active .sidebar {
+    display: none;
+  }
+  .shell.has-active .main-area {
+    display: flex;
+  }
+
+  .pane-head {
+    padding: 10px 12px;
+  }
+  .pane-head-left {
+    align-items: center;
+    gap: 2px;
+  }
+  /* the 👥 toggle stands in for the member count on mobile */
+  .member-count-label {
+    display: none;
+  }
+  .pane-topic,
+  .pane-topic.editable {
+    max-width: 42vw;
+  }
+
+  /* Touch has no hover: tap a message to reveal its action toolbar (pinned as a
+     compact chip in the corner). Only the tapped (.active) message shows it. */
+  .msg.active .msg-actions {
+    display: flex;
+    top: 2px;
+    right: 4px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 2px;
+    opacity: 0.96;
+  }
+  .msg.active {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .msg-actions .act {
+    padding: 6px 8px;
+  }
+
+  /* Member roster becomes a right-side drawer (fixed → out of flow, so the
+     message pane keeps full width). */
+  .member-list {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 78vw;
+    max-width: 300px;
+    transform: translateX(100%);
+    transition: transform 0.22s ease;
+    z-index: 40;
+    border-left: 1px solid var(--line);
+  }
+  .shell.roster-open .member-list {
+    transform: translateX(0);
+  }
+  .roster-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 39;
+  }
+
+  /* Threads open as a full-screen overlay on mobile. */
+  .thread-pane {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    z-index: 45;
+  }
+
+  /* 16px inputs stop iOS from auto-zooming the viewport on focus. */
+  input,
+  .composer input,
+  .auth-card input {
+    font-size: 16px;
+  }
+  .composer {
+    padding: 10px 12px 14px;
+  }
+}

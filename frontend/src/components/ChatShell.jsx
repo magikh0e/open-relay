@@ -48,6 +48,7 @@ export default function ChatShell() {
   const [membersByChannel, setMembersByChannel] = useState({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [rosterOpen, setRosterOpen] = useState(false); // mobile roster drawer
   const [threadRootId, setThreadRootId] = useState(null);
   const [threadMessages, setThreadMessages] = useState([]);
 
@@ -261,6 +262,7 @@ export default function ChatShell() {
   async function openChannel(id) {
     setActiveId(id);
     setSettingsOpen(false);
+    setRosterOpen(false);
     closeThread();
     send({ type: "subscribe", channel_id: id }); // ensure live delivery
   }
@@ -576,7 +578,11 @@ export default function ChatShell() {
   }
 
   return (
-    <div className="shell">
+    <div
+      className={`shell ${activeId ? "has-active" : ""} ${
+        rosterOpen ? "roster-open" : ""
+      }`}
+    >
       <Sidebar
         channels={channels}
         dms={dms}
@@ -614,6 +620,15 @@ export default function ChatShell() {
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenThread={openThread}
             onCommand={runCommand}
+            onBack={() => {
+              setActiveId(null);
+              setRosterOpen(false);
+            }}
+            onToggleRoster={
+              active.kind !== "dm"
+                ? () => setRosterOpen((o) => !o)
+                : null
+            }
           />
         ) : (
           <div className="center muted pane">Pick a channel to start chatting</div>
@@ -627,7 +642,14 @@ export default function ChatShell() {
             onOpenProfile={setProfileUserId}
           />
         ) : active && active.kind !== "dm" ? (
-          <MemberList
+          <>
+            {rosterOpen && (
+              <div
+                className="roster-backdrop"
+                onClick={() => setRosterOpen(false)}
+              />
+            )}
+            <MemberList
             members={activeMembers}
             online={online}
             awayMap={awayMap}
@@ -638,7 +660,8 @@ export default function ChatShell() {
             onKick={(m) => moderate("kick", active.id, m)}
             onBan={(m) => moderate("ban", active.id, m)}
             onSetRole={(m, role) => setRole(active.id, m, role)}
-          />
+            />
+          </>
         ) : null}
       </div>
 

@@ -23,6 +23,8 @@ export default function MessagePane({
   onOpenSettings,
   onOpenThread,
   onCommand,
+  onBack,
+  onToggleRoster,
 }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
@@ -41,6 +43,7 @@ export default function MessagePane({
   const [pendingAttachment, setPendingAttachment] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [activeMsgId, setActiveMsgId] = useState(null); // mobile: tap to reveal actions
   const fileInputRef = useRef(null);
   const dragDepth = useRef(0);
 
@@ -331,6 +334,15 @@ export default function MessagePane({
       )}
       <header className="pane-head">
         <div className="pane-head-left">
+          {onBack && (
+            <button
+              className="act mobile-only back-btn"
+              title="Back to channels"
+              onClick={onBack}
+            >
+              ‹
+            </button>
+          )}
           <span className="pane-title">
             {isDm ? "" : channel.kind === "private" ? "🔒 " : "# "}
             {channel.name}
@@ -379,7 +391,18 @@ export default function MessagePane({
         </div>
         <div className="pane-head-right">
           {!isDm && (
-            <span className="muted small">{channel.member_count} members</span>
+            <span className="muted small member-count-label">
+              {channel.member_count} members
+            </span>
+          )}
+          {!isDm && onToggleRoster && (
+            <button
+              className="act mobile-only"
+              title="Members"
+              onClick={onToggleRoster}
+            >
+              👥
+            </button>
           )}
           {canManage && !isDm && (
             <button
@@ -420,7 +443,10 @@ export default function MessagePane({
               key={m.id}
               className={`msg ${grouped ? "grouped" : ""} ${
                 mentionsMe ? "mentions-me" : ""
-              }`}
+              } ${activeMsgId === m.id ? "active" : ""}`}
+              onClick={() =>
+                setActiveMsgId((id) => (id === m.id ? null : m.id))
+              }
             >
               {!grouped && (
                 <Avatar
