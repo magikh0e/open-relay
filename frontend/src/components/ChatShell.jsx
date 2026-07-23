@@ -9,6 +9,7 @@ import Profile from "./Profile.jsx";
 import ChannelSettings from "./ChannelSettings.jsx";
 import ThreadPane from "./ThreadPane.jsx";
 import SearchModal from "./SearchModal.jsx";
+import { APP_VERSION } from "../version.js";
 
 // Reconcile a reaction delta ({emoji, count, user_id, added}) into a message's
 // reaction summary list. Counts come authoritatively from the server; we only
@@ -310,8 +311,22 @@ export default function ChatShell() {
         return {
           ok: true,
           message:
-            "/topic <text> · /kick <user> [reason] · /ban <user> [reason] · /unban <user> · /op <user> · /deop <user> · /dm <user> · /slap <user> · /shrug [text]",
+            "/topic <text> · /kick <user> [reason] · /ban <user> [reason] · /unban <user> · /op <user> · /deop <user> · /dm <user> · /slap <user> · /shrug [text] · /version",
         };
+      case "version":
+      case "health": {
+        let server = "?";
+        try {
+          const h = await api("/health", { auth: false });
+          server = h?.version || "?";
+        } catch {
+          server = "unreachable";
+        }
+        return {
+          ok: true,
+          message: `Relay — client v${APP_VERSION} · server v${server}`,
+        };
+      }
       case "topic":
         await updateChannel(active.id, { topic: argStr });
         return { ok: true, message: argStr ? "Topic set." : "Topic cleared." };
