@@ -308,7 +308,7 @@ export default function ChatShell() {
         return {
           ok: true,
           message:
-            "/topic <text> · /kick <user> [reason] · /ban <user> [reason] · /unban <user> · /op <user> · /deop <user> · /dm <user> · /shrug [text]",
+            "/topic <text> · /kick <user> [reason] · /ban <user> [reason] · /unban <user> · /op <user> · /deop <user> · /dm <user> · /slap <user> · /shrug [text]",
         };
       case "topic":
         await updateChannel(active.id, { topic: argStr });
@@ -343,6 +343,13 @@ export default function ChatShell() {
         const u = await resolveUser(args[0]);
         await openDM(u.id);
         return { ok: true, message: `Opened DM with ${u.display_name}.` };
+      }
+      case "slap": {
+        const u = await resolveUser(args[0]);
+        await post("/messages", {
+          content: `slaps @${u.username} around a bit with a large brown trout 🐟`,
+        });
+        return { ok: true };
       }
       case "shrug": {
         const content = (argStr ? argStr + " " : "") + "¯\\_(ツ)_/¯";
