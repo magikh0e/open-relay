@@ -1,0 +1,113 @@
+from fastapi import APIRouter, HTTPException, Request, status
+from sqlalchemy import func, or_, select
+
+from ..audit import client_ip
+from ..config import settings
+from ..deps import DB
+from ..models import User
+from ..redis_client import rate_limit_hit
+from ..schemas import LoginIn, RefreshIn, RegisterIn, TokenPair, UserOut
+from ..security import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    needs_rehash,
+    verify_password,
+)
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post("/register", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
+async def register(body: RegisterIn, db: DB) -> TokenPair:
+    exists = (
+        await db.execute(
+            select(User).where(
+                or_(
+                    func.lower(User.username) == body.username.lower(),
+                    func.lower(User.email) == body.email.lower(),
+                )
+            )
+        )
+    ).scalar_one_or_none()
+    if exists:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username or email already taken",
+        )
+    user = User(
+        username=body.username,
+        email=body.email,
+        password_hash=hash_password(body.password),
+        display_name=body.display_name or body.username,
+    )
+    db.add(user)
+    await db.commit()
+    return TokenPair(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )
+
+
+@router.post("/login", response_model=TokenPair)
+async def login(body: LoginIn, request: Request, db: DB) -> TokenPair:
+    ident = body.username_or_email.strip().lower()
+
+    # Brute-force throttle: tight per-identifier limit, looser per-IP limit.
+    limit = settings.login_rate_per_min
+    ip = client_ip(request)
+    if await rate_limit_hit(f"login:id:{ident}", limit, 60) or await rate_limit_hit(
+        f"login:ip:{ip}", limit * 3, 60
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Please wait a minute and try again.",
+        )
+
+    user = (
+        await db.execute(
+            select(User).where(
+                or_(
+                    func.lower(User.username) == ident,
+                    func.lower(User.email) == ident,
+                )
+            )
+        )
+    ).scalar_one_or_none()
+    if user is None or not verify_password(body.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account disabled"
+        )
+    # Transparent hash upgrade if argon2 params changed.
+    if needs_rehash(user.password_hash):
+        user.password_hash = hash_password(body.password)
+        await db.commit()
+    return TokenPair(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )
+
+
+@router.post("/refresh", response_model=TokenPair)
+async def refresh(body: RefreshIn, db: DB) -> TokenPair:
+    user_id = decode_token(body.refresh_token, expected_type="refresh")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+    user = await db.get(User, user_id)
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+        )
+    return TokenPair(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )

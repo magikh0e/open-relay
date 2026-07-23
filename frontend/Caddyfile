@@ -1,0 +1,24 @@
+# SITE_ADDRESS controls how the site is served:
+#   - a domain (e.g. chat.example.com)  -> automatic HTTPS via Let's Encrypt
+#   - :80                               -> plain HTTP (IP-only testing)
+{$SITE_ADDRESS::80} {
+	encode gzip
+
+	# API: strip the /api prefix, then forward to the backend.
+	# (backend routes are /auth, /channels, ... with no /api prefix)
+	handle_path /api/* {
+		reverse_proxy backend:8000
+	}
+
+	# WebSocket endpoint — Caddy upgrades the connection automatically.
+	handle /ws {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else: serve the SPA, falling back to index.html for routes.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

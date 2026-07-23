@@ -1,0 +1,501 @@
+import { useEffect, useRef, useState } from "react";
+import { api } from "../api.js";
+import { useAuth } from "../auth.jsx";
+import MessageContent from "./MessageContent.jsx";
+import Avatar from "./Avatar.jsx";
+
+const QUICK_EMOJI = ["👍", "❤️", "😂", "🎉", "😮", "😢", "🔥", "✅"];
+
+export default function MessagePane({
+  channel,
+  messages,
+  typing,
+  online,
+  onSent,
+  onTyping,
+  onOpenProfile,
+  canDelete,
+  onDeleteChannel,
+  canManage,
+  onSetTopic,
+}) {
+  const { user } = useAuth();
+  const [text, setText] = useState("");
+  const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [pickerFor, setPickerFor] = useState(null); // message id showing emoji picker
+  const [replyingTo, setReplyingTo] = useState(null); // {id, sender_name, content}
+  const [editingTopic, setEditingTopic] = useState(false);
+  const [topicText, setTopicText] = useState("");
+  const [mentionResults, setMentionResults] = useState([]);
+  const [activeMention, setActiveMention] = useState(0);
+  const messagesRef = useRef(null);
+  const nearBottomRef = useRef(true);
+  const inputRef = useRef(null);
+  const lastTypingSent = useRef(0);
+
+  // Track whether the user is pinned near the bottom (vs. scrolled up reading).
+  function handleScroll() {
+    const el = messagesRef.current;
+    if (!el) return;
+    const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
+    nearBottomRef.current = gap < 120;
+  }
+
+  // Auto-scroll ONLY the messages container (never the window), and only when
+  // the user is already at the bottom — so reading history isn't interrupted.
+  useEffect(() => {
+    const el = messagesRef.current;
+    if (el && nearBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [messages.length]);
+
+  async function send(e) {
+    e.preventDefault();
+    const content = text.trim();
+    if (!content) return;
+    const replyId = replyingTo?.id || null;
+    setText("");
+    setReplyingTo(null);
+    setMentionResults([]);
+    setError("");
+    try {
+      const msg = await api(`/channels/${channel.id}/messages`, {
+        method: "POST",
+        body: { content, reply_to_id: replyId },
+      });
+      onSent(msg);
+    } catch (err) {
+      setError(err.message);
+      setText(content);
+    }
+  }
+
+  function handleChange(e) {
+    const value = e.target.value;
+    setText(value);
+    const now = Date.now();
+    if (now - lastTypingSent.current > 2000) {
+      lastTypingSent.current = now;
+      onTyping();
+    }
+    detectMention(value, e.target.selectionStart);
+  }
+
+  // @mention autocomplete: find the @token under the caret and suggest users.
+  async function detectMention(value, caret) {
+    const upto = value.slice(0, caret ?? value.length);
+    const m = /(?:^|\s)@([a-zA-Z0-9_.-]*)$/.exec(upto);
+    if (!m || m[1].length < 2) {
+      setMentionResults([]);
+      return;
+    }
+    try {
+      const users = await api(`/users/search?q=${encodeURIComponent(m[1])}`);
+      setMentionResults(users.slice(0, 6));
+      setActiveMention(0);
+    } catch {
+      setMentionResults([]);
+    }
+  }
+
+  // Keyboard control for the @mention menu: arrows to move, Enter/Tab to
+  // complete, Esc to dismiss. Falls through to normal typing when closed.
+  function onComposerKeyDown(e) {
+    if (mentionResults.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveMention((i) => (i + 1) % mentionResults.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveMention(
+        (i) => (i - 1 + mentionResults.length) % mentionResults.length
+      );
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      // Complete the mention instead of sending the message / leaving the field.
+      e.preventDefault();
+      const pick = mentionResults[activeMention] || mentionResults[0];
+      if (pick) insertMention(pick.username);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setMentionResults([]);
+    }
+  }
+
+  function insertMention(username) {
+    const input = inputRef.current;
+    const caret = input ? input.selectionStart : text.length;
+    const before = text
+      .slice(0, caret)
+      .replace(/@([a-zA-Z0-9_.-]*)$/, `@${username} `);
+    const after = text.slice(caret);
+    const next = before + after;
+    setText(next);
+    setMentionResults([]);
+    requestAnimationFrame(() => {
+      if (input) {
+        input.focus();
+        input.setSelectionRange(before.length, before.length);
+      }
+    });
+  }
+
+  // Edit / react / delete all update state via the WebSocket broadcast the
+  // server sends back, so these just fire the request and close local UI.
+  async function saveEdit(id) {
+    const content = editText.trim();
+    setEditingId(null);
+    if (!content) return;
+    try {
+      await api(`/channels/${channel.id}/messages/${id}`, {
+        method: "PATCH",
+        body: { content },
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function toggleReaction(id, emoji) {
+    setPickerFor(null);
+    try {
+      await api(`/channels/${channel.id}/messages/${id}/reactions`, {
+        method: "POST",
+        body: { emoji },
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function remove(id) {
+    try {
+      await api(`/channels/${channel.id}/messages/${id}`, { method: "DELETE" });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function saveTopic() {
+    setEditingTopic(false);
+    try {
+      await onSetTopic(topicText.trim());
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  const typingIds = Object.keys(typing);
+  const isDm = channel.kind === "dm";
+
+  return (
+    <main className="pane">
+      <header className="pane-head">
+        <div className="pane-head-left">
+          <span className="pane-title">
+            {isDm ? "" : channel.kind === "private" ? "🔒 " : "# "}
+            {channel.name}
+          </span>
+          {!isDm &&
+            (editingTopic ? (
+              <span className="topic-edit">
+                <input
+                  className="topic-input"
+                  value={topicText}
+                  autoFocus
+                  maxLength={512}
+                  placeholder="Channel topic…"
+                  onChange={(e) => setTopicText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveTopic();
+                    if (e.key === "Escape") setEditingTopic(false);
+                  }}
+                />
+                <button className="mini" onClick={saveTopic}>
+                  Save
+                </button>
+                <button
+                  className="mini ghost"
+                  onClick={() => setEditingTopic(false)}
+                >
+                  Cancel
+                </button>
+              </span>
+            ) : canManage ? (
+              <button
+                className="pane-topic editable"
+                title="Edit topic"
+                onClick={() => {
+                  setTopicText(channel.topic || "");
+                  setEditingTopic(true);
+                }}
+              >
+                {channel.topic || "Add a topic…"}
+              </button>
+            ) : (
+              channel.topic && (
+                <span className="pane-topic">{channel.topic}</span>
+              )
+            ))}
+        </div>
+        <div className="pane-head-right">
+          {!isDm && (
+            <span className="muted small">{channel.member_count} members</span>
+          )}
+          {canDelete && !isDm && (
+            <button
+              className="act danger"
+              title="Delete channel"
+              onClick={onDeleteChannel}
+            >
+              🗑
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="messages" ref={messagesRef} onScroll={handleScroll}>
+        {messages.map((m, i) => {
+          const prev = messages[i - 1];
+          const grouped =
+            prev && prev.sender_id === m.sender_id && !m.edited_at && !m.reply_to;
+          const mine = m.sender_id === user.id;
+          const editing = editingId === m.id;
+          const mentionsMe = (m.mentions || []).some((x) => x.id === user.id);
+          return (
+            <div
+              key={m.id}
+              className={`msg ${grouped ? "grouped" : ""} ${
+                mentionsMe ? "mentions-me" : ""
+              }`}
+            >
+              {!grouped && (
+                <Avatar
+                  name={m.sender?.display_name}
+                  admin={m.sender?.is_admin}
+                />
+              )}
+              <div className="msg-body">
+                {m.reply_to && (
+                  <div className="reply-preview">
+                    <span className="reply-arrow">↩</span>
+                    <span className="reply-author">
+                      {m.reply_to.sender_name}
+                    </span>
+                    <span className="reply-snippet">{m.reply_to.content}</span>
+                  </div>
+                )}
+                {!grouped && (
+                  <div className="msg-meta">
+                    <span className="msg-author">
+                      <button
+                        className="msg-author-btn"
+                        onClick={() =>
+                          m.sender_id && onOpenProfile?.(m.sender_id)
+                        }
+                      >
+                        {m.sender?.display_name || "Unknown"}
+                      </button>
+                      {online.has(m.sender_id) && (
+                        <span className="online-dot" title="online" />
+                      )}
+                    </span>
+                    <span className="msg-time">
+                      {new Date(m.created_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                )}
+
+                {editing ? (
+                  <div className="edit-row">
+                    <input
+                      className="edit-input"
+                      value={editText}
+                      autoFocus
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEdit(m.id);
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                    />
+                    <div className="edit-actions">
+                      <button className="mini" onClick={() => saveEdit(m.id)}>
+                        Save
+                      </button>
+                      <button
+                        className="mini ghost"
+                        onClick={() => setEditingId(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`msg-text ${mine ? "mine" : ""}`}>
+                    <MessageContent
+                      content={m.content}
+                      mentions={m.mentions}
+                      myId={user.id}
+                      onOpenProfile={onOpenProfile}
+                    />
+                    {m.edited_at && <span className="edited">(edited)</span>}
+                  </div>
+                )}
+
+                {/* reactions */}
+                {(m.reactions?.length > 0 || pickerFor === m.id) && (
+                  <div className="reactions">
+                    {(m.reactions || []).map((r) => (
+                      <button
+                        key={r.emoji}
+                        className={`reaction ${r.me ? "me" : ""}`}
+                        onClick={() => toggleReaction(m.id, r.emoji)}
+                        title={r.me ? "Remove your reaction" : "React"}
+                      >
+                        <span>{r.emoji}</span>
+                        <span className="rcount">{r.count}</span>
+                      </button>
+                    ))}
+                    {pickerFor === m.id && (
+                      <div className="emoji-picker">
+                        {QUICK_EMOJI.map((e) => (
+                          <button
+                            key={e}
+                            className="emoji-opt"
+                            onClick={() => toggleReaction(m.id, e)}
+                          >
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* hover actions */}
+              {!editing && (
+                <div className="msg-actions">
+                  <button
+                    className="act"
+                    title="Reply"
+                    onClick={() => {
+                      setReplyingTo({
+                        id: m.id,
+                        sender_name: m.sender?.display_name || "Unknown",
+                        content: (m.content || "").slice(0, 140),
+                      });
+                      requestAnimationFrame(() => inputRef.current?.focus());
+                    }}
+                  >
+                    ↩
+                  </button>
+                  <button
+                    className="act"
+                    title="React"
+                    onClick={() =>
+                      setPickerFor(pickerFor === m.id ? null : m.id)
+                    }
+                  >
+                    🙂
+                  </button>
+                  {mine && (
+                    <>
+                      <button
+                        className="act"
+                        title="Edit"
+                        onClick={() => {
+                          setEditingId(m.id);
+                          setEditText(m.content);
+                        }}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        className="act"
+                        title="Delete"
+                        onClick={() => remove(m.id)}
+                      >
+                        🗑
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="typing-line">
+        {typingIds.length > 0 && (
+          <span className="muted small">
+            {typingIds.length === 1 ? "Someone is" : `${typingIds.length} people are`}{" "}
+            typing…
+          </span>
+        )}
+      </div>
+
+      {error && <div className="error compose-error">{error}</div>}
+
+      {replyingTo && (
+        <div className="reply-bar">
+          <span className="reply-arrow">↩</span>
+          <span className="reply-bar-text">
+            Replying to <b>{replyingTo.sender_name}</b>
+            <span className="reply-snippet"> — {replyingTo.content}</span>
+          </span>
+          <button
+            className="link"
+            title="Cancel reply"
+            onClick={() => setReplyingTo(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {mentionResults.length > 0 && (
+        <div className="mention-menu">
+          {mentionResults.map((u, i) => (
+            <button
+              key={u.id}
+              className={`mention-opt ${i === activeMention ? "active" : ""}`}
+              onMouseEnter={() => setActiveMention(i)}
+              // onMouseDown (not onClick) so the input doesn't blur first.
+              onMouseDown={(e) => {
+                e.preventDefault();
+                insertMention(u.username);
+              }}
+            >
+              <span className="avatar sm">
+                {u.display_name[0]?.toUpperCase()}
+              </span>
+              <span>
+                {u.display_name} <span className="muted">@{u.username}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <form className="composer" onSubmit={send}>
+        <input
+          ref={inputRef}
+          placeholder={`Message ${isDm ? channel.name : "#" + channel.name}`}
+          value={text}
+          onChange={handleChange}
+          onKeyDown={onComposerKeyDown}
+        />
+        <button className="primary" disabled={!text.trim()}>
+          Send
+        </button>
+      </form>
+    </main>
+  );
+}
