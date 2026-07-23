@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, tokens } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import { useSwipe } from "../useSwipe.js";
+import { maybeCompressImage } from "../imageCompress.js";
 import MessageContent from "./MessageContent.jsx";
 import Avatar from "./Avatar.jsx";
 import GifPicker from "./GifPicker.jsx";
@@ -93,8 +94,10 @@ export default function MessagePane({
     setUploading(true);
     setError("");
     try {
+      // Shrink large images client-side before uploading (no-op for docs/GIFs).
+      const toSend = await maybeCompressImage(file);
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", toSend);
       const res = await fetch("/api/uploads", {
         method: "POST",
         headers: { Authorization: `Bearer ${tokens.access}` },
