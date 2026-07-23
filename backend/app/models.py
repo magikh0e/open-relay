@@ -43,7 +43,8 @@ class User(Base):
     )
     username: Mapped[str] = mapped_column(String(32), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255))
+    # Nullable: users who signed up via OAuth/SSO have no password.
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     display_name: Mapped[str] = mapped_column(String(64))
     avatar_url: Mapped[str] = mapped_column(String(512), default="")
     bio: Mapped[str] = mapped_column(String(500), default="")
@@ -202,6 +203,26 @@ class ChannelBan(Base):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     reason: Mapped[str] = mapped_column(String(512), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class OAuthAccount(Base):
+    """Links a user to an external identity provider (Google, Discord, ...)."""
+
+    __tablename__ = "oauth_accounts"
+    __table_args__ = (
+        UniqueConstraint(
+            "provider", "provider_account_id", name="uq_oauth_provider_account"
+        ),
+        Index("ix_oauth_user", "user_id"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, default=_uuid
+    )
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    provider: Mapped[str] = mapped_column(String(32))  # "google" | "discord"
+    provider_account_id: Mapped[str] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 

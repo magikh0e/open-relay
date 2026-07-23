@@ -20,6 +20,15 @@ class Settings(BaseSettings):
     # Login attempts allowed per identifier per minute (brute-force throttle).
     login_rate_per_min: int = 10
 
+    # --- OAuth / SSO ---
+    # Public origin the browser hits (used to build redirect URIs). Set to your
+    # domain in prod, e.g. https://fckord.magikh0e.pl
+    public_base_url: str = "http://localhost:5173"
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    discord_client_id: str = ""
+    discord_client_secret: str = ""
+
     # Dev convenience: create tables on startup instead of running migrations.
     # Leave False in production — Alembic owns the schema there.
     auto_create_tables: bool = False

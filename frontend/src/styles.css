@@ -123,6 +123,45 @@ button.primary:disabled {
   cursor: default;
 }
 
+/* SSO / OAuth buttons */
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 4px 0;
+}
+.oauth-divider::before,
+.oauth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.oauth-divider span {
+  padding: 0 10px;
+}
+.oauth-btn {
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #fff;
+  border: 1px solid var(--line);
+}
+.oauth-google {
+  background: #ffffff;
+  color: #1f1f1f;
+}
+.oauth-google:hover {
+  background: #f1f1f1;
+}
+.oauth-discord {
+  background: #5865f2;
+}
+.oauth-discord:hover {
+  background: #4a56d6;
+}
+
 /* --- Shell --------------------------------------------------------------- */
 .shell {
   display: grid;

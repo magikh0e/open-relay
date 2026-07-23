@@ -127,6 +127,8 @@ container startup.
 - [x] Channel settings panel: name/topic/privacy, role management, ownership transfer, delete
 - [ ] Role management UI (promote to mod, transfer ownership)
 - [x] Threads (Slack-style: root + replies in a side panel, flattened, live)
+- [x] SSO / OAuth sign-in (Google & Discord, verified-email linking) — see DEPLOY.md
+- [x] Slash commands (/topic /kick /ban /op /dm /slap /shrug …) + update-refresh banner
 - [ ] File & image uploads
 - [ ] Full-text message search
 - [ ] Read receipts / unread badges (`last_read_at` column already exists)

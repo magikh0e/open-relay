@@ -1,9 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
 
+const PROVIDER_LABELS = {
+  google: "Continue with Google",
+  discord: "Continue with Discord",
+};
+
 export default function Login() {
-  const { login, register } = useAuth();
+  const { login, register, authError } = useAuth();
   const [mode, setMode] = useState("login");
+  const [providers, setProviders] = useState([]);
+
+  useEffect(() => {
+    api("/auth/oauth/providers", { auth: false })
+      .then((p) => setProviders(p || []))
+      .catch(() => {});
+  }, []);
   const [form, setForm] = useState({
     username_or_email: "",
     username: "",
@@ -95,11 +108,33 @@ export default function Login() {
           onChange={set("password")}
         />
 
-        {error && <div className="error">{error}</div>}
+        {(error || authError) && (
+          <div className="error">{error || authError}</div>
+        )}
 
         <button className="primary" disabled={busy}>
           {busy ? "…" : mode === "login" ? "Log in" : "Create account"}
         </button>
+
+        {providers.length > 0 && (
+          <>
+            <div className="oauth-divider">
+              <span>or</span>
+            </div>
+            {providers.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`oauth-btn oauth-${p}`}
+                onClick={() => {
+                  window.location.href = `/api/auth/oauth/${p}/start`;
+                }}
+              >
+                {PROVIDER_LABELS[p] || `Continue with ${p}`}
+              </button>
+            ))}
+          </>
+        )}
       </form>
     </div>
   );

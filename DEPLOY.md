@@ -117,6 +117,42 @@ docker compose -f docker-compose.prod.yml down
 docker compose -f docker-compose.prod.yml down -v
 ```
 
+## SSO / OAuth (Google & Discord) — optional
+
+Sign-in with Google/Discord is built in and **auto-enables per provider** once
+you set its credentials (buttons only show for configured providers).
+
+**1. Register an OAuth app with each provider** and set the redirect URI to
+your domain + `/api/auth/oauth/<provider>/callback`:
+
+| Provider | Where | Redirect URI |
+|---|---|---|
+| Google | console.cloud.google.com → APIs & Services → Credentials → OAuth client (Web) | `https://YOUR_DOMAIN/api/auth/oauth/google/callback` |
+| Discord | discord.com/developers → your app → OAuth2 → Redirects | `https://YOUR_DOMAIN/api/auth/oauth/discord/callback` |
+
+(For local dev use `http://localhost:5173/api/auth/oauth/<provider>/callback`.)
+
+**2. Put the credentials in `.env.prod`:**
+
+```
+PUBLIC_BASE_URL=https://YOUR_DOMAIN
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+DISCORD_CLIENT_ID=...
+DISCORD_CLIENT_SECRET=...
+```
+
+`PUBLIC_BASE_URL` must match your real origin — it's used to build the redirect
+URIs and to hand tokens back to the browser. Redeploy and the SSO buttons
+appear on the login screen.
+
+**How it works / safety:** on callback the backend verifies a Redis-stored CSRF
+`state`, exchanges the code, and finds-or-creates a passwordless user. It only
+**links to an existing account on a verified-email match** (never on an
+unverified address — that would be an account-takeover vector), and tokens are
+returned to the SPA via the URL fragment (not query string, so they don't hit
+logs).
+
 ## Continuous deployment (push to deploy)
 
 The repo ships `.github/workflows/deploy.yml`. On every push/PR it builds the
