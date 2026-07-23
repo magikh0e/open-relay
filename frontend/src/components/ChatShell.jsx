@@ -275,6 +275,85 @@ export default function ChatShell() {
     }
   }
 
+  // IRC-style slash commands. Returns {ok, message} for feedback, or throws
+  // Error (message surfaced to the user). Permission is enforced server-side.
+  async function runCommand(raw) {
+    if (!active) throw new Error("Open a channel first");
+    const text = raw.slice(1).trim();
+    const sp = text.indexOf(" ");
+    const cmd = (sp === -1 ? text : text.slice(0, sp)).toLowerCase();
+    const argStr = sp === -1 ? "" : text.slice(sp + 1).trim();
+    const args = argStr ? argStr.split(/\s+/) : [];
+
+    async function resolveUser(uname) {
+      const u = (uname || "").replace(/^@/, "");
+      if (!u) throw new Error("Usage: that command needs a username");
+      const m = active && (membersByChannel[active.id] || []).find(
+        (x) => x.username.toLowerCase() === u.toLowerCase()
+      );
+      if (m) return m;
+      const res = await api(`/users/search?q=${encodeURIComponent(u)}`).catch(
+        () => []
+      );
+      const hit = res.find((x) => x.username.toLowerCase() === u.toLowerCase());
+      if (!hit) throw new Error(`No user named "${u}"`);
+      return hit;
+    }
+
+    const post = (path, body) =>
+      api(`/channels/${active.id}${path}`, { method: "POST", body });
+
+    switch (cmd) {
+      case "help":
+        return {
+          ok: true,
+          message:
+            "/topic <text> · /kick <user> [reason] · /ban <user> [reason] · /unban <user> · /op <user> · /deop <user> · /dm <user> · /shrug [text]",
+        };
+      case "topic":
+        await updateChannel(active.id, { topic: argStr });
+        return { ok: true, message: argStr ? "Topic set." : "Topic cleared." };
+      case "kick": {
+        const u = await resolveUser(args[0]);
+        await post("/kick", { user_id: u.id, reason: args.slice(1).join(" ") });
+        return { ok: true, message: `Kicked ${u.display_name}.` };
+      }
+      case "ban": {
+        const u = await resolveUser(args[0]);
+        await post("/ban", { user_id: u.id, reason: args.slice(1).join(" ") });
+        return { ok: true, message: `Banned ${u.display_name}.` };
+      }
+      case "unban": {
+        const u = await resolveUser(args[0]);
+        await post("/unban", { user_id: u.id });
+        return { ok: true, message: `Unbanned ${u.display_name}.` };
+      }
+      case "op": {
+        const u = await resolveUser(args[0]);
+        await post("/role", { user_id: u.id, role: "mod" });
+        return { ok: true, message: `${u.display_name} is now an operator.` };
+      }
+      case "deop": {
+        const u = await resolveUser(args[0]);
+        await post("/role", { user_id: u.id, role: "member" });
+        return { ok: true, message: `${u.display_name} is no longer an operator.` };
+      }
+      case "dm":
+      case "msg": {
+        const u = await resolveUser(args[0]);
+        await openDM(u.id);
+        return { ok: true, message: `Opened DM with ${u.display_name}.` };
+      }
+      case "shrug": {
+        const content = (argStr ? argStr + " " : "") + "¯\\_(ツ)_/¯";
+        await post("/messages", { content });
+        return { ok: true };
+      }
+      default:
+        throw new Error(`Unknown command: /${cmd} — try /help`);
+    }
+  }
+
   async function joinAndOpen(channel) {
     await api(`/channels/${channel.id}/join`, { method: "POST" });
     await refreshLists();
@@ -391,6 +470,7 @@ export default function ChatShell() {
             onSetTopic={(topic) => updateChannel(active.id, { topic })}
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenThread={openThread}
+            onCommand={runCommand}
           />
         ) : (
           <div className="center muted pane">Pick a channel to start chatting</div>

@@ -20,6 +20,7 @@ export default function MessagePane({
   onSetTopic,
   onOpenSettings,
   onOpenThread,
+  onCommand,
 }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
@@ -32,6 +33,7 @@ export default function MessagePane({
   const [topicText, setTopicText] = useState("");
   const [mentionResults, setMentionResults] = useState([]);
   const [activeMention, setActiveMention] = useState(0);
+  const [note, setNote] = useState(null); // slash-command feedback {ok, text}
   const messagesRef = useRef(null);
   const nearBottomRef = useRef(true);
   const inputRef = useRef(null);
@@ -54,10 +56,32 @@ export default function MessagePane({
     }
   }, [messages.length]);
 
+  useEffect(() => {
+    if (!note) return;
+    const t = setTimeout(() => setNote(null), 5000);
+    return () => clearTimeout(t);
+  }, [note]);
+
   async function send(e) {
     e.preventDefault();
     const content = text.trim();
     if (!content) return;
+
+    // Slash command (a leading "//" escapes a literal message starting with /).
+    if (content.startsWith("/") && !content.startsWith("//")) {
+      setText("");
+      setReplyingTo(null);
+      setMentionResults([]);
+      setError("");
+      try {
+        const res = await onCommand?.(content);
+        setNote({ ok: res?.ok !== false, text: res?.message || "" });
+      } catch (err) {
+        setNote({ ok: false, text: err.message });
+      }
+      return;
+    }
+
     const replyId = replyingTo?.id || null;
     setText("");
     setReplyingTo(null);
@@ -66,7 +90,10 @@ export default function MessagePane({
     try {
       const msg = await api(`/channels/${channel.id}/messages`, {
         method: "POST",
-        body: { content, reply_to_id: replyId },
+        body: {
+          content: content.startsWith("//") ? content.slice(1) : content,
+          reply_to_id: replyId,
+        },
       });
       onSent(msg);
     } catch (err) {
@@ -480,6 +507,12 @@ export default function MessagePane({
       </div>
 
       {error && <div className="error compose-error">{error}</div>}
+      {note && (
+        <div className={`cmd-note ${note.ok ? "" : "err"}`}>
+          {note.ok ? "✓ " : "⚠ "}
+          {note.text}
+        </div>
+      )}
 
       {replyingTo && (
         <div className="reply-bar">

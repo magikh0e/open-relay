@@ -907,6 +907,14 @@ button.primary:disabled {
 .compose-error {
   padding: 0 18px 4px;
 }
+.cmd-note {
+  padding: 4px 18px;
+  font-size: 13px;
+  color: var(--accent-2);
+}
+.cmd-note.err {
+  color: var(--danger);
+}
 .composer {
   display: flex;
   gap: 8px;
