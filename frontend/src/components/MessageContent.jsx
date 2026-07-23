@@ -8,20 +8,32 @@
 
 const MENTION_RE = /@([a-zA-Z0-9_.-]{3,32})/g;
 
-// Only render images from Giphy's CDN (host anchored) — never arbitrary URLs.
+// Inline images are rendered ONLY from trusted, host-anchored CDNs — never an
+// arbitrary URL. Returns a safe image URL to embed, or null.
 const GIPHY_RE =
   /^https:\/\/(?:media\d*\.giphy\.com|i\.giphy\.com)\/[^\s"'<>]+\.(?:gif|webp)(?:\?[^\s"'<>]*)?$/i;
+const IMGUR_DIRECT_RE =
+  /^https:\/\/i\.imgur\.com\/[a-zA-Z0-9]+\.(?:gif|gifv|png|jpe?g|webp)(?:\?[^\s"'<>]*)?$/i;
+const IMGUR_PAGE_RE = /^https?:\/\/(?:www\.)?imgur\.com\/([a-zA-Z0-9]{5,12})$/i;
+
+function embedUrl(text) {
+  if (GIPHY_RE.test(text)) return text;
+  if (IMGUR_DIRECT_RE.test(text)) return text.replace(/\.gifv(\?|$)/i, ".gif$1");
+  const page = text.match(IMGUR_PAGE_RE);
+  if (page) return `https://i.imgur.com/${page[1]}.jpeg`;
+  return null;
+}
 
 export default function MessageContent({ content, mentions = [], myId, onOpenProfile }) {
   if (!content) return null;
 
-  const trimmed = content.trim();
-  if (GIPHY_RE.test(trimmed)) {
+  const media = embedUrl(content.trim());
+  if (media) {
     return (
       <img
         className="gif-msg"
-        src={trimmed}
-        alt="GIF"
+        src={media}
+        alt="image"
         loading="lazy"
         referrerPolicy="no-referrer"
       />
