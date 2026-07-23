@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
+import { APP_NAME, APP_VERSION } from "../version.js";
 
 const PROVIDER_LABELS = {
   google: "Continue with Google",
@@ -54,7 +55,7 @@ export default function Login() {
   return (
     <div className="center">
       <form className="auth-card" onSubmit={submit}>
-        <h1>Chat</h1>
+        <h1>{APP_NAME}</h1>
         <div className="tabs">
           <button
             type="button"
@@ -135,6 +136,10 @@ export default function Login() {
             ))}
           </>
         )}
+
+        <div className="app-version">
+          {APP_NAME} v{APP_VERSION}
+        </div>
       </form>
     </div>
   );

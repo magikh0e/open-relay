@@ -1,7 +1,7 @@
-# Chat Service
+# Relay
 
-A self-hosted, IRC-style chat service with public & private channels, DMs,
-real-time messaging, presence, and typing indicators.
+**v1.0.0** — a self-hosted, IRC-style chat service with public & private
+channels, DMs, real-time messaging, presence, and typing indicators.
 
 - **Backend:** FastAPI + WebSockets, PostgreSQL, Redis pub/sub
 - **Frontend:** React + Vite

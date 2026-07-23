@@ -34,7 +34,9 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-app = FastAPI(title="Chat Service API", version="0.1.0", lifespan=lifespan)
+APP_VERSION = "1.0.0"
+
+app = FastAPI(title="Relay API", version=APP_VERSION, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -58,4 +60,4 @@ app.include_router(ws.router)
 
 @app.get("/health", tags=["meta"])
 async def health() -> dict:
-    return {"status": "ok"}
+    return {"status": "ok", "app": "Relay", "version": APP_VERSION}
