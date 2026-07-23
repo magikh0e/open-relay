@@ -10,6 +10,14 @@ import Profile from "./Profile.jsx";
 import ChannelSettings from "./ChannelSettings.jsx";
 import ThreadPane from "./ThreadPane.jsx";
 import SearchModal from "./SearchModal.jsx";
+import E2EESetup from "./E2EESetup.jsx";
+import {
+  decryptMessage,
+  deriveSharedKey,
+  encryptMessage,
+  importPublicKey,
+  loadCachedKey,
+} from "../e2ee.js";
 import { APP_VERSION } from "../version.js";
 
 // Reconcile a reaction delta ({emoji, count, user_id, added}) into a message's
@@ -50,6 +58,14 @@ export default function ChatShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false); // mobile roster drawer
+
+  // --- DM end-to-end encryption ---
+  const [privateKey, setPrivateKey] = useState(null);
+  // loading | none (never set up) | locked (bundle exists, key not unwrapped) | unlocked
+  const [keyStatus, setKeyStatus] = useState("loading");
+  const [e2eeModal, setE2eeModal] = useState(null); // "setup" | "unlock" | null
+  const [sharedKeys, setSharedKeys] = useState({}); // channelId -> AES key
+  const [decrypted, setDecrypted] = useState({}); // messageId -> plaintext | null
   const [threadRootId, setThreadRootId] = useState(null);
   const [threadMessages, setThreadMessages] = useState([]);
 
@@ -259,6 +275,30 @@ export default function ChatShell() {
       )
       .catch(() => {});
   }, [activeId]);
+
+  // Restore the unlocked key from this tab's session, or find out whether the
+  // user has a key bundle at all.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const cached = await loadCachedKey();
+      if (cancelled) return;
+      if (cached) {
+        setPrivateKey(cached);
+        setKeyStatus("unlocked");
+        return;
+      }
+      try {
+        await api("/keys/me");
+        if (!cancelled) setKeyStatus("locked");
+      } catch {
+        if (!cancelled) setKeyStatus("none");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function openChannel(id) {
     setActiveId(id);
@@ -537,6 +577,74 @@ export default function ChatShell() {
   // Read-only (announcement) channels: only site admins may post.
   const canPost = !!active && (!active.read_only || user.is_admin);
 
+  const isDmChannel = !!active && active.kind === "dm";
+  const dmKey = isDmChannel ? sharedKeys[active.id] : null;
+
+  // Derive the shared secret for the open DM from the peer's public key. Fails
+  // quietly when the peer hasn't enabled encryption — those DMs stay plaintext.
+  useEffect(() => {
+    if (!isDmChannel || !privateKey || sharedKeys[active.id]) return;
+    const peer = activeMembers.find((m) => m.id !== user.id);
+    if (!peer) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { public_key } = await api(`/keys/${peer.id}`);
+        const shared = await deriveSharedKey(
+          privateKey,
+          await importPublicKey(public_key)
+        );
+        if (!cancelled) {
+          setSharedKeys((prev) => ({ ...prev, [active.id]: shared }));
+        }
+      } catch {
+        /* peer has no key yet */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isDmChannel, active, privateKey, activeMembers, user.id, sharedKeys]);
+
+  // Decrypt ciphertext for display: message bodies plus any encrypted reply
+  // previews (those carry the full payload, keyed by the parent's id).
+  useEffect(() => {
+    if (!active || !dmKey) return;
+    const list = msgsByChannel[active.id] || [];
+    const todo = [];
+    for (const m of list) {
+      if (m.encrypted && decrypted[m.id] === undefined) {
+        todo.push([m.id, m.content]);
+      }
+      const rp = m.reply_to;
+      if (rp?.encrypted && decrypted[rp.id] === undefined) {
+        todo.push([rp.id, rp.content]);
+      }
+    }
+    if (!todo.length) return;
+    let cancelled = false;
+    (async () => {
+      const updates = {};
+      for (const [id, payload] of todo) {
+        try {
+          updates[id] = await decryptMessage(dmKey, payload);
+        } catch {
+          updates[id] = null; // not decryptable with this key
+        }
+      }
+      if (!cancelled) setDecrypted((prev) => ({ ...prev, ...updates }));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [active, dmKey, msgsByChannel, decrypted]);
+
+  // Given to MessagePane; returning null means "send as plaintext".
+  async function encryptForActive(text) {
+    if (!dmKey) return null;
+    return encryptMessage(dmKey, text);
+  }
+
   async function setRole(channelId, member, role) {
     try {
       await api(`/channels/${channelId}/role`, {
@@ -627,6 +735,18 @@ export default function ChatShell() {
             onOpenThread={openThread}
             onCommand={runCommand}
             canPost={canPost}
+            decrypted={decrypted}
+            encryptContent={dmKey ? encryptForActive : null}
+            e2ee={
+              isDmChannel
+                ? {
+                    ready: !!dmKey,
+                    status: keyStatus,
+                    onUnlock: () =>
+                      setE2eeModal(keyStatus === "none" ? "setup" : "unlock"),
+                  }
+                : null
+            }
             onBack={() => {
               setActiveId(null);
               setRosterOpen(false);
@@ -680,6 +800,18 @@ export default function ChatShell() {
           userId={profileUserId}
           onClose={() => setProfileUserId(null)}
           onMessage={openDM}
+        />
+      )}
+
+      {e2eeModal && (
+        <E2EESetup
+          mode={e2eeModal}
+          onClose={() => setE2eeModal(null)}
+          onUnlocked={(key) => {
+            setPrivateKey(key);
+            setKeyStatus("unlocked");
+            setE2eeModal(null);
+          }}
         />
       )}
 

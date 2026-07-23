@@ -1266,6 +1266,63 @@ button.primary:disabled {
   flex: 1;
 }
 
+/* --- DM end-to-end encryption -------------------------------------------- */
+.e2ee-badge {
+  font-size: 11px;
+  color: var(--online);
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.e2ee-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  margin: 0 18px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.e2ee-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 420px;
+  max-width: 92vw;
+}
+.e2ee-modal h3 { margin: 0; }
+.e2ee-modal input {
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  outline: none;
+}
+.e2ee-modal input:focus { border-color: var(--accent); }
+.e2ee-warn {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--danger);
+  border-radius: 6px;
+  background: var(--bg-3);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: #d3d7df;
+}
+.e2ee-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+.e2ee-actions .primary { flex: 1; }
+
 /* Read-only channel notice shown in place of the composer. */
 .readonly-note {
   padding: 14px 18px 18px;

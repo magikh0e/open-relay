@@ -24,24 +24,10 @@ WHATSNEW_TOPIC = "Release notes & product updates — react, don't reply."
 # Canonical release notes, posted with sender_id=None (system authored) — the
 # UI labels these "Relay". Keyed by version and upserted on every boot, so
 # adding an entry publishes it and editing one corrects the live post in place.
+# Keep only the LAST 3 RELEASES here: versions dropped from this list have their
+# posts pruned from the channel on the next boot.
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
-    (
-        "1.4.0",
-        "📱 v1.4.0 — Swipe navigation\n"
-        "• Swipe right on a chat to go back to your channel list\n"
-        "• Swipe left to open the member roster\n"
-        "• Swipe the roster away to close it",
-    ),
-    (
-        "1.5.0",
-        "🖼️ v1.5.0 — Faster image uploads\n"
-        "• Photos are resized and re-encoded in your browser before uploading\n"
-        "• Multi-MB phone photos now upload in a fraction of the time\n"
-        "• That re-encoding happens on your device and removes location "
-        "(EXIF/GPS) data, so it never reaches the server\n"
-        "• GIFs and documents are left untouched",
-    ),
     (
         "1.6.0",
         "📣 v1.6.0 — Announcements + tidier messages\n"
@@ -49,6 +35,25 @@ WHATSNEW_POSTS = [
         "• React to any update; replies are disabled here\n"
         "• Message actions (reply, thread, react) now sit next to the message "
         "instead of out at the far right",
+    ),
+    (
+        "1.7.0",
+        "📄 v1.7.0 — Privacy policy\n"
+        "• A plain-English privacy page now explains exactly what is stored "
+        "and who can see it — linked from the login screen\n"
+        "• It covers the awkward bits too: upload links are public, and "
+        "deleted messages are retained",
+    ),
+    (
+        "1.8.0",
+        "🔒 v1.8.0 — Encrypted direct messages\n"
+        "• DMs can now be end-to-end encrypted — turn it on from any DM\n"
+        "• Your key is generated in your browser and protected by a "
+        "passphrase; the server only ever stores scrambled text\n"
+        "• Both people need it switched on, and a lock icon shows when a "
+        "conversation is protected\n"
+        "• Forget the passphrase and those messages are unrecoverable — "
+        "there is no reset",
     ),
 ]
 
@@ -103,6 +108,13 @@ async def ensure_whatsnew() -> None:
                 )
             )
         ).scalars().all()
+
+        # Rolling window: drop system posts for versions that have aged out of
+        # WHATSNEW_POSTS, so the channel only ever shows the latest few.
+        keep = [f"v{v} —" for v, _ in WHATSNEW_POSTS]
+        for m in system_msgs:
+            if not any(marker in (m.content or "") for marker in keep):
+                await db.delete(m)
 
         now = datetime.now(timezone.utc)
         for i, (version, content) in enumerate(WHATSNEW_POSTS):

@@ -148,11 +148,13 @@ class AttachmentOut(BaseModel):
 
 
 class MessageCreate(BaseModel):
-    # Content may be empty when an upload is attached.
-    content: str = Field(default="", max_length=4000)
+    # Content may be empty when an upload is attached. Ciphertext is base64 and
+    # larger than the plaintext it replaces, hence the roomier cap.
+    content: str = Field(default="", max_length=12000)
     reply_to_id: str | None = None
     thread_root_id: str | None = None  # set to reply within a thread
     upload_id: str | None = None  # attach a previously-uploaded file
+    encrypted: bool = False  # content is client-encrypted; server must not touch it
 
 
 class MessageEdit(BaseModel):
@@ -162,7 +164,10 @@ class MessageEdit(BaseModel):
 class ReplyPreview(BaseModel):
     id: str
     sender_name: str
-    content: str  # truncated snippet of the parent message
+    content: str  # truncated snippet, or full ciphertext when encrypted
+    # Ciphertext can't be truncated server-side without breaking decryption, so
+    # encrypted previews carry the whole payload and the client shortens it.
+    encrypted: bool = False
 
 
 class ReactionIn(BaseModel):
@@ -190,6 +195,7 @@ class MessageOut(BaseModel):
     thread_root_id: str | None = None
     reply_count: int = 0  # thread reply count (for root messages)
     last_reply_at: datetime | None = None
+    encrypted: bool = False
     attachment: AttachmentOut | None = None
 
 
@@ -226,3 +232,28 @@ class AuditOut(BaseModel):
     channel_id: str | None
     detail: str
     created_at: datetime
+
+
+# --- End-to-end encryption keys -------------------------------------------
+
+class KeyBundleIn(BaseModel):
+    """Uploaded once when a user enables E2EE. The private key arrives already
+    wrapped by the client; the server stores it opaquely."""
+
+    public_key: str = Field(max_length=2000)
+    wrapped_private_key: str = Field(max_length=8000)
+    salt: str = Field(max_length=64)
+    iv: str = Field(max_length=64)
+
+
+class KeyBundleOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    public_key: str
+    wrapped_private_key: str
+    salt: str
+    iv: str
+
+
+class PublicKeyOut(BaseModel):
+    user_id: str
+    public_key: str

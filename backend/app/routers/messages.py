@@ -6,7 +6,15 @@ from sqlalchemy.orm import selectinload
 
 from ..config import settings
 from ..deps import DB, CurrentUser, require_membership
-from ..models import Channel, Message, MessageMention, MessageReaction, Upload, User
+from ..models import (
+    KIND_DM,
+    Channel,
+    Message,
+    MessageMention,
+    MessageReaction,
+    Upload,
+    User,
+)
 from ..redis_client import redis_client
 from ..sanitize import extract_mention_usernames, sanitize_text
 from ..schemas import (
@@ -114,10 +122,19 @@ def _mention_outs(users: list[User]) -> list[MentionOut]:
 
 
 def _reply_preview(parent: Message) -> ReplyPreview:
+    if parent.deleted_at:
+        content, encrypted = "(deleted message)", False
+    elif parent.encrypted:
+        # Pass the full ciphertext through — slicing it would make it
+        # undecryptable. The client truncates after decrypting.
+        content, encrypted = parent.content, True
+    else:
+        content, encrypted = parent.content[:140], False
     return ReplyPreview(
         id=parent.id,
         sender_name=(parent.sender.display_name if parent.sender else "Unknown"),
-        content="(deleted message)" if parent.deleted_at else parent.content[:140],
+        content=content,
+        encrypted=encrypted,
     )
 
 
@@ -144,6 +161,7 @@ def _msg_out(
         thread_root_id=m.thread_root_id,
         reply_count=reply_count,
         last_reply_at=last_reply_at,
+        encrypted=m.encrypted,
         attachment=attachment,
     )
 
@@ -318,7 +336,19 @@ async def post_message(
             )
         reply_preview = _reply_preview(parent)
 
-    content = sanitize_text(body.content, max_length=4000, allow_newlines=True)
+    # Encrypted messages are opaque base64: the server can't sanitize, scan for
+    # mentions, or index them, and must store the payload byte-for-byte or it
+    # won't decrypt. Restricted to DMs — that's the only surface phase one
+    # covers, and it keeps public channels searchable and moderatable.
+    if body.encrypted:
+        if channel is None or channel.kind != KIND_DM:
+            raise HTTPException(
+                status_code=400,
+                detail="Encrypted messages are only supported in direct messages",
+            )
+        content = body.content.strip()
+    else:
+        content = sanitize_text(body.content, max_length=4000, allow_newlines=True)
 
     # Validate the attachment (if any); content may be empty when a file is sent.
     attachment = None
@@ -347,11 +377,13 @@ async def post_message(
         reply_to_id=body.reply_to_id,
         thread_root_id=thread_root_id,
         upload_id=body.upload_id,
+        encrypted=body.encrypted,
     )
     db.add(msg)
     await db.flush()  # assign msg.id before storing mentions
 
-    mentioned = await _resolve_mentions(db, content)
+    # Mentions can't be parsed out of ciphertext; encrypted DMs have none.
+    mentioned = [] if body.encrypted else await _resolve_mentions(db, content)
     await _replace_mentions(db, msg.id, mentioned)
     await db.commit()
 
@@ -381,6 +413,12 @@ async def edit_message(
     if msg.sender_id != user.id:
         raise HTTPException(
             status_code=403, detail="You can only edit your own messages"
+        )
+    if msg.encrypted:
+        # Would require re-encrypting client-side; not supported in phase one
+        # (the UI hides Edit on encrypted messages).
+        raise HTTPException(
+            status_code=400, detail="Encrypted messages can't be edited"
         )
     content = sanitize_text(body.content, max_length=4000, allow_newlines=True)
     if not content:
@@ -516,5 +554,6 @@ def _msg_out_from_user(
         reply_to=reply_to,
         mentions=mentions or [],
         thread_root_id=msg.thread_root_id,
+        encrypted=msg.encrypted,
         attachment=attachment,
     )

@@ -28,6 +28,9 @@ export default function MessagePane({
   onBack,
   onToggleRoster,
   canPost = true,
+  decrypted = {},
+  encryptContent = null,
+  e2ee = null,
 }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
@@ -199,12 +202,23 @@ export default function MessagePane({
     setPendingAttachment(null);
     setError("");
     try {
+      let body = content.startsWith("//") ? content.slice(1) : content;
+      let encrypted = false;
+      // In an encryption-ready DM the ciphertext is all the server ever sees.
+      if (encryptContent && body) {
+        const sealed = await encryptContent(body);
+        if (sealed) {
+          body = sealed;
+          encrypted = true;
+        }
+      }
       const msg = await api(`/channels/${channel.id}/messages`, {
         method: "POST",
         body: {
-          content: content.startsWith("//") ? content.slice(1) : content,
+          content: body,
           reply_to_id: replyId,
           upload_id: uploadId,
+          encrypted,
         },
       });
       onSent(msg);
@@ -404,6 +418,11 @@ export default function MessagePane({
             ))}
         </div>
         <div className="pane-head-right">
+          {e2ee?.ready && (
+            <span className="e2ee-badge" title="End-to-end encrypted — the server can't read these messages">
+              🔒 Encrypted
+            </span>
+          )}
           {!isDm && (
             <span className="muted small member-count-label">
               {channel.member_count} members
@@ -442,7 +461,16 @@ export default function MessagePane({
       <div className="messages" ref={messagesRef} onScroll={handleScroll}>
         {messages.map((m, i) => {
           const prev = messages[i - 1];
-          const isAction = (m.content || "").startsWith("/me ");
+          // Encrypted bodies are ciphertext until the decrypt pass fills them
+          // in (undefined = still working, null = wrong/missing key).
+          const shown = !m.encrypted
+            ? m.content
+            : decrypted[m.id] === undefined
+            ? "🔒 Decrypting…"
+            : decrypted[m.id] === null
+            ? "🔒 Can't decrypt this message"
+            : decrypted[m.id];
+          const isAction = (shown || "").startsWith("/me ");
           const grouped =
             prev &&
             prev.sender_id === m.sender_id &&
@@ -476,7 +504,11 @@ export default function MessagePane({
                     <span className="reply-author">
                       {m.reply_to.sender_name}
                     </span>
-                    <span className="reply-snippet">{m.reply_to.content}</span>
+                    <span className="reply-snippet">
+                      {m.reply_to.encrypted
+                        ? decrypted[m.reply_to.id] ?? "🔒 Encrypted message"
+                        : m.reply_to.content}
+                    </span>
                   </div>
                 )}
                 {!grouped && !isAction && (
@@ -539,7 +571,7 @@ export default function MessagePane({
                       {authorName}
                     </button>{" "}
                     <MessageContent
-                      content={m.content.slice(4)}
+                      content={shown.slice(4)}
                       mentions={m.mentions}
                       myId={user.id}
                       onOpenProfile={onOpenProfile}
@@ -549,7 +581,7 @@ export default function MessagePane({
                 ) : (
                   <div className={`msg-text ${mine ? "mine" : ""}`}>
                     <MessageContent
-                      content={m.content}
+                      content={shown}
                       mentions={m.mentions}
                       myId={user.id}
                       onOpenProfile={onOpenProfile}
@@ -622,7 +654,7 @@ export default function MessagePane({
                         setReplyingTo({
                           id: m.id,
                           sender_name: m.sender?.display_name || "Unknown",
-                          content: (m.content || "").slice(0, 140),
+                          content: (shown || "").slice(0, 140),
                         });
                         requestAnimationFrame(() => inputRef.current?.focus());
                       }}
@@ -648,7 +680,7 @@ export default function MessagePane({
                   >
                     🙂
                   </button>
-                  {mine && (
+                  {mine && !m.encrypted && (
                     <>
                       <button
                         className="act"
@@ -731,6 +763,24 @@ export default function MessagePane({
               </span>
             </button>
           ))}
+        </div>
+      )}
+
+      {e2ee && !e2ee.ready && (
+        <div className="e2ee-bar">
+          <span>
+            🔓 Not encrypted —{" "}
+            {e2ee.status === "none"
+              ? "set up encryption to protect these messages."
+              : e2ee.status === "locked"
+              ? "unlock your key to encrypt these messages."
+              : "the other person hasn't set up encryption yet."}
+          </span>
+          {e2ee.status !== "unlocked" && (
+            <button className="mini" onClick={e2ee.onUnlock}>
+              {e2ee.status === "none" ? "Set up" : "Unlock"}
+            </button>
+          )}
         </div>
       )}
 

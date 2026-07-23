@@ -31,6 +31,9 @@ async def search(
             .where(
                 Message.channel_id.in_(my_channels),
                 Message.deleted_at.is_(None),
+                # Encrypted DMs are ciphertext here — matching against them
+                # would only ever produce noise, so leave them out.
+                Message.encrypted.is_(False),
                 Message.content.ilike(f"%{q}%"),
             )
             .order_by(Message.created_at.desc())

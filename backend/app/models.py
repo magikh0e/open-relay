@@ -59,6 +59,30 @@ class User(Base):
     )
 
 
+class UserKey(Base):
+    """End-to-end encryption key material for a user's direct messages.
+
+    The server only ever holds the PUBLIC key plus the user's private key in
+    *already-encrypted* form: the client wraps it with a key derived from a
+    passphrase (PBKDF2) that never leaves the browser. The server cannot unwrap
+    it, so it cannot read encrypted DMs.
+    """
+
+    __tablename__ = "user_keys"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    # Base64 SPKI of the ECDH P-256 public key.
+    public_key: Mapped[str] = mapped_column(Text)
+    # Base64 of the AES-GCM-wrapped PKCS8 private key (opaque to the server).
+    wrapped_private_key: Mapped[str] = mapped_column(Text)
+    # Base64 PBKDF2 salt and AES-GCM IV used to wrap the private key.
+    salt: Mapped[str] = mapped_column(String(64))
+    iv: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class Channel(Base):
     __tablename__ = "channels"
 
@@ -139,6 +163,11 @@ class Message(Base):
         ForeignKey("uploads.id", ondelete="SET NULL"), nullable=True
     )
     content: Mapped[str] = mapped_column(Text)
+    # True when `content` holds client-encrypted ciphertext (base64 iv+payload)
+    # rather than readable text. The server never decrypts these.
+    encrypted: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, index=True
     )

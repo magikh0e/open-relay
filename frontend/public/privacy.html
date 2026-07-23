@@ -127,19 +127,47 @@
         </li>
       </ul>
 
-      <h2>Messages are not end-to-end encrypted</h2>
+      <h2>Who can read your messages</h2>
       <div class="callout">
         <p style="margin:0">
-          <strong>Please read this one.</strong> Traffic between your browser
-          and the server is encrypted with HTTPS, but messages are stored in the
-          server's database as ordinary text. That means the operator of this
-          server — and anyone with access to the database or its backups — is
-          technically able to read any message, <em>including direct
-          messages</em>. Treat Relay as private-ish, not as a secure messenger.
-          Do not use it for information that would be harmful if read by the
-          server's administrator.
+          <strong>Channel messages are readable by the operator.</strong>
+          Traffic is encrypted with HTTPS in transit, but anything posted in a
+          channel is stored in the database as ordinary text. The operator of
+          this server — and anyone with access to the database or its backups —
+          can read it. Do not post anything in a channel that would be harmful
+          if read by the administrator.
         </p>
       </div>
+      <p>
+        <strong>Direct messages can be end-to-end encrypted.</strong> If you
+        turn on encryption, your browser generates a private key that never
+        leaves your device, and DMs between you and someone who has also turned
+        it on are encrypted before they are sent. The server stores only
+        scrambled text it has no way to unlock, so the operator genuinely cannot
+        read those messages. A lock icon appears at the top of the conversation
+        when this is active.
+      </p>
+      <ul>
+        <li>
+          If either person hasn't enabled encryption, that conversation stays
+          readable by the operator, just like a channel. The app tells you which
+          state you're in.
+        </li>
+        <li>
+          Your private key is protected by a passphrase only you know. <strong
+            >If you forget it, those messages cannot be recovered by anyone,
+            including the administrator.</strong
+          >
+        </li>
+        <li>
+          Encryption hides the <em>contents</em> of a message, not the fact that
+          it happened. The server still records who messaged whom and when.
+        </li>
+        <li>
+          Messages sent before encryption was enabled remain stored as ordinary
+          text.
+        </li>
+      </ul>
 
       <h2>File uploads are served from public links</h2>
       <div class="callout">
