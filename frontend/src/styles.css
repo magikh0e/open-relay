@@ -649,13 +649,82 @@ button.primary:disabled {
   background: var(--bg-3);
 }
 
-/* GIFs */
-.gif-msg {
+/* GIFs + image attachments */
+.gif-msg,
+.attachment-img {
   max-width: 320px;
   max-height: 240px;
   border-radius: 8px;
-  margin-top: 2px;
+  margin-top: 4px;
   display: block;
+}
+.attachment-link {
+  display: inline-block;
+}
+
+/* file (non-image) attachment card */
+.file-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 8px 12px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  max-width: 320px;
+}
+.file-card:hover {
+  border-color: var(--accent);
+}
+.file-icon {
+  font-size: 20px;
+}
+.file-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.file-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-size {
+  font-size: 11px;
+  color: var(--muted);
+}
+.file-dl {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+/* composer attach controls */
+.attach-btn {
+  font-size: 18px;
+  padding: 0 8px;
+  color: var(--muted);
+}
+.attach-btn:hover {
+  color: var(--accent-2);
+}
+.attach-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 18px;
+  padding: 8px 12px;
+  background: var(--bg-3);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px 6px 0 0;
+  font-size: 13px;
+}
+.attach-chip {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .composer-wrap {
   position: relative;

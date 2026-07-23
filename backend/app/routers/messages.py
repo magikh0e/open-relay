@@ -6,10 +6,11 @@ from sqlalchemy.orm import selectinload
 
 from ..config import settings
 from ..deps import DB, CurrentUser, require_membership
-from ..models import Message, MessageMention, MessageReaction, User
+from ..models import Message, MessageMention, MessageReaction, Upload, User
 from ..redis_client import redis_client
 from ..sanitize import extract_mention_usernames, sanitize_text
 from ..schemas import (
+    AttachmentOut,
     MentionOut,
     MessageCreate,
     MessageEdit,
@@ -20,6 +21,7 @@ from ..schemas import (
     UserPublic,
 )
 from ..ws_manager import manager
+from .uploads import attachment_out
 
 router = APIRouter(prefix="/channels/{channel_id}/messages", tags=["messages"])
 
@@ -126,6 +128,7 @@ def _msg_out(
     mentions: list[MentionOut] | None = None,
     reply_count: int = 0,
     last_reply_at=None,
+    attachment: AttachmentOut | None = None,
 ) -> MessageOut:
     return MessageOut(
         id=m.id,
@@ -141,6 +144,7 @@ def _msg_out(
         thread_root_id=m.thread_root_id,
         reply_count=reply_count,
         last_reply_at=last_reply_at,
+        attachment=attachment,
     )
 
 
@@ -197,6 +201,15 @@ async def _enrich(db, rows: list[Message], user_id: str) -> list[MessageOut]:
     for root_id, cnt, last_at in trows:
         counts[root_id] = (cnt, last_at)
 
+    # Attachments.
+    upload_ids = {m.upload_id for m in rows if m.upload_id}
+    uploads: dict[str, AttachmentOut] = {}
+    if upload_ids:
+        urows = (
+            await db.execute(select(Upload).where(Upload.id.in_(upload_ids)))
+        ).scalars().all()
+        uploads = {u.id: attachment_out(u) for u in urows}
+
     out = []
     for m in rows:
         cnt, last_at = counts.get(m.id, (0, None))
@@ -208,6 +221,7 @@ async def _enrich(db, rows: list[Message], user_id: str) -> list[MessageOut]:
                 mentions.get(m.id, []),
                 reply_count=cnt,
                 last_reply_at=last_at,
+                attachment=uploads.get(m.upload_id) if m.upload_id else None,
             )
         )
     return out
@@ -298,7 +312,15 @@ async def post_message(
         reply_preview = _reply_preview(parent)
 
     content = sanitize_text(body.content, max_length=4000, allow_newlines=True)
-    if not content:
+
+    # Validate the attachment (if any); content may be empty when a file is sent.
+    attachment = None
+    if body.upload_id:
+        up = await db.get(Upload, body.upload_id)
+        if up is None:
+            raise HTTPException(status_code=400, detail="Attachment not found")
+        attachment = attachment_out(up)
+    if not content and attachment is None:
         raise HTTPException(status_code=422, detail="Message cannot be empty")
 
     # Resolve the thread root (flatten: replying to a reply joins its thread).
@@ -317,6 +339,7 @@ async def post_message(
         content=content,
         reply_to_id=body.reply_to_id,
         thread_root_id=thread_root_id,
+        upload_id=body.upload_id,
     )
     db.add(msg)
     await db.flush()  # assign msg.id before storing mentions
@@ -326,7 +349,8 @@ async def post_message(
     await db.commit()
 
     out = _msg_out_from_user(
-        msg, user, reply_preview, mentions=_mention_outs(mentioned)
+        msg, user, reply_preview, mentions=_mention_outs(mentioned),
+        attachment=attachment,
     )
     # Fan out to every connected member across all workers.
     await manager.publish_room(
@@ -463,6 +487,7 @@ def _msg_out_from_user(
     user: User,
     reply_to: ReplyPreview | None = None,
     mentions: list[MentionOut] | None = None,
+    attachment: AttachmentOut | None = None,
 ) -> MessageOut:
     """Build a MessageOut when the sender is known to be `user` (no reactions
     yet, or reactions unchanged by this op)."""
@@ -484,4 +509,5 @@ def _msg_out_from_user(
         reply_to=reply_to,
         mentions=mentions or [],
         thread_root_id=msg.thread_root_id,
+        attachment=attachment,
     )

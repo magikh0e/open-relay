@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # Giphy GIF search (optional; leave blank to disable the GIF picker).
     giphy_api_key: str = ""
 
+    # File uploads.
+    max_upload_mb: int = 10
+    upload_rate_per_min: int = 5
+    upload_dir: str = "uploads"  # relative to the backend working dir
+
     # Dev convenience: create tables on startup instead of running migrations.
     # Leave False in production — Alembic owns the schema there.
     auto_create_tables: bool = False

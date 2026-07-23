@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
     Text,
     UniqueConstraint,
@@ -130,6 +131,10 @@ class Message(Base):
     thread_root_id: Mapped[str | None] = mapped_column(
         ForeignKey("messages.id", ondelete="CASCADE"), nullable=True, index=True
     )
+    # Optional file attachment.
+    upload_id: Mapped[str | None] = mapped_column(
+        ForeignKey("uploads.id", ondelete="SET NULL"), nullable=True
+    )
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, index=True
@@ -142,6 +147,25 @@ class Message(Base):
     )
 
     sender: Mapped[User | None] = relationship()
+
+
+class Upload(Base):
+    """A file uploaded by a user and (usually) attached to a message."""
+
+    __tablename__ = "uploads"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, default=_uuid
+    )
+    uploader_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    filename: Mapped[str] = mapped_column(String(255))  # original (sanitized)
+    stored_name: Mapped[str] = mapped_column(String(255))  # uuid.ext on disk
+    content_type: Mapped[str] = mapped_column(String(128))
+    size: Mapped[int] = mapped_column(Integer)
+    is_image: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
 class MessageReaction(Base):

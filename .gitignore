@@ -10,6 +10,9 @@ node_modules/
 dist/
 *.log
 
+# Uploaded files (local dev)
+backend/uploads/
+
 # Secrets / local env
 .env.prod
 .env.*.local

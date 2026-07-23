@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { api } from "../api.js";
+import { api, tokens } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import MessageContent from "./MessageContent.jsx";
 import Avatar from "./Avatar.jsx";
 import GifPicker from "./GifPicker.jsx";
+import Attachment from "./Attachment.jsx";
 
 const QUICK_EMOJI = ["👍", "❤️", "😂", "🎉", "😮", "😢", "🔥", "✅", "🤙", "🍆", "😎"];
 
@@ -37,6 +38,34 @@ export default function MessagePane({
   const [note, setNote] = useState(null); // slash-command feedback {ok, text}
   const [gifOpen, setGifOpen] = useState(false);
   const [gifEnabled, setGifEnabled] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  async function uploadFile(file) {
+    if (!file) return;
+    setUploading(true);
+    setError("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/uploads", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${tokens.access}` },
+        body: form,
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => null);
+        throw new Error(e?.detail || "Upload failed");
+      }
+      setPendingAttachment(await res.json());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   useEffect(() => {
     api("/giphy/enabled")
@@ -89,10 +118,14 @@ export default function MessagePane({
   async function send(e) {
     e.preventDefault();
     const content = text.trim();
-    if (!content) return;
+    if (!content && !pendingAttachment) return;
 
     // Slash command (a leading "//" escapes a literal message starting with /).
-    if (content.startsWith("/") && !content.startsWith("//")) {
+    if (
+      content.startsWith("/") &&
+      !content.startsWith("//") &&
+      !pendingAttachment
+    ) {
       setText("");
       setReplyingTo(null);
       setMentionResults([]);
@@ -107,9 +140,11 @@ export default function MessagePane({
     }
 
     const replyId = replyingTo?.id || null;
+    const uploadId = pendingAttachment?.id || null;
     setText("");
     setReplyingTo(null);
     setMentionResults([]);
+    setPendingAttachment(null);
     setError("");
     try {
       const msg = await api(`/channels/${channel.id}/messages`, {
@@ -117,12 +152,14 @@ export default function MessagePane({
         body: {
           content: content.startsWith("//") ? content.slice(1) : content,
           reply_to_id: replyId,
+          upload_id: uploadId,
         },
       });
       onSent(msg);
     } catch (err) {
       setError(err.message);
       setText(content);
+      setPendingAttachment(pendingAttachment);
     }
   }
 
@@ -433,6 +470,8 @@ export default function MessagePane({
                   </div>
                 )}
 
+                {m.attachment && <Attachment attachment={m.attachment} />}
+
                 {/* reactions */}
                 {(m.reactions?.length > 0 || pickerFor === m.id) && (
                   <div className="reactions">
@@ -607,7 +646,41 @@ export default function MessagePane({
         {gifOpen && (
           <GifPicker onPick={sendGif} onClose={() => setGifOpen(false)} />
         )}
+        {(pendingAttachment || uploading) && (
+          <div className="attach-bar">
+            {uploading ? (
+              <span className="muted small">Uploading…</span>
+            ) : (
+              <>
+                <span className="attach-chip">
+                  📎 {pendingAttachment.name}
+                </span>
+                <button
+                  className="link"
+                  title="Remove attachment"
+                  onClick={() => setPendingAttachment(null)}
+                >
+                  ✕
+                </button>
+              </>
+            )}
+          </div>
+        )}
         <form className="composer" onSubmit={send}>
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            onChange={(e) => uploadFile(e.target.files?.[0])}
+          />
+          <button
+            type="button"
+            className="attach-btn"
+            title="Attach a file"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            📎
+          </button>
           <input
             ref={inputRef}
             placeholder={`Message ${isDm ? channel.name : "#" + channel.name}`}
@@ -625,7 +698,10 @@ export default function MessagePane({
               GIF
             </button>
           )}
-          <button className="primary" disabled={!text.trim()}>
+          <button
+            className="primary"
+            disabled={!text.trim() && !pendingAttachment}
+          >
             Send
           </button>
         </form>

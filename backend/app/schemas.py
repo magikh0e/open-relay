@@ -137,10 +137,21 @@ class ChannelUpdate(BaseModel):
 
 # --- Messages -------------------------------------------------------------
 
+class AttachmentOut(BaseModel):
+    id: str
+    name: str
+    content_type: str
+    size: int
+    is_image: bool
+    url: str
+
+
 class MessageCreate(BaseModel):
-    content: str = Field(min_length=1, max_length=4000)
+    # Content may be empty when an upload is attached.
+    content: str = Field(default="", max_length=4000)
     reply_to_id: str | None = None
     thread_root_id: str | None = None  # set to reply within a thread
+    upload_id: str | None = None  # attach a previously-uploaded file
 
 
 class MessageEdit(BaseModel):
@@ -178,6 +189,7 @@ class MessageOut(BaseModel):
     thread_root_id: str | None = None
     reply_count: int = 0  # thread reply count (for root messages)
     last_reply_at: datetime | None = None
+    attachment: AttachmentOut | None = None
 
 
 # --- DMs ------------------------------------------------------------------

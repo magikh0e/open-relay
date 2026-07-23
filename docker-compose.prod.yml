@@ -41,6 +41,8 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
+    volumes:
+      - uploads:/app/uploads   # persist uploaded files across rebuilds
     depends_on:
       db:
         condition: service_healthy
@@ -67,3 +69,4 @@ volumes:
   redisdata:
   caddy_data:
   caddy_config:
+  uploads:

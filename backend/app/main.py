@@ -14,6 +14,7 @@ from .routers import (
     moderation,
     oauth,
     search,
+    uploads,
     users,
     ws,
 )
@@ -52,6 +53,7 @@ app.include_router(users.router)
 app.include_router(channels.router)
 app.include_router(messages.router)
 app.include_router(dms.router)
+app.include_router(uploads.router)
 app.include_router(giphy.router)
 app.include_router(search.router)
 app.include_router(moderation.router)
