@@ -6,7 +6,7 @@ manual join). Safe to run on every boot.
 """
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from .database import SessionLocal
 from .models import (
@@ -20,6 +20,10 @@ from .models import (
 
 WHATSNEW_SLUG = "whatsnew"
 WHATSNEW_TOPIC = "Release notes & product updates — react, don't reply."
+
+# Arbitrary but fixed key for the Postgres advisory lock that serialises seeding
+# across gunicorn workers.
+SEED_LOCK_KEY = 8_274_100_119
 
 # Canonical release notes, posted with sender_id=None (system authored) — the
 # UI labels these "Relay". Keyed by version and upserted on every boot, so
@@ -63,6 +67,15 @@ WHATSNEW_POSTS = [
 
 async def ensure_whatsnew() -> None:
     async with SessionLocal() as db:
+        # Every gunicorn worker runs this on startup. Without serialising them
+        # they each query, find nothing, and insert their own copy of every
+        # release note — which is how production ended up with four copies of
+        # one entry. The lock is transaction-scoped and released on commit, so
+        # later workers wait, then see the rows the first one wrote.
+        await db.execute(
+            text("SELECT pg_advisory_xact_lock(:key)"), {"key": SEED_LOCK_KEY}
+        )
+
         ch = (
             await db.execute(select(Channel).where(Channel.slug == WHATSNEW_SLUG))
         ).scalar_one_or_none()
@@ -100,31 +113,39 @@ async def ensure_whatsnew() -> None:
                     )
                 )
 
-        # Upsert the release notes, matched on the "vX.Y.Z —" marker: insert the
-        # ones that aren't posted yet, and rewrite any whose wording changed.
-        # Keyed this way, reboots never duplicate and corrections propagate.
+        # Reconcile the release notes against WHATSNEW_POSTS, matching on the
+        # "vX.Y.Z —" marker. Oldest first so that when duplicates exist we keep
+        # the original and drop the later copies.
         system_msgs = (
             await db.execute(
-                select(Message).where(
+                select(Message)
+                .where(
                     Message.channel_id == ch.id,
                     Message.sender_id.is_(None),
                 )
+                .order_by(Message.created_at)
             )
         ).scalars().all()
 
-        # Rolling window: drop system posts for versions that have aged out of
-        # WHATSNEW_POSTS, so the channel only ever shows the latest few.
-        keep = [f"v{v} —" for v, _ in WHATSNEW_POSTS]
+        markers = {version: f"v{version} —" for version, _ in WHATSNEW_POSTS}
+        canonical: dict[str, Message] = {}
         for m in system_msgs:
-            if not any(marker in (m.content or "") for marker in keep):
+            body = m.content or ""
+            version = next(
+                (v for v, marker in markers.items() if marker in body), None
+            )
+            if version is None:
+                # Aged out of the rolling window.
                 await db.delete(m)
+            elif version in canonical:
+                # A duplicate of one we're already keeping.
+                await db.delete(m)
+            else:
+                canonical[version] = m
 
         now = datetime.now(timezone.utc)
         for i, (version, content) in enumerate(WHATSNEW_POSTS):
-            marker = f"v{version} —"
-            found = next(
-                (m for m in system_msgs if marker in (m.content or "")), None
-            )
+            found = canonical.get(version)
             if found is None:
                 db.add(
                     Message(
