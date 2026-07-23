@@ -54,6 +54,22 @@ class UserOut(BaseModel):
     # False for accounts created purely via SSO, which have no password yet —
     # the UI asks them to set one rather than confirm an existing one.
     has_password: bool = False
+    # Privacy preferences, so the client can stop emitting signals immediately
+    # rather than relying on the server to drop them.
+    share_typing: bool = True
+    share_presence: bool = True
+    allow_dms: bool = True
+    discoverable: bool = True
+
+
+class PrivacySettings(BaseModel):
+    """Partial update — omitted fields are left unchanged."""
+
+    model_config = ConfigDict(from_attributes=True)
+    share_typing: bool | None = None
+    share_presence: bool | None = None
+    allow_dms: bool | None = None
+    discoverable: bool | None = None
 
 
 class PasswordChange(BaseModel):

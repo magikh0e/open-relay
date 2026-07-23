@@ -13,6 +13,7 @@ export default function Profile({ userId, onClose, onMessage }) {
   const [form, setForm] = useState({ display_name: "", pronouns: "", bio: "" });
   const [saving, setSaving] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   const isMe = user?.id === userId;
 
@@ -21,6 +22,7 @@ export default function Profile({ userId, onClose, onMessage }) {
     setProfile(null);
     setEditing(false);
     setPwOpen(false);
+    setPrivacyOpen(false);
     setError("");
     api(`/users/${userId}`)
       .then((p) => {
@@ -170,12 +172,19 @@ export default function Profile({ userId, onClose, onMessage }) {
                         ? "Set a password"
                         : "Change password"}
                     </button>
+                    <button
+                      className="mini"
+                      onClick={() => setPrivacyOpen((o) => !o)}
+                    >
+                      Privacy
+                    </button>
                   </>
                 )}
               </div>
             )}
 
             {isMe && pwOpen && <PasswordForm hasPassword={user?.has_password !== false} />}
+            {isMe && privacyOpen && <PrivacyForm />}
 
             {!isMe && (
               <div className="profile-actions">
@@ -283,5 +292,77 @@ function PasswordForm({ hasPassword }) {
         won't affect encrypted DMs.
       </div>
     </form>
+  );
+}
+
+// Privacy preferences. Each toggle is enforced on the server too, so turning
+// one off actually stops the signal being produced.
+const PRIVACY_OPTIONS = [
+  {
+    key: "share_typing",
+    label: "Show when I'm typing",
+    hint: "Others see “is typing…” while you write.",
+  },
+  {
+    key: "share_presence",
+    label: "Show when I'm online",
+    hint: "Turn off to always appear offline.",
+  },
+  {
+    key: "allow_dms",
+    label: "Allow new direct messages",
+    hint: "Existing conversations keep working either way.",
+  },
+  {
+    key: "discoverable",
+    label: "Let people find me in search",
+    hint: "You stay visible in channels you're already in.",
+  },
+];
+
+function PrivacyForm() {
+  const { user, updateUser } = useAuth();
+  const [saving, setSaving] = useState("");
+  const [error, setError] = useState("");
+
+  async function toggle(key, value) {
+    setSaving(key);
+    setError("");
+    // Optimistic: the switch should feel instant.
+    updateUser({ [key]: value });
+    try {
+      await api("/users/me/settings", { method: "PATCH", body: { [key]: value } });
+    } catch (e) {
+      updateUser({ [key]: !value }); // put it back
+      setError(e.message);
+    } finally {
+      setSaving("");
+    }
+  }
+
+  return (
+    <div className="privacy-form">
+      {PRIVACY_OPTIONS.map((opt) => {
+        const on = user?.[opt.key] !== false;
+        return (
+          <label key={opt.key} className="privacy-row">
+            <input
+              type="checkbox"
+              checked={on}
+              disabled={saving === opt.key}
+              onChange={(e) => toggle(opt.key, e.target.checked)}
+            />
+            <span className="privacy-text">
+              <span className="privacy-label">{opt.label}</span>
+              <span className="muted small">{opt.hint}</span>
+            </span>
+          </label>
+        );
+      })}
+      {error && <div className="error">{error}</div>}
+      <div className="muted small">
+        These are enforced by the server, not just hidden here.
+      </div>
+    </div>
   );
 }

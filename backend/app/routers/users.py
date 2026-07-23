@@ -14,6 +14,7 @@ from ..sanitize import sanitize_text
 from ..schemas import (
     AwayIn,
     PasswordChange,
+    PrivacySettings,
     ProfileOut,
     ProfileUpdate,
     UserOut,
@@ -34,7 +35,30 @@ async def me(user: CurrentUser) -> UserOut:
         avatar_url=user.avatar_url,
         is_admin=user.is_admin,
         has_password=bool(user.password_hash),
+        share_typing=user.share_typing,
+        share_presence=user.share_presence,
+        allow_dms=user.allow_dms,
+        discoverable=user.discoverable,
     )
+
+
+@router.get("/me/settings", response_model=PrivacySettings)
+async def get_privacy(user: CurrentUser) -> PrivacySettings:
+    return PrivacySettings.model_validate(user)
+
+
+@router.patch("/me/settings", response_model=PrivacySettings)
+async def update_privacy(
+    body: PrivacySettings, db: DB, user: CurrentUser
+) -> PrivacySettings:
+    """Update privacy preferences. Every one of these is also enforced on the
+    server, so turning a signal off actually stops it being produced rather
+    than just hiding it in this client."""
+    for field, value in body.model_dump(exclude_unset=True).items():
+        if value is not None:
+            setattr(user, field, value)
+    await db.commit()
+    return PrivacySettings.model_validate(user)
 
 
 @router.patch("/me", response_model=ProfileOut)
@@ -95,6 +119,10 @@ async def search(q: str, db: DB, user: CurrentUser) -> list[User]:
             .where(
                 User.is_active.is_(True),
                 User.id != user.id,
+                # Opted out of being found by search. They remain visible in
+                # channels they share with you — this only hides them from
+                # strangers looking them up.
+                User.discoverable.is_(True),
                 or_(User.username.ilike(like), User.display_name.ilike(like)),
             )
             .limit(20)

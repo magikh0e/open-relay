@@ -79,6 +79,13 @@ async def open_dm(body: DMCreate, db: DB, user: CurrentUser) -> ChannelOut:
     ).scalar_one_or_none()
 
     if existing is None:
+        # Only gate *new* conversations: someone who already has a DM with you
+        # can still use it, and admins can always reach people.
+        if not other.allow_dms and not user.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"{other.display_name} isn't accepting new direct messages.",
+            )
         ch = Channel(kind=KIND_DM, dm_key=key, created_by=user.id, name="")
         db.add(ch)
         await db.flush()

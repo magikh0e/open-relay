@@ -52,6 +52,25 @@ class User(Base):
     pronouns: Mapped[str] = mapped_column(String(40), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)  # site-wide moderator
+
+    # --- privacy preferences (all opt-out; enforced server-side) ---
+    # Emit "X is typing…" to others.
+    share_typing: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="true"
+    )
+    # Appear online. When false the user is never added to the presence set, so
+    # they read as offline to everyone.
+    share_presence: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="true"
+    )
+    # Let other people start a new DM with you (existing DMs keep working).
+    allow_dms: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="true"
+    )
+    # Appear in user search. Does not hide you from channels you're a member of.
+    discoverable: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="true"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     memberships: Mapped[list["ChannelMember"]] = relationship(

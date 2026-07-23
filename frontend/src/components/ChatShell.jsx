@@ -769,7 +769,12 @@ export default function ChatShell() {
                 return { ...prev, [active.id]: [...list, m] };
               })
             }
-            onTyping={() => send({ type: "typing", channel_id: active.id })}
+            onTyping={() => {
+              // Honour the preference here too, so the signal isn't even sent
+              // (the server drops it as well, but no reason to emit it).
+              if (user.share_typing === false) return;
+              send({ type: "typing", channel_id: active.id });
+            }}
             onOpenProfile={setProfileUserId}
             canDelete={canDelete}
             onDeleteChannel={() => deleteChannel(active)}

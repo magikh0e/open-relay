@@ -28,10 +28,18 @@ SEED_LOCK_KEY = 8_274_100_119
 # Canonical release notes, posted with sender_id=None (system authored) — the
 # UI labels these "Relay". Keyed by version and upserted on every boot, so
 # adding an entry publishes it and editing one corrects the live post in place.
-# Keep only the LAST 3 RELEASES here: versions dropped from this list have their
+# Keep only the LAST 6 RELEASES here: versions dropped from this list have their
 # posts pruned from the channel on the next boot.
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
+    (
+        "1.7.0",
+        "📄 v1.7.0 — Privacy policy\n"
+        "• A plain-English privacy page now explains exactly what is stored "
+        "and who can see it — linked from the login screen\n"
+        "• It covers the awkward bits too: upload links are public, and "
+        "deleted messages are retained",
+    ),
     (
         "1.8.0",
         "🔒 v1.8.0 — Encrypted direct messages\n"
@@ -55,6 +63,13 @@ WHATSNEW_POSTS = [
         "picks it up straight away instead of needing a reopen",
     ),
     (
+        "1.9.1",
+        "🧹 v1.9.1 — Tidier release notes\n"
+        "• Fixed this channel showing the same update several times over\n"
+        "• Each release now appears exactly once, however many times the "
+        "server restarts",
+    ),
+    (
         "1.10.0",
         "🔑 v1.10.0 — Change your password\n"
         "• Open your profile and hit Change password to set a new one\n"
@@ -63,6 +78,16 @@ WHATSNEW_POSTS = [
         "• Separate from your message-encryption passphrase — changing your "
         "password doesn't affect encrypted DMs\n"
         "• Signing in now drops you straight into #whatsnew",
+    ),
+    (
+        "1.11.0",
+        "🛡️ v1.11.0 — Privacy settings\n"
+        "• Open your profile and hit Privacy to control what you share\n"
+        "• Turn off typing indicators so nobody sees “is typing…”\n"
+        "• Appear offline while still using Relay normally\n"
+        "• Stop new people starting DMs with you, or hide yourself from "
+        "user search\n"
+        "• All four are enforced by the server, not just hidden in your app",
     ),
 ]
 

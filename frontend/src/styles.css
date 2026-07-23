@@ -1266,6 +1266,37 @@ button.primary:disabled {
   flex: 1;
 }
 
+/* Privacy toggles inside the profile modal. */
+.privacy-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.privacy-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+.privacy-row input[type="checkbox"] {
+  margin-top: 3px;
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.privacy-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.privacy-label {
+  font-size: 14px;
+}
+
 /* Change-password form inside the profile modal. */
 .pw-form {
   display: flex;

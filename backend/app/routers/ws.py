@@ -58,9 +58,12 @@ async def ws_endpoint(ws: WebSocket, token: str = "") -> None:
     await manager.subscribe(ws, user_topic(user.id))
 
     # Presence: only announce "online" on the first connection for this user.
-    count = await mark_online(user.id)
-    if count == 1:
-        await _broadcast_presence(channel_ids, user.id, online=True)
+    # Users who've turned presence off are never added to the online set at all,
+    # so they read as offline everywhere rather than being filtered per-viewer.
+    if user.share_presence:
+        count = await mark_online(user.id)
+        if count == 1:
+            await _broadcast_presence(channel_ids, user.id, online=True)
 
     await ws.send_text(json.dumps({"type": "ready", "data": {"user_id": user.id}}))
 
@@ -71,25 +74,31 @@ async def ws_endpoint(ws: WebSocket, token: str = "") -> None:
                 msg = json.loads(raw)
             except ValueError:
                 continue
-            await _handle_client_message(ws, user.id, msg)
+            await _handle_client_message(ws, user, msg)
     except WebSocketDisconnect:
         pass
     finally:
         await manager.unregister(ws)
-        remaining = await mark_offline(user.id)
-        if remaining == 0:
-            await _broadcast_presence(channel_ids, user.id, online=False)
+        # Mirror the connect path: if we never marked them online, don't
+        # decrement the counter (it would drift negative).
+        if user.share_presence:
+            remaining = await mark_offline(user.id)
+            if remaining == 0:
+                await _broadcast_presence(channel_ids, user.id, online=False)
 
 
-async def _handle_client_message(ws: WebSocket, user_id: str, msg: dict) -> None:
+async def _handle_client_message(ws: WebSocket, user, msg: dict) -> None:
+    user_id = user.id
     mtype = msg.get("type")
 
     if mtype == "ping":
         await ws.send_text(json.dumps({"type": "pong"}))
 
     elif mtype == "typing":
+        # Dropped for users who've turned typing indicators off, so a client
+        # that keeps sending them can't leak the signal anyway.
         channel_id = msg.get("channel_id")
-        if channel_id:
+        if channel_id and user.share_typing:
             await manager.publish_room(
                 channel_id,
                 {
