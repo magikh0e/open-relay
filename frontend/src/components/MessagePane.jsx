@@ -40,7 +40,43 @@ export default function MessagePane({
   const [gifEnabled, setGifEnabled] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef(null);
+  const dragDepth = useRef(0);
+
+  // Drag-and-drop: accept a file dropped anywhere on the pane. Only react to
+  // actual file drags (not text/selection drags), and use an enter/leave depth
+  // counter so moving over child elements doesn't flicker the overlay.
+  const isFileDrag = (e) =>
+    Array.from(e.dataTransfer?.types || []).includes("Files");
+
+  function onDragEnter(e) {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDragging(true);
+  }
+  function onDragOver(e) {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }
+  function onDragLeave(e) {
+    if (!isFileDrag(e)) return;
+    dragDepth.current -= 1;
+    if (dragDepth.current <= 0) {
+      dragDepth.current = 0;
+      setDragging(false);
+    }
+  }
+  function onDrop(e) {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragDepth.current = 0;
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadFile(file);
+  }
 
   async function uploadFile(file) {
     if (!file) return;
@@ -281,7 +317,18 @@ export default function MessagePane({
   const isDm = channel.kind === "dm";
 
   return (
-    <main className="pane">
+    <main
+      className="pane"
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      {dragging && (
+        <div className="drop-overlay">
+          <div className="drop-hint">📎 Drop file to upload</div>
+        </div>
+      )}
       <header className="pane-head">
         <div className="pane-head-left">
           <span className="pane-title">

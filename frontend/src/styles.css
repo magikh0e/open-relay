@@ -295,6 +295,30 @@ button.primary:disabled {
      content size so overflow-y actually engages instead of growing the pane. */
   min-height: 0;
   flex: 1;
+  position: relative;
+}
+
+/* drag-and-drop file overlay (pointer-events:none so the drop falls through
+   to the pane's own onDrop handler rather than landing on the overlay) */
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 2px dashed var(--accent);
+  border-radius: 8px;
+}
+.drop-hint {
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
 }
 
 /* member roster */
