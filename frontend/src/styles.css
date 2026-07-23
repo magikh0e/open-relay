@@ -598,6 +598,34 @@ button.primary:disabled {
   background: var(--bg-3);
 }
 
+/* update-available banner */
+.update-banner {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 10px 8px 16px;
+  border-radius: 999px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  font-size: 14px;
+}
+.update-banner button {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-weight: 600;
+}
+.update-banner button:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
 /* thread panel */
 .thread-pane {
   width: 340px;

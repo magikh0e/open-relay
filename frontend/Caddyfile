@@ -18,6 +18,10 @@
 	# Everything else: serve the SPA, falling back to index.html for routes.
 	handle {
 		root * /srv
+		# Don't cache the entry document or version file so new deploys are
+		# picked up immediately (hashed JS/CSS assets stay cacheable).
+		@nocache path / /index.html /version.json
+		header @nocache Cache-Control "no-cache, no-store, must-revalidate"
 		try_files {path} /index.html
 		file_server
 	}
