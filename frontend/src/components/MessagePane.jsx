@@ -321,8 +321,13 @@ export default function MessagePane({
       <div className="messages" ref={messagesRef} onScroll={handleScroll}>
         {messages.map((m, i) => {
           const prev = messages[i - 1];
+          const isAction = (m.content || "").startsWith("/me ");
           const grouped =
-            prev && prev.sender_id === m.sender_id && !m.edited_at && !m.reply_to;
+            prev &&
+            prev.sender_id === m.sender_id &&
+            !m.edited_at &&
+            !m.reply_to &&
+            !isAction;
           const mine = m.sender_id === user.id;
           const editing = editingId === m.id;
           const mentionsMe = (m.mentions || []).some((x) => x.id === user.id);
@@ -349,7 +354,7 @@ export default function MessagePane({
                     <span className="reply-snippet">{m.reply_to.content}</span>
                   </div>
                 )}
-                {!grouped && (
+                {!grouped && !isAction && (
                   <div className="msg-meta">
                     <span className="msg-author">
                       <button
@@ -396,6 +401,25 @@ export default function MessagePane({
                         Cancel
                       </button>
                     </div>
+                  </div>
+                ) : isAction ? (
+                  <div className="msg-action">
+                    <span className="action-star">✷</span>{" "}
+                    <button
+                      className="msg-author-btn"
+                      onClick={() =>
+                        m.sender_id && onOpenProfile?.(m.sender_id)
+                      }
+                    >
+                      {m.sender?.display_name || "Unknown"}
+                    </button>{" "}
+                    <MessageContent
+                      content={m.content.slice(4)}
+                      mentions={m.mentions}
+                      myId={user.id}
+                      onOpenProfile={onOpenProfile}
+                    />
+                    {m.edited_at && <span className="edited">(edited)</span>}
                   </div>
                 ) : (
                   <div className={`msg-text ${mine ? "mine" : ""}`}>

@@ -30,7 +30,14 @@ function applyReaction(reactions, data, myId) {
 }
 
 export default function ChatShell() {
-  const { user } = useAuth();
+  const { user, updateUser, logout } = useAuth();
+  const [ignored, setIgnored] = useState(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem("relay_ignored") || "[]"));
+    } catch {
+      return new Set();
+    }
+  });
   const [channels, setChannels] = useState([]);
   const [dms, setDms] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -311,7 +318,7 @@ export default function ChatShell() {
         return {
           ok: true,
           message:
-            "/topic <text> · /kick <user> [reason] · /ban <user> [reason] · /unban <user> · /op <user> · /deop <user> · /dm <user> · /slap <user> · /shrug [text] · /version",
+            "/me · /nick <name> · /join <#chan> · /part · /query <user> · /whois <user> · /names · /ignore <user> · /clear · /quit · /topic · /kick · /ban · /unban · /op · /deop · /dm · /slap · /shrug · /version",
         };
       case "version":
       case "health": {
@@ -327,6 +334,86 @@ export default function ChatShell() {
           message: `Relay — client v${APP_VERSION} · server v${server}`,
         };
       }
+      case "me": {
+        if (!argStr) throw new Error("Usage: /me <action>");
+        await post("/messages", { content: `/me ${argStr}` });
+        return { ok: true };
+      }
+      case "nick": {
+        if (!argStr) throw new Error("Usage: /nick <display name>");
+        const updated = await api("/users/me", {
+          method: "PATCH",
+          body: { display_name: argStr },
+        });
+        updateUser({ display_name: updated.display_name });
+        return { ok: true, message: `Display name set to ${updated.display_name}` };
+      }
+      case "join": {
+        const slug = (args[0] || "").replace(/^#/, "").toLowerCase();
+        if (!slug) throw new Error("Usage: /join <#channel>");
+        const ch = channels.find((c) => (c.slug || "").toLowerCase() === slug);
+        if (!ch) throw new Error(`No channel #${slug}`);
+        if (!ch.is_member) {
+          await api(`/channels/${ch.id}/join`, { method: "POST" });
+          await refreshLists();
+        }
+        openChannel(ch.id);
+        return { ok: true, message: `Joined #${ch.name}` };
+      }
+      case "part":
+      case "leave": {
+        if (active.kind === "dm")
+          throw new Error("Can't /part a direct message");
+        await api(`/channels/${active.id}/leave`, { method: "POST" });
+        setActiveId(null);
+        await refreshLists();
+        return { ok: true, message: `Left #${active.name}` };
+      }
+      case "query": {
+        const u = await resolveUser(args[0]);
+        await openDM(u.id);
+        return { ok: true, message: `Opened DM with ${u.display_name}` };
+      }
+      case "whois": {
+        const u = await resolveUser(args[0]);
+        setProfileUserId(u.id);
+        return { ok: true, message: `Opening ${u.display_name}'s profile…` };
+      }
+      case "names": {
+        const members = active ? membersByChannel[active.id] || [] : [];
+        if (!members.length) return { ok: true, message: "No members here." };
+        return {
+          ok: true,
+          message: `${members.length}: ${members
+            .map((m) => m.display_name)
+            .join(", ")}`,
+        };
+      }
+      case "ignore": {
+        const u = await resolveUser(args[0]);
+        const isIgnored = ignored.has(u.id);
+        setIgnored((prev) => {
+          const next = new Set(prev);
+          isIgnored ? next.delete(u.id) : next.add(u.id);
+          localStorage.setItem("relay_ignored", JSON.stringify([...next]));
+          return next;
+        });
+        return {
+          ok: true,
+          message: isIgnored
+            ? `No longer ignoring ${u.display_name}`
+            : `Ignoring ${u.display_name} (hiding their messages)`,
+        };
+      }
+      case "clear":
+        setMsgsByChannel((prev) => ({ ...prev, [active.id]: [] }));
+        return {
+          ok: true,
+          message: "Cleared this view locally — reload to restore history.",
+        };
+      case "quit":
+        logout();
+        return { ok: true };
       case "topic":
         await updateChannel(active.id, { topic: argStr });
         return { ok: true, message: argStr ? "Topic set." : "Topic cleared." };
@@ -477,7 +564,9 @@ export default function ChatShell() {
           <MessagePane
             key={active.id}
             channel={active}
-            messages={msgsByChannel[active.id] || []}
+            messages={(msgsByChannel[active.id] || []).filter(
+              (m) => !ignored.has(m.sender_id)
+            )}
             typing={typing[active.id] || {}}
             online={online}
             onSent={(m) =>

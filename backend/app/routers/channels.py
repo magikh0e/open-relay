@@ -26,6 +26,7 @@ from ..schemas import (
     UserPublic,
 )
 from ..ws_manager import manager
+from .messages import announce_action
 
 router = APIRouter(prefix="/channels", tags=["channels"])
 
@@ -421,7 +422,19 @@ async def set_member_role(
     record_audit(
         db, user.id, action, target_user_id=body.user_id, channel_id=channel_id
     )
-    await db.commit()
+
+    # Announce the change in the channel as an action from the actor.
+    target_user = await db.get(User, body.user_id)
+    handle = target_user.username if target_user else "user"
+    if body.role == ROLE_OWNER:
+        text = f"transferred channel ownership to @{handle}"
+    elif body.role == ROLE_MOD:
+        text = f"gave @{handle} operator status (+o)"
+    else:
+        text = f"removed operator status (-o) from @{handle}"
+    # Commits the role change + audit together with the announcement message.
+    await announce_action(db, channel_id, user, text)
+
     await manager.publish_room(
         channel_id,
         {

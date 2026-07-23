@@ -63,6 +63,21 @@ async def _reactions_for(
     }
 
 
+async def announce_action(db, channel_id: str, actor: User, text: str) -> None:
+    """Post a /me-style action message from `actor` into a channel and
+    broadcast it (commits the session, so pending changes land with it)."""
+    msg = Message(channel_id=channel_id, sender_id=actor.id, content=f"/me {text}")
+    db.add(msg)
+    await db.flush()
+    mentioned = await _resolve_mentions(db, msg.content)
+    await _replace_mentions(db, msg.id, mentioned)
+    await db.commit()
+    out = _msg_out_from_user(msg, actor, mentions=_mention_outs(mentioned))
+    await manager.publish_room(
+        channel_id, {"type": "message", "data": out.model_dump(mode="json")}
+    )
+
+
 async def _resolve_mentions(db, content: str) -> list[User]:
     """Map @usernames in content to real, active users (case-insensitive)."""
     names = extract_mention_usernames(content)

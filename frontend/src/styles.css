@@ -1114,6 +1114,19 @@ button.primary:disabled {
   word-break: break-word;
   line-height: 1.4;
 }
+.msg-action {
+  font-style: italic;
+  color: var(--accent-2);
+  line-height: 1.4;
+  word-break: break-word;
+}
+.msg-action .msg-author-btn {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+.action-star {
+  opacity: 0.7;
+}
 
 .typing-line {
   height: 20px;
