@@ -8,8 +8,25 @@
 
 const MENTION_RE = /@([a-zA-Z0-9_.-]{3,32})/g;
 
+// Only render images from Giphy's CDN (host anchored) — never arbitrary URLs.
+const GIPHY_RE =
+  /^https:\/\/(?:media\d*\.giphy\.com|i\.giphy\.com)\/[^\s"'<>]+\.(?:gif|webp)(?:\?[^\s"'<>]*)?$/i;
+
 export default function MessageContent({ content, mentions = [], myId, onOpenProfile }) {
   if (!content) return null;
+
+  const trimmed = content.trim();
+  if (GIPHY_RE.test(trimmed)) {
+    return (
+      <img
+        className="gif-msg"
+        src={trimmed}
+        alt="GIF"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
 
   // Only highlight tokens the server actually resolved to real users.
   const byName = new Map(mentions.map((m) => [m.username.toLowerCase(), m]));

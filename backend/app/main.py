@@ -9,6 +9,7 @@ from .routers import (
     auth,
     channels,
     dms,
+    giphy,
     messages,
     moderation,
     oauth,
@@ -49,6 +50,7 @@ app.include_router(users.router)
 app.include_router(channels.router)
 app.include_router(messages.router)
 app.include_router(dms.router)
+app.include_router(giphy.router)
 app.include_router(search.router)
 app.include_router(moderation.router)
 app.include_router(ws.router)

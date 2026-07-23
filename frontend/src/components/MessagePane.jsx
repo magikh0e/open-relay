@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import MessageContent from "./MessageContent.jsx";
 import Avatar from "./Avatar.jsx";
+import GifPicker from "./GifPicker.jsx";
 
 const QUICK_EMOJI = ["👍", "❤️", "😂", "🎉", "😮", "😢", "🔥", "✅", "🤙", "🍆", "😎"];
 
@@ -34,6 +35,29 @@ export default function MessagePane({
   const [mentionResults, setMentionResults] = useState([]);
   const [activeMention, setActiveMention] = useState(0);
   const [note, setNote] = useState(null); // slash-command feedback {ok, text}
+  const [gifOpen, setGifOpen] = useState(false);
+  const [gifEnabled, setGifEnabled] = useState(false);
+
+  useEffect(() => {
+    api("/giphy/enabled")
+      .then((r) => setGifEnabled(!!r?.enabled))
+      .catch(() => {});
+  }, []);
+
+  async function sendGif(url) {
+    setGifOpen(false);
+    const replyId = replyingTo?.id || null;
+    setReplyingTo(null);
+    try {
+      const msg = await api(`/channels/${channel.id}/messages`, {
+        method: "POST",
+        body: { content: url, reply_to_id: replyId },
+      });
+      onSent(msg);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
   const messagesRef = useRef(null);
   const nearBottomRef = useRef(true);
   const inputRef = useRef(null);
@@ -555,18 +579,33 @@ export default function MessagePane({
         </div>
       )}
 
-      <form className="composer" onSubmit={send}>
-        <input
-          ref={inputRef}
-          placeholder={`Message ${isDm ? channel.name : "#" + channel.name}`}
-          value={text}
-          onChange={handleChange}
-          onKeyDown={onComposerKeyDown}
-        />
-        <button className="primary" disabled={!text.trim()}>
-          Send
-        </button>
-      </form>
+      <div className="composer-wrap">
+        {gifOpen && (
+          <GifPicker onPick={sendGif} onClose={() => setGifOpen(false)} />
+        )}
+        <form className="composer" onSubmit={send}>
+          <input
+            ref={inputRef}
+            placeholder={`Message ${isDm ? channel.name : "#" + channel.name}`}
+            value={text}
+            onChange={handleChange}
+            onKeyDown={onComposerKeyDown}
+          />
+          {gifEnabled && (
+            <button
+              type="button"
+              className={`gif-btn ${gifOpen ? "active" : ""}`}
+              title="Send a GIF"
+              onClick={() => setGifOpen((o) => !o)}
+            >
+              GIF
+            </button>
+          )}
+          <button className="primary" disabled={!text.trim()}>
+            Send
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

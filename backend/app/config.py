@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     discord_client_id: str = ""
     discord_client_secret: str = ""
 
+    # Giphy GIF search (optional; leave blank to disable the GIF picker).
+    giphy_api_key: str = ""
+
     # Dev convenience: create tables on startup instead of running migrations.
     # Leave False in production — Alembic owns the schema there.
     auto_create_tables: bool = False
