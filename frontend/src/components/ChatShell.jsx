@@ -8,6 +8,7 @@ import MemberList from "./MemberList.jsx";
 import Profile from "./Profile.jsx";
 import ChannelSettings from "./ChannelSettings.jsx";
 import ThreadPane from "./ThreadPane.jsx";
+import SearchModal from "./SearchModal.jsx";
 
 // Reconcile a reaction delta ({emoji, count, user_id, added}) into a message's
 // reaction summary list. Counts come authoritatively from the server; we only
@@ -37,6 +38,7 @@ export default function ChatShell() {
   const [profileUserId, setProfileUserId] = useState(null);
   const [membersByChannel, setMembersByChannel] = useState({});
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [threadRootId, setThreadRootId] = useState(null);
   const [threadMessages, setThreadMessages] = useState([]);
 
@@ -453,6 +455,7 @@ export default function ChatShell() {
         onJoin={joinAndOpen}
         onRefresh={refreshLists}
         onOpenProfile={setProfileUserId}
+        onOpenSearch={() => setSearchOpen(true)}
       />
       <div className="main-area">
         {active ? (
@@ -510,6 +513,16 @@ export default function ChatShell() {
           userId={profileUserId}
           onClose={() => setProfileUserId(null)}
           onMessage={openDM}
+        />
+      )}
+
+      {searchOpen && (
+        <SearchModal
+          onClose={() => setSearchOpen(false)}
+          onOpen={(channelId) => {
+            setSearchOpen(false);
+            openChannel(channelId);
+          }}
         />
       )}
 

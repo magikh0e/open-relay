@@ -5,7 +5,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import Base, engine
-from .routers import auth, channels, dms, messages, moderation, oauth, users, ws
+from .routers import (
+    auth,
+    channels,
+    dms,
+    messages,
+    moderation,
+    oauth,
+    search,
+    users,
+    ws,
+)
 from .ws_manager import manager
 
 
@@ -39,6 +49,7 @@ app.include_router(users.router)
 app.include_router(channels.router)
 app.include_router(messages.router)
 app.include_router(dms.router)
+app.include_router(search.router)
 app.include_router(moderation.router)
 app.include_router(ws.router)
 

@@ -12,6 +12,7 @@ export default function Sidebar({
   onJoin,
   onRefresh,
   onOpenProfile,
+  onOpenSearch,
 }) {
   const { user, logout } = useAuth();
   const [creating, setCreating] = useState(false);
@@ -35,6 +36,10 @@ export default function Sidebar({
           ⏻
         </button>
       </div>
+
+      <button className="search-trigger" onClick={onOpenSearch}>
+        <span>🔍</span> Search messages
+      </button>
 
       <div className="section">
         <div className="section-head">

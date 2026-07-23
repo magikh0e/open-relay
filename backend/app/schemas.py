@@ -186,6 +186,19 @@ class DMCreate(BaseModel):
     user_id: str
 
 
+# --- Search ---------------------------------------------------------------
+
+class SearchResult(BaseModel):
+    id: str
+    channel_id: str
+    channel_name: str
+    channel_kind: str
+    sender: UserPublic | None = None
+    content: str
+    created_at: datetime
+    thread_root_id: str | None = None
+
+
 # --- Audit ----------------------------------------------------------------
 
 class AuditOut(BaseModel):
