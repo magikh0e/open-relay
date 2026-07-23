@@ -65,6 +65,7 @@ export default function ChatShell() {
   const [keyStatus, setKeyStatus] = useState("loading");
   const [e2eeModal, setE2eeModal] = useState(null); // "setup" | "unlock" | null
   const [sharedKeys, setSharedKeys] = useState({}); // channelId -> AES key
+  const [keyEpoch, setKeyEpoch] = useState(0); // bumped to force re-derivation
   const [decrypted, setDecrypted] = useState({}); // messageId -> plaintext | null
   const [threadRootId, setThreadRootId] = useState(null);
   const [threadMessages, setThreadMessages] = useState([]);
@@ -186,6 +187,16 @@ export default function ChatShell() {
         else delete next[data.user_id];
         return next;
       });
+    } else if (type === "keys_published") {
+      // The other person just enabled encryption. Drop any cached (or absent)
+      // shared key for that DM and nudge the derive effect so the conversation
+      // upgrades to encrypted without needing to be reopened.
+      setSharedKeys((prev) => {
+        const next = { ...prev };
+        delete next[data.channel_id];
+        return next;
+      });
+      setKeyEpoch((n) => n + 1);
     } else if (type === "dm_opened" || type === "channel_added") {
       refreshLists();
     } else if (type === "member_removed" || type === "member_updated") {
@@ -327,6 +338,18 @@ export default function ChatShell() {
     setThreadMessages([]);
   }
 
+  // Closing a DM only hides it for you — nothing is deleted, and it comes back
+  // if either of you sends a new message.
+  async function closeDM(channel) {
+    try {
+      await api(`/dms/${channel.id}`, { method: "DELETE" });
+      setActiveId((prev) => (prev === channel.id ? null : prev));
+      await refreshLists();
+    } catch (e) {
+      window.alert(e.message);
+    }
+  }
+
   async function openDM(userId) {
     try {
       const dm = await api("/dms", { method: "POST", body: { user_id: userId } });
@@ -371,7 +394,7 @@ export default function ChatShell() {
         return {
           ok: true,
           message:
-            "/me · /nick <name> · /join <#chan> · /part · /invite <user> · /query <user> · /whois <user> · /names · /away [msg] · /back · /ignore <user> · /clear · /quit · /topic · /kick · /ban · /unban · /op · /deop · /dm · /slap · /shrug · /version",
+            "/me · /nick <name> · /join <#chan> · /part · /close (hide a DM) · /invite <user> · /query <user> · /whois <user> · /names · /away [msg] · /back · /ignore <user> · /clear · /quit · /topic · /kick · /ban · /unban · /op · /deop · /dm · /slap · /shrug · /version",
         };
       case "version":
       case "health": {
@@ -413,10 +436,18 @@ export default function ChatShell() {
         openChannel(ch.id);
         return { ok: true, message: `Joined #${ch.name}` };
       }
+      case "close":
       case "part":
       case "leave": {
-        if (active.kind === "dm")
-          throw new Error("Can't /part a direct message");
+        // In a DM there's nothing to leave — close it (hides it for you only).
+        if (active.kind === "dm") {
+          const who = active.name;
+          await closeDM(active);
+          return {
+            ok: true,
+            message: `Closed your DM with ${who}. It'll reappear if either of you writes again.`,
+          };
+        }
         await api(`/channels/${active.id}/leave`, { method: "POST" });
         setActiveId(null);
         await refreshLists();
@@ -604,7 +635,7 @@ export default function ChatShell() {
     return () => {
       cancelled = true;
     };
-  }, [isDmChannel, active, privateKey, activeMembers, user.id, sharedKeys]);
+  }, [isDmChannel, active, privateKey, activeMembers, user.id, sharedKeys, keyEpoch]);
 
   // Decrypt ciphertext for display: message bodies plus any encrypted reply
   // previews (those carry the full payload, keyed by the parent's id).
@@ -707,6 +738,7 @@ export default function ChatShell() {
         onRefresh={refreshLists}
         onOpenProfile={setProfileUserId}
         onOpenSearch={() => setSearchOpen(true)}
+        onCloseDm={closeDM}
       />
       <div className="main-area">
         {active ? (

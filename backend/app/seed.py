@@ -29,14 +29,6 @@ WHATSNEW_TOPIC = "Release notes & product updates — react, don't reply."
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.6.0",
-        "📣 v1.6.0 — Announcements + tidier messages\n"
-        "• New read-only #whatsnew channel for release notes — you're reading it\n"
-        "• React to any update; replies are disabled here\n"
-        "• Message actions (reply, thread, react) now sit next to the message "
-        "instead of out at the far right",
-    ),
-    (
         "1.7.0",
         "📄 v1.7.0 — Privacy policy\n"
         "• A plain-English privacy page now explains exactly what is stored "
@@ -54,6 +46,17 @@ WHATSNEW_POSTS = [
         "conversation is protected\n"
         "• Forget the passphrase and those messages are unrecoverable — "
         "there is no reset",
+    ),
+    (
+        "1.9.0",
+        "✖️ v1.9.0 — Closing DMs + smoother encryption\n"
+        "• You can now close a direct message: hover it in the sidebar and hit "
+        "✕, or type /close\n"
+        "• Closing only hides it for you — nothing is deleted, and it comes "
+        "back if either of you writes again\n"
+        "• /part now closes a DM instead of complaining that you can't leave one\n"
+        "• When the other person switches encryption on, your open conversation "
+        "picks it up straight away instead of needing a reopen",
     ),
 ]
 

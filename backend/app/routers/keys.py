@@ -9,8 +9,9 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
 from ..deps import DB, CurrentUser
-from ..models import UserKey
+from ..models import KIND_DM, Channel, ChannelMember, UserKey
 from ..schemas import KeyBundleIn, KeyBundleOut, PublicKeyOut
+from ..ws_manager import manager
 
 router = APIRouter(prefix="/keys", tags=["keys"])
 
@@ -41,6 +42,25 @@ async def set_my_keys(
     row.iv = body.iv
     await db.commit()
     await db.refresh(row)
+
+    # Tell anyone with an open DM to this user that a key now exists, so their
+    # client can derive the shared secret without reopening the conversation.
+    dm_ids = (
+        await db.execute(
+            select(Channel.id)
+            .join(ChannelMember, ChannelMember.channel_id == Channel.id)
+            .where(Channel.kind == KIND_DM, ChannelMember.user_id == user.id)
+        )
+    ).scalars().all()
+    for cid in dm_ids:
+        await manager.publish_room(
+            cid,
+            {
+                "type": "keys_published",
+                "data": {"channel_id": cid, "user_id": user.id},
+            },
+        )
+
     return KeyBundleOut.model_validate(row)
 
 

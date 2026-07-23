@@ -127,6 +127,12 @@ class ChannelMember(Base):
     role: Mapped[str] = mapped_column(String(16), default=ROLE_MEMBER)
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     last_read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    # One-sided "close this DM": hides it from your sidebar without leaving the
+    # channel or touching history. Cleared automatically when a new message
+    # arrives, so closing is dismissal rather than a block.
+    hidden: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
 
     channel: Mapped[Channel] = relationship(back_populates="members")
     user: Mapped[User] = relationship(back_populates="memberships")

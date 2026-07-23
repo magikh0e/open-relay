@@ -1266,6 +1266,33 @@ button.primary:disabled {
   flex: 1;
 }
 
+/* DM rows: reveal a close (hide) button on hover. */
+.dm-row-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.dm-row-wrap .row {
+  flex: 1;
+  min-width: 0;
+}
+.dm-close {
+  position: absolute;
+  right: 6px;
+  opacity: 0;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.dm-row-wrap:hover .dm-close {
+  opacity: 1;
+}
+.dm-close:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
 /* --- DM end-to-end encryption -------------------------------------------- */
 .e2ee-badge {
   font-size: 11px;

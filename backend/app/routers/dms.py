@@ -29,7 +29,11 @@ async def list_dms(db: DB, user: CurrentUser) -> list[ChannelOut]:
         await db.execute(
             select(Channel)
             .join(ChannelMember, ChannelMember.channel_id == Channel.id)
-            .where(Channel.kind == KIND_DM, ChannelMember.user_id == user.id)
+            .where(
+                Channel.kind == KIND_DM,
+                ChannelMember.user_id == user.id,
+                ChannelMember.hidden.is_(False),
+            )
             .order_by(Channel.created_at.desc())
         )
     ).scalars().all()
@@ -87,6 +91,16 @@ async def open_dm(body: DMCreate, db: DB, user: CurrentUser) -> ChannelOut:
         )
     else:
         ch = existing
+        # Reopening a DM you'd closed brings it back to your sidebar.
+        await db.execute(
+            ChannelMember.__table__.update()
+            .where(
+                ChannelMember.channel_id == ch.id,
+                ChannelMember.user_id == user.id,
+            )
+            .values(hidden=False)
+        )
+        await db.commit()
 
     return ChannelOut(
         id=ch.id,
@@ -99,3 +113,28 @@ async def open_dm(body: DMCreate, db: DB, user: CurrentUser) -> ChannelOut:
         member_count=2,
         is_member=True,
     )
+
+
+@router.delete("/{channel_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def close_dm(channel_id: str, db: DB, user: CurrentUser) -> None:
+    """Close a DM: hides it from your sidebar only.
+
+    Nothing is deleted and the other person is unaffected — the conversation
+    reappears for you if either of you sends a new message, or if you open it
+    again from their profile.
+    """
+    ch = await db.get(Channel, channel_id)
+    if ch is None or ch.kind != KIND_DM:
+        raise HTTPException(status_code=404, detail="Direct message not found")
+    member = (
+        await db.execute(
+            select(ChannelMember).where(
+                ChannelMember.channel_id == channel_id,
+                ChannelMember.user_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if member is None:
+        raise HTTPException(status_code=404, detail="Direct message not found")
+    member.hidden = True
+    await db.commit()

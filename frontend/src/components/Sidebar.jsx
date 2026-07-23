@@ -13,6 +13,7 @@ export default function Sidebar({
   onRefresh,
   onOpenProfile,
   onOpenSearch,
+  onCloseDm,
 }) {
   const { user, logout } = useAuth();
   const [creating, setCreating] = useState(false);
@@ -89,15 +90,28 @@ export default function Sidebar({
         {dms.map((c) => {
           // DM "topic" carries the other user's username; name is display name.
           return (
-            <button
-              key={c.id}
-              className={`row ${c.id === activeId ? "active" : ""}`}
-              onClick={() => onOpen(c.id)}
-            >
-              <span className="dot-name">
-                <span className="row-name">{c.name}</span>
-              </span>
-            </button>
+            <div key={c.id} className="dm-row-wrap">
+              <button
+                className={`row ${c.id === activeId ? "active" : ""}`}
+                onClick={() => onOpen(c.id)}
+              >
+                <span className="dot-name">
+                  <span className="row-name">{c.name}</span>
+                </span>
+              </button>
+              {onCloseDm && (
+                <button
+                  className="dm-close"
+                  title="Close this conversation (hides it for you only)"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCloseDm(c);
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           );
         })}
       </div>

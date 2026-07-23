@@ -9,6 +9,7 @@ from ..deps import DB, CurrentUser, require_membership
 from ..models import (
     KIND_DM,
     Channel,
+    ChannelMember,
     Message,
     MessageMention,
     MessageReaction,
@@ -381,6 +382,18 @@ async def post_message(
     )
     db.add(msg)
     await db.flush()  # assign msg.id before storing mentions
+
+    # A new DM message un-closes the conversation for anyone who hid it, so
+    # "close" behaves as dismissal rather than a permanent block.
+    if channel is not None and channel.kind == KIND_DM:
+        await db.execute(
+            ChannelMember.__table__.update()
+            .where(
+                ChannelMember.channel_id == channel_id,
+                ChannelMember.hidden.is_(True),
+            )
+            .values(hidden=False)
+        )
 
     # Mentions can't be parsed out of ciphertext; encrypted DMs have none.
     mentioned = [] if body.encrypted else await _resolve_mentions(db, content)
