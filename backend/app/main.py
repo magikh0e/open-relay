@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import Base, engine
+from .redis_client import reset_presence
 from .seed import ensure_whatsnew
 from .routers import (
     auth,
@@ -32,13 +33,17 @@ async def lifespan(app: FastAPI):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
     await ensure_whatsnew()
+    # Presence entries are leases; clearing on boot drops anything stranded by
+    # the previous process and migrates the pre-1.12 hash-shaped key. Live
+    # sessions re-register on their next heartbeat.
+    await reset_presence()
     await manager.start()
     yield
     await manager.stop()
     await engine.dispose()
 
 
-APP_VERSION = "1.11.0"
+APP_VERSION = "1.12.0"
 
 app = FastAPI(title="Relay API", version=APP_VERSION, lifespan=lifespan)
 

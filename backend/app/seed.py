@@ -28,10 +28,35 @@ SEED_LOCK_KEY = 8_274_100_119
 # Canonical release notes, posted with sender_id=None (system authored) — the
 # UI labels these "Relay". Keyed by version and upserted on every boot, so
 # adding an entry publishes it and editing one corrects the live post in place.
-# Keep only the LAST 6 RELEASES here: versions dropped from this list have their
-# posts pruned from the channel on the next boot.
+# Keep only the LAST 10 RELEASES here: versions dropped from this list have
+# their posts pruned from the channel on the next boot.
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
+    (
+        "1.6.0",
+        "📣 v1.6.0 — Announcements + tidier messages\n"
+        "• New read-only #whatsnew channel for release notes — you're reading it\n"
+        "• React to any update; replies are disabled here\n"
+        "• Message actions (reply, thread, react) now sit next to the message "
+        "instead of out at the far right",
+    ),
+    (
+        "1.6.1",
+        "📍 v1.6.1 — Location data stripped from every photo\n"
+        "• Photos are always re-encoded in your browser now, even when that "
+        "doesn't make the file smaller\n"
+        "• Previously a small or already-optimised image was sent untouched, "
+        "so its EXIF/GPS tags went with it\n"
+        "• GIFs and documents still upload as-is",
+    ),
+    (
+        "1.6.2",
+        "🚫 v1.6.2 — Uploads refuse rather than leak\n"
+        "• If an image can't be re-encoded in your browser, the upload is now "
+        "refused instead of quietly sending the original\n"
+        "• Stops a photo's location data reaching the server in the rare cases "
+        "where processing fails",
+    ),
     (
         "1.7.0",
         "📄 v1.7.0 — Privacy policy\n"
@@ -88,6 +113,15 @@ WHATSNEW_POSTS = [
         "• Stop new people starting DMs with you, or hide yourself from "
         "user search\n"
         "• All four are enforced by the server, not just hidden in your app",
+    ),
+    (
+        "1.12.0",
+        "🟢 v1.12.0 — Accurate online status\n"
+        "• Fixed people showing as online long after they'd gone\n"
+        "• Every server update used to strand whoever was connected at the "
+        "time, and they'd stay lit up indefinitely\n"
+        "• Online status is now a short lease your app keeps renewing, so it "
+        "corrects itself within a minute no matter what",
     ),
 ]
 

@@ -7,6 +7,7 @@ routers/messages.py) and arrive back here via the Redis bridge; this socket
 also carries lightweight ephemeral signals like typing indicators.
 """
 import json
+import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import select
@@ -14,7 +15,13 @@ from sqlalchemy import select
 from ..database import SessionLocal
 from ..deps import resolve_token_user
 from ..models import ChannelMember
-from ..redis_client import mark_offline, mark_online, room_topic, user_topic
+from ..redis_client import (
+    mark_offline,
+    mark_online,
+    room_topic,
+    touch_presence,
+    user_topic,
+)
 from ..ws_manager import manager
 
 router = APIRouter()
@@ -51,6 +58,9 @@ async def ws_endpoint(ws: WebSocket, token: str = "") -> None:
 
     await ws.accept()
     channel_ids = await _member_channel_ids(user.id)
+    # Identifies this specific socket so presence is per-connection rather than
+    # a shared counter that can drift.
+    conn_id = uuid.uuid4().hex
 
     # Subscribe to each channel room + this user's personal topic.
     for cid in channel_ids:
@@ -61,7 +71,7 @@ async def ws_endpoint(ws: WebSocket, token: str = "") -> None:
     # Users who've turned presence off are never added to the online set at all,
     # so they read as offline everywhere rather than being filtered per-viewer.
     if user.share_presence:
-        count = await mark_online(user.id)
+        count = await mark_online(user.id, conn_id)
         if count == 1:
             await _broadcast_presence(channel_ids, user.id, online=True)
 
@@ -74,7 +84,7 @@ async def ws_endpoint(ws: WebSocket, token: str = "") -> None:
                 msg = json.loads(raw)
             except ValueError:
                 continue
-            await _handle_client_message(ws, user, msg)
+            await _handle_client_message(ws, user, conn_id, msg)
     except WebSocketDisconnect:
         pass
     finally:
@@ -82,16 +92,21 @@ async def ws_endpoint(ws: WebSocket, token: str = "") -> None:
         # Mirror the connect path: if we never marked them online, don't
         # decrement the counter (it would drift negative).
         if user.share_presence:
-            remaining = await mark_offline(user.id)
+            remaining = await mark_offline(user.id, conn_id)
             if remaining == 0:
                 await _broadcast_presence(channel_ids, user.id, online=False)
 
 
-async def _handle_client_message(ws: WebSocket, user, msg: dict) -> None:
+async def _handle_client_message(
+    ws: WebSocket, user, conn_id: str, msg: dict
+) -> None:
     user_id = user.id
     mtype = msg.get("type")
 
     if mtype == "ping":
+        # The heartbeat doubles as the presence lease renewal.
+        if user.share_presence:
+            await touch_presence(user_id, conn_id)
         await ws.send_text(json.dumps({"type": "pong"}))
 
     elif mtype == "typing":
