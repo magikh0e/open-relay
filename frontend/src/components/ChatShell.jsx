@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import { useSocket } from "../useSocket.js";
+import { useSwipe } from "../useSwipe.js";
 import Sidebar from "./Sidebar.jsx";
 import MessagePane from "./MessagePane.jsx";
 import MemberList from "./MemberList.jsx";
@@ -577,6 +578,9 @@ export default function ChatShell() {
     }
   }
 
+  // Swipe right on the open roster drawer (or its backdrop) closes it.
+  const rosterSwipe = useSwipe({ onSwipeRight: () => setRosterOpen(false) });
+
   return (
     <div
       className={`shell ${activeId ? "has-active" : ""} ${
@@ -647,9 +651,11 @@ export default function ChatShell() {
               <div
                 className="roster-backdrop"
                 onClick={() => setRosterOpen(false)}
+                {...rosterSwipe}
               />
             )}
             <MemberList
+              bind={rosterSwipe}
             members={activeMembers}
             online={online}
             awayMap={awayMap}

@@ -13,6 +13,7 @@ export default function MemberList({
   onKick,
   onBan,
   onSetRole,
+  bind,
 }) {
   const onlineMembers = members.filter((m) => online.has(m.id));
   const offlineMembers = members.filter((m) => !online.has(m.id));
@@ -30,7 +31,7 @@ export default function MemberList({
   };
 
   return (
-    <aside className="member-list">
+    <aside className="member-list" {...bind}>
       <Section
         title={`Online — ${onlineMembers.length}`}
         members={onlineMembers}

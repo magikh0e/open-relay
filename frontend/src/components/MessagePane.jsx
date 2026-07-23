@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, tokens } from "../api.js";
 import { useAuth } from "../auth.jsx";
+import { useSwipe } from "../useSwipe.js";
 import MessageContent from "./MessageContent.jsx";
 import Avatar from "./Avatar.jsx";
 import GifPicker from "./GifPicker.jsx";
@@ -80,6 +81,12 @@ export default function MessagePane({
     const file = e.dataTransfer.files?.[0];
     if (file) uploadFile(file);
   }
+
+  // Mobile swipe navigation: right → back to channel list, left → open roster.
+  const swipe = useSwipe({
+    onSwipeRight: onBack || undefined,
+    onSwipeLeft: onToggleRoster || undefined,
+  });
 
   async function uploadFile(file) {
     if (!file) return;
@@ -326,6 +333,7 @@ export default function MessagePane({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      {...swipe}
     >
       {dragging && (
         <div className="drop-overlay">
