@@ -140,6 +140,7 @@ class ChannelUpdate(BaseModel):
 class MessageCreate(BaseModel):
     content: str = Field(min_length=1, max_length=4000)
     reply_to_id: str | None = None
+    thread_root_id: str | None = None  # set to reply within a thread
 
 
 class MessageEdit(BaseModel):
@@ -174,6 +175,9 @@ class MessageOut(BaseModel):
     reactions: list[ReactionSummary] = []
     reply_to: ReplyPreview | None = None
     mentions: list[MentionOut] = []
+    thread_root_id: str | None = None
+    reply_count: int = 0  # thread reply count (for root messages)
+    last_reply_at: datetime | None = None
 
 
 # --- DMs ------------------------------------------------------------------

@@ -598,6 +598,74 @@ button.primary:disabled {
   background: var(--bg-3);
 }
 
+/* thread panel */
+.thread-pane {
+  width: 340px;
+  flex-shrink: 0;
+  background: var(--bg-2);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.thread-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 700;
+}
+.thread-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px;
+}
+.thread-msg {
+  display: flex;
+  gap: 10px;
+  padding: 6px 0;
+}
+.thread-msg.root {
+  padding-bottom: 10px;
+}
+.thread-msg-body {
+  min-width: 0;
+}
+.thread-divider {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 10px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.thread-pane .composer {
+  padding: 12px 14px 16px;
+}
+
+/* thread indicator under a root message */
+.thread-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  color: var(--accent-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.thread-indicator:hover {
+  border-color: var(--accent);
+}
+.thread-last {
+  color: var(--muted);
+  font-weight: 400;
+}
+
 /* channel settings modal */
 .settings-modal {
   width: 460px;

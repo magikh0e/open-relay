@@ -19,6 +19,7 @@ export default function MessagePane({
   canManage,
   onSetTopic,
   onOpenSettings,
+  onOpenThread,
 }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
@@ -386,6 +387,26 @@ export default function MessagePane({
                     )}
                   </div>
                 )}
+
+                {/* thread indicator (root messages with replies) */}
+                {m.reply_count > 0 && (
+                  <button
+                    className="thread-indicator"
+                    onClick={() => onOpenThread?.(m)}
+                  >
+                    🧵 {m.reply_count}{" "}
+                    {m.reply_count === 1 ? "reply" : "replies"}
+                    {m.last_reply_at && (
+                      <span className="thread-last">
+                        {" · last "}
+                        {new Date(m.last_reply_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    )}
+                  </button>
+                )}
               </div>
 
               {/* hover actions */}
@@ -404,6 +425,13 @@ export default function MessagePane({
                     }}
                   >
                     ↩
+                  </button>
+                  <button
+                    className="act"
+                    title="Reply in thread"
+                    onClick={() => onOpenThread?.(m)}
+                  >
+                    🧵
                   </button>
                   <button
                     className="act"

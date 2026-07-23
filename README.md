@@ -126,7 +126,7 @@ container startup.
 - [x] Channel operators (IRC-style op = mod role): owner/admin grant/revoke, editable topic
 - [x] Channel settings panel: name/topic/privacy, role management, ownership transfer, delete
 - [ ] Role management UI (promote to mod, transfer ownership)
-- [ ] Threads (grouped reply views)
+- [x] Threads (Slack-style: root + replies in a side panel, flattened, live)
 - [ ] File & image uploads
 - [ ] Full-text message search
 - [ ] Read receipts / unread badges (`last_read_at` column already exists)

@@ -124,6 +124,11 @@ class Message(Base):
     reply_to_id: Mapped[str | None] = mapped_column(
         ForeignKey("messages.id", ondelete="SET NULL"), nullable=True
     )
+    # Thread grouping: NULL for top-level messages; for a thread reply, the id
+    # of the root message it hangs under (flattened — one level deep).
+    thread_root_id: Mapped[str | None] = mapped_column(
+        ForeignKey("messages.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, index=True

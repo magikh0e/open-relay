@@ -7,6 +7,7 @@ import MessagePane from "./MessagePane.jsx";
 import MemberList from "./MemberList.jsx";
 import Profile from "./Profile.jsx";
 import ChannelSettings from "./ChannelSettings.jsx";
+import ThreadPane from "./ThreadPane.jsx";
 
 // Reconcile a reaction delta ({emoji, count, user_id, added}) into a message's
 // reaction summary list. Counts come authoritatively from the server; we only
@@ -36,11 +37,15 @@ export default function ChatShell() {
   const [profileUserId, setProfileUserId] = useState(null);
   const [membersByChannel, setMembersByChannel] = useState({});
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [threadRootId, setThreadRootId] = useState(null);
+  const [threadMessages, setThreadMessages] = useState([]);
 
   // Messages cached per channel so switching back is instant.
   const [msgsByChannel, setMsgsByChannel] = useState({});
   const activeIdRef = useRef(activeId);
   activeIdRef.current = activeId;
+  const threadRootIdRef = useRef(threadRootId);
+  threadRootIdRef.current = threadRootId;
 
   const refreshLists = useCallback(async () => {
     const [chs, dmList, on] = await Promise.all([
@@ -61,11 +66,37 @@ export default function ChatShell() {
   const onEvent = useCallback((msg) => {
     const { type, data } = msg;
     if (type === "message") {
-      setMsgsByChannel((prev) => {
-        const list = prev[data.channel_id] || [];
-        if (list.some((m) => m.id === data.id)) return prev; // dedupe echo
-        return { ...prev, [data.channel_id]: [...list, data] };
-      });
+      if (data.thread_root_id) {
+        // Thread reply: bump the root's count in the main timeline, and append
+        // to the open thread — never show it in the main channel list.
+        setMsgsByChannel((prev) => {
+          const list = prev[data.channel_id];
+          if (!list) return prev;
+          return {
+            ...prev,
+            [data.channel_id]: list.map((m) =>
+              m.id === data.thread_root_id
+                ? {
+                    ...m,
+                    reply_count: (m.reply_count || 0) + 1,
+                    last_reply_at: data.created_at,
+                  }
+                : m
+            ),
+          };
+        });
+        if (threadRootIdRef.current === data.thread_root_id) {
+          setThreadMessages((prev) =>
+            prev.some((m) => m.id === data.id) ? prev : [...prev, data]
+          );
+        }
+      } else {
+        setMsgsByChannel((prev) => {
+          const list = prev[data.channel_id] || [];
+          if (list.some((m) => m.id === data.id)) return prev; // dedupe echo
+          return { ...prev, [data.channel_id]: [...list, data] };
+        });
+      }
     } else if (type === "message_deleted") {
       setMsgsByChannel((prev) => {
         const next = { ...prev };
@@ -74,37 +105,34 @@ export default function ChatShell() {
         }
         return next;
       });
+      setThreadMessages((prev) => prev.filter((m) => m.id !== data.id));
     } else if (type === "message_edited") {
+      const patch = (m) =>
+        m.id === data.id
+          ? {
+              ...m,
+              content: data.content,
+              edited_at: data.edited_at,
+              mentions: data.mentions ?? m.mentions,
+            }
+          : m;
       setMsgsByChannel((prev) => {
         const list = prev[data.channel_id];
         if (!list) return prev;
-        return {
-          ...prev,
-          [data.channel_id]: list.map((m) =>
-            m.id === data.id
-              ? {
-                  ...m,
-                  content: data.content,
-                  edited_at: data.edited_at,
-                  mentions: data.mentions ?? m.mentions,
-                }
-              : m
-          ),
-        };
+        return { ...prev, [data.channel_id]: list.map(patch) };
       });
+      setThreadMessages((prev) => prev.map(patch));
     } else if (type === "reaction") {
+      const patch = (m) =>
+        m.id === data.message_id
+          ? { ...m, reactions: applyReaction(m.reactions || [], data, user.id) }
+          : m;
       setMsgsByChannel((prev) => {
         const list = prev[data.channel_id];
         if (!list) return prev;
-        return {
-          ...prev,
-          [data.channel_id]: list.map((m) =>
-            m.id === data.message_id
-              ? { ...m, reactions: applyReaction(m.reactions || [], data, user.id) }
-              : m
-          ),
-        };
+        return { ...prev, [data.channel_id]: list.map(patch) };
       });
+      setThreadMessages((prev) => prev.map(patch));
     } else if (type === "presence") {
       setOnline((prev) => {
         const next = new Set(prev);
@@ -213,7 +241,27 @@ export default function ChatShell() {
   async function openChannel(id) {
     setActiveId(id);
     setSettingsOpen(false);
+    closeThread();
     send({ type: "subscribe", channel_id: id }); // ensure live delivery
+  }
+
+  async function openThread(m) {
+    const rootId = m.thread_root_id || m.id;
+    setThreadRootId(rootId);
+    setThreadMessages([]);
+    try {
+      const rows = await api(
+        `/channels/${m.channel_id}/messages/${rootId}/thread`
+      );
+      setThreadMessages(rows);
+    } catch {
+      setThreadRootId(null);
+    }
+  }
+
+  function closeThread() {
+    setThreadRootId(null);
+    setThreadMessages([]);
   }
 
   async function joinAndOpen(channel) {
@@ -331,12 +379,20 @@ export default function ChatShell() {
             canManage={canDelete}
             onSetTopic={(topic) => updateChannel(active.id, { topic })}
             onOpenSettings={() => setSettingsOpen(true)}
+            onOpenThread={openThread}
           />
         ) : (
           <div className="center muted pane">Pick a channel to start chatting</div>
         )}
 
-        {active && active.kind !== "dm" && (
+        {threadRootId && active ? (
+          <ThreadPane
+            channel={active}
+            messages={threadMessages}
+            onClose={closeThread}
+            onOpenProfile={setProfileUserId}
+          />
+        ) : active && active.kind !== "dm" ? (
           <MemberList
             members={activeMembers}
             online={online}
@@ -348,7 +404,7 @@ export default function ChatShell() {
             onBan={(m) => moderate("ban", active.id, m)}
             onSetRole={(m, role) => setRole(active.id, m, role)}
           />
-        )}
+        ) : null}
       </div>
 
       {profileUserId && (

@@ -109,6 +109,8 @@ def _msg_out(
     reactions: list[ReactionSummary] | None = None,
     reply_to: ReplyPreview | None = None,
     mentions: list[MentionOut] | None = None,
+    reply_count: int = 0,
+    last_reply_at=None,
 ) -> MessageOut:
     return MessageOut(
         id=m.id,
@@ -121,7 +123,79 @@ def _msg_out(
         reactions=reactions or [],
         reply_to=reply_to,
         mentions=mentions or [],
+        thread_root_id=m.thread_root_id,
+        reply_count=reply_count,
+        last_reply_at=last_reply_at,
     )
+
+
+async def _enrich(db, rows: list[Message], user_id: str) -> list[MessageOut]:
+    """Attach reactions, reply previews, mentions, and thread counts to a batch
+    of messages (sender relationship must already be loaded)."""
+    if not rows:
+        return []
+    ids = [m.id for m in rows]
+    reactions = await _reactions_for(db, ids, user_id)
+
+    # Reply parents for inline previews.
+    parent_ids = {m.reply_to_id for m in rows if m.reply_to_id}
+    parents: dict[str, ReplyPreview] = {}
+    if parent_ids:
+        prows = (
+            await db.execute(
+                select(Message)
+                .options(selectinload(Message.sender))
+                .where(Message.id.in_(parent_ids))
+            )
+        ).scalars().all()
+        parents = {p.id: _reply_preview(p) for p in prows}
+
+    # Mentions.
+    mentions: dict[str, list[MentionOut]] = {}
+    mrows = (
+        await db.execute(
+            select(MessageMention.message_id, User)
+            .join(User, User.id == MessageMention.user_id)
+            .where(MessageMention.message_id.in_(ids))
+        )
+    ).all()
+    for message_id, u in mrows:
+        mentions.setdefault(message_id, []).append(
+            MentionOut(id=u.id, username=u.username, display_name=u.display_name)
+        )
+
+    # Thread reply counts (for root messages).
+    counts: dict[str, tuple[int, object]] = {}
+    trows = (
+        await db.execute(
+            select(
+                Message.thread_root_id,
+                func.count(),
+                func.max(Message.created_at),
+            )
+            .where(
+                Message.thread_root_id.in_(ids), Message.deleted_at.is_(None)
+            )
+            .group_by(Message.thread_root_id)
+        )
+    ).all()
+    for root_id, cnt, last_at in trows:
+        counts[root_id] = (cnt, last_at)
+
+    out = []
+    for m in rows:
+        cnt, last_at = counts.get(m.id, (0, None))
+        out.append(
+            _msg_out(
+                m,
+                reactions.get(m.id, []),
+                parents.get(m.reply_to_id) if m.reply_to_id else None,
+                mentions.get(m.id, []),
+                reply_count=cnt,
+                last_reply_at=last_at,
+            )
+        )
+    return out
 
 
 @router.get("", response_model=list[MessageOut])
@@ -136,52 +210,46 @@ async def history(
     stmt = (
         select(Message)
         .options(selectinload(Message.sender))
-        .where(Message.channel_id == channel_id, Message.deleted_at.is_(None))
+        .where(
+            Message.channel_id == channel_id,
+            Message.deleted_at.is_(None),
+            Message.thread_root_id.is_(None),  # top-level only; replies live in threads
+        )
     )
     if before is not None:
         stmt = stmt.where(Message.created_at < before)
     stmt = stmt.order_by(Message.created_at.desc()).limit(limit)
     rows = list((await db.execute(stmt)).scalars().all())
     rows.reverse()  # chronological (oldest first) for rendering
-    reactions = await _reactions_for(db, [m.id for m in rows], user.id)
+    return await _enrich(db, rows, user.id)
 
-    # Batch-load the parents of any replies for inline previews.
-    parent_ids = {m.reply_to_id for m in rows if m.reply_to_id}
-    parents: dict[str, ReplyPreview] = {}
-    if parent_ids:
-        prows = (
-            await db.execute(
-                select(Message)
-                .options(selectinload(Message.sender))
-                .where(Message.id.in_(parent_ids))
-            )
-        ).scalars().all()
-        parents = {p.id: _reply_preview(p) for p in prows}
 
-    # Batch-load mentions for all messages in one query.
-    mentions: dict[str, list[MentionOut]] = {}
-    if rows:
-        mrows = (
-            await db.execute(
-                select(MessageMention.message_id, User)
-                .join(User, User.id == MessageMention.user_id)
-                .where(MessageMention.message_id.in_([m.id for m in rows]))
-            )
-        ).all()
-        for message_id, u in mrows:
-            mentions.setdefault(message_id, []).append(
-                MentionOut(id=u.id, username=u.username, display_name=u.display_name)
-            )
-
-    return [
-        _msg_out(
-            m,
-            reactions.get(m.id, []),
-            parents.get(m.reply_to_id) if m.reply_to_id else None,
-            mentions.get(m.id, []),
+@router.get("/{root_id}/thread", response_model=list[MessageOut])
+async def thread(
+    channel_id: str, root_id: str, db: DB, user: CurrentUser
+) -> list[MessageOut]:
+    """Return a thread's root message followed by its replies (chronological)."""
+    await require_membership(db, channel_id, user.id)
+    root = (
+        await db.execute(
+            select(Message)
+            .options(selectinload(Message.sender))
+            .where(Message.id == root_id, Message.channel_id == channel_id)
         )
-        for m in rows
-    ]
+    ).scalar_one_or_none()
+    if root is None or root.deleted_at is not None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    replies = (
+        await db.execute(
+            select(Message)
+            .options(selectinload(Message.sender))
+            .where(
+                Message.thread_root_id == root_id, Message.deleted_at.is_(None)
+            )
+            .order_by(Message.created_at.asc())
+        )
+    ).scalars().all()
+    return await _enrich(db, [root, *replies], user.id)
 
 
 @router.post("", response_model=MessageOut, status_code=status.HTTP_201_CREATED)
@@ -218,11 +286,22 @@ async def post_message(
     if not content:
         raise HTTPException(status_code=422, detail="Message cannot be empty")
 
+    # Resolve the thread root (flatten: replying to a reply joins its thread).
+    thread_root_id = None
+    if body.thread_root_id:
+        root = await db.get(Message, body.thread_root_id)
+        if root is None or root.channel_id != channel_id or root.deleted_at:
+            raise HTTPException(
+                status_code=400, detail="Thread root not found in this channel"
+            )
+        thread_root_id = root.thread_root_id or root.id
+
     msg = Message(
         channel_id=channel_id,
         sender_id=user.id,
         content=content,
         reply_to_id=body.reply_to_id,
+        thread_root_id=thread_root_id,
     )
     db.add(msg)
     await db.flush()  # assign msg.id before storing mentions
@@ -389,4 +468,5 @@ def _msg_out_from_user(
         reactions=[],
         reply_to=reply_to,
         mentions=mentions or [],
+        thread_root_id=msg.thread_root_id,
     )
