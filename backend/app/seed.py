@@ -6,7 +6,7 @@ manual join). Safe to run on every boot.
 """
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from .database import SessionLocal
 from .models import (
@@ -21,29 +21,34 @@ from .models import (
 WHATSNEW_SLUG = "whatsnew"
 WHATSNEW_TOPIC = "Release notes & product updates — react, don't reply."
 
-# Seeded once, when the channel is first created and still empty. Posted with
-# sender_id=None (system authored) — the UI labels these "Relay".
+# Canonical release notes, posted with sender_id=None (system authored) — the
+# UI labels these "Relay". Keyed by version and upserted on every boot, so
+# adding an entry publishes it and editing one corrects the live post in place.
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
+        "1.4.0",
         "📱 v1.4.0 — Swipe navigation\n"
         "• Swipe right on a chat to go back to your channel list\n"
         "• Swipe left to open the member roster\n"
-        "• Swipe the roster away to close it"
+        "• Swipe the roster away to close it",
     ),
     (
+        "1.5.0",
         "🖼️ v1.5.0 — Faster image uploads\n"
-        "• Photos are resized and compressed in your browser before uploading\n"
+        "• Photos are resized and re-encoded in your browser before uploading\n"
         "• Multi-MB phone photos now upload in a fraction of the time\n"
-        "• Location (EXIF/GPS) data is stripped from images you share\n"
-        "• GIFs and documents are left untouched"
+        "• That re-encoding happens on your device and removes location "
+        "(EXIF/GPS) data, so it never reaches the server\n"
+        "• GIFs and documents are left untouched",
     ),
     (
+        "1.6.0",
         "📣 v1.6.0 — Announcements + tidier messages\n"
         "• New read-only #whatsnew channel for release notes — you're reading it\n"
         "• React to any update; replies are disabled here\n"
         "• Message actions (reply, thread, react) now sit next to the message "
-        "instead of out at the far right"
+        "instead of out at the far right",
     ),
 ]
 
@@ -87,18 +92,25 @@ async def ensure_whatsnew() -> None:
                     )
                 )
 
-        # Post the initial release notes, but only while the channel is empty so
-        # reboots never duplicate them.
-        existing_msgs = (
+        # Upsert the release notes, matched on the "vX.Y.Z —" marker: insert the
+        # ones that aren't posted yet, and rewrite any whose wording changed.
+        # Keyed this way, reboots never duplicate and corrections propagate.
+        system_msgs = (
             await db.execute(
-                select(func.count())
-                .select_from(Message)
-                .where(Message.channel_id == ch.id)
+                select(Message).where(
+                    Message.channel_id == ch.id,
+                    Message.sender_id.is_(None),
+                )
             )
-        ).scalar_one()
-        if not existing_msgs:
-            now = datetime.now(timezone.utc)
-            for i, content in enumerate(WHATSNEW_POSTS):
+        ).scalars().all()
+
+        now = datetime.now(timezone.utc)
+        for i, (version, content) in enumerate(WHATSNEW_POSTS):
+            marker = f"v{version} —"
+            found = next(
+                (m for m in system_msgs if marker in (m.content or "")), None
+            )
+            if found is None:
                 db.add(
                     Message(
                         channel_id=ch.id,
@@ -109,5 +121,7 @@ async def ensure_whatsnew() -> None:
                         - timedelta(seconds=len(WHATSNEW_POSTS) - i),
                     )
                 )
+            elif found.content != content:
+                found.content = content
 
         await db.commit()
