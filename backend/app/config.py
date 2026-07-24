@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # --- OAuth / SSO ---
     # Public origin the browser hits (used to build redirect URIs). Set to your
-    # domain in prod, e.g. https://fckord.magikh0e.pl
+    # domain in prod, e.g. https://openrelay.pl
     public_base_url: str = "http://localhost:5173"
     google_client_id: str = ""
     google_client_secret: str = ""
