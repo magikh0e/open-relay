@@ -33,8 +33,12 @@
         margin: 40px 0 12px;
         padding-top: 20px;
         border-top: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
       h2:first-of-type { border-top: none; padding-top: 0; }
+      h2 .sec-ico { font-size: 20px; line-height: 1; }
       h3 { font-size: 16px; margin: 24px 0 8px; color: var(--accent); }
       p, li { color: #d3d7df; }
       ul { padding-left: 22px; }
@@ -119,7 +123,7 @@
         every flow described here.
       </p>
 
-      <h2>1. The client–server contract</h2>
+      <h2><span class="sec-ico">🔌</span>1. The client–server contract</h2>
       <p>
         A client needs exactly one piece of configuration: the
         <strong>server origin</strong>, e.g. <code>https://fckord.magikh0e.pl</code>.
@@ -166,7 +170,7 @@ import.meta.env.VITE_API_BASE    →  baked in at build time
         switching servers means reloading state.
       </p>
 
-      <h2>2. Authentication</h2>
+      <h2><span class="sec-ico">🔑</span>2. Authentication</h2>
       <p>Auth is stateless JWT. There are two tokens:</p>
       <div class="table-wrap">
         <table>
@@ -191,7 +195,7 @@ import.meta.env.VITE_API_BASE    →  baked in at build time
         not, so start it with a fresh access token.
       </p>
 
-      <h2>3. The WebSocket</h2>
+      <h2><span class="sec-ico">⚡</span>3. The WebSocket</h2>
       <p>
         One socket per session carries all live events. It is
         <strong>read-mostly</strong>: clients receive events; almost all actions
@@ -218,7 +222,7 @@ import.meta.env.VITE_API_BASE    →  baked in at build time
         Redis bridge, the same way everyone else's arrives.
       </p>
 
-      <h2>4. End-to-end encryption (direct messages)</h2>
+      <h2><span class="sec-ico">🔒</span>4. End-to-end encryption (direct messages)</h2>
       <p>
         E2EE is optional and client-side — the server only ever stores opaque
         blobs. A non-JS client interoperates by reproducing this scheme exactly
@@ -274,7 +278,7 @@ each → (value % 100000) padded to 5 digits
 group into twelve 5-digit blocks → "12345 67890 …"</code></pre>
       <p>Sorting first means both sides get an identical value. Match the numbers in person and the channel is verified.</p>
 
-      <h2>5. Uploads</h2>
+      <h2><span class="sec-ico">📎</span>5. Uploads</h2>
       <p>Files attach in <strong>two steps</strong>: upload the bytes to get an id, then send a message referencing it via <code>upload_id</code>.</p>
       <ul>
         <li><strong>Request:</strong> <code>POST /api/uploads</code>, <code>multipart/form-data</code> (auth required): <code>file</code> (the bytes), <code>encrypted</code> (bool, default false), <code>enc_meta</code> (string, default empty).</li>
@@ -285,7 +289,7 @@ group into twelve 5-digit blocks → "12345 67890 …"</code></pre>
         <li><strong>Encrypted uploads</strong> skip type checks (bytes are ciphertext); the server stores an <code>application/octet-stream</code> blob with no real name/type, which travel in <code>enc_meta</code>.</li>
       </ul>
 
-      <h2>6. WebSocket event reference</h2>
+      <h2><span class="sec-ico">📡</span>6. WebSocket event reference</h2>
       <p>Every server→client frame is <code>{"type": …, "data": {…}}</code>. Datetimes are ISO 8601 strings; ids are UUID strings.</p>
       <div class="table-wrap">
         <table>
@@ -310,7 +314,7 @@ group into twelve 5-digit blocks → "12345 67890 …"</code></pre>
         </table>
       </div>
 
-      <h2>7. REST endpoint reference</h2>
+      <h2><span class="sec-ico">🗂️</span>7. REST endpoint reference</h2>
       <p>
         All paths are the <strong>public</strong> paths — prepend the origin and
         <code>/api</code> (§1). Bodies are JSON except uploads. Auth is required
@@ -433,7 +437,7 @@ unread_count (int), mention_count (int)</code></pre>
         </table>
       </div>
 
-      <h2>8. Rate limits &amp; errors</h2>
+      <h2><span class="sec-ico">🚦</span>8. Rate limits &amp; errors</h2>
       <p>
         Errors follow FastAPI's convention: non-2xx responses carry
         <code>{"detail": "…"}</code> (validation errors return <code>422</code>
@@ -460,7 +464,7 @@ unread_count (int), mention_count (int)</code></pre>
         </table>
       </div>
 
-      <h2>9. Minimal client, end to end</h2>
+      <h2><span class="sec-ico">🚀</span>9. Minimal client, end to end</h2>
       <pre><code>origin = "https://your-server"
 
 # 1. Authenticate
@@ -486,7 +490,7 @@ POST origin/api/channels/&lt;id&gt;/messages {content}
         learn about changes from the socket.</strong>
       </p>
 
-      <h2>10. Building a native / desktop client</h2>
+      <h2><span class="sec-ico">🖥️</span>10. Building a native / desktop client</h2>
       <ul>
         <li><strong>Point it at the origin.</strong> Set <code>window.__RELAY_SERVER__</code> (or the equivalent) before boot; §1 does the rest.</li>
         <li><strong>CORS.</strong> A webview (Tauri, Electron) enforces CORS, so add the shell's origin (<code>tauri://localhost</code>, <code>app://.</code>, an Electron dev origin) to the server's <code>CORS_ORIGINS</code>. Pure-native HTTP clients aren't subject to CORS; WebSockets aren't CORS-gated.</li>
