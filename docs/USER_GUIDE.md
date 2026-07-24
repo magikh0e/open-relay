@@ -3,6 +3,8 @@
 Everything you need to get comfortable. If you just want to chat, the first two
 sections are enough; the rest is here when you need it.
 
+_Open Relay and this guide by **magikh0e**. Free software under the GNU GPL-3.0._
+
 - [Signing in](#signing-in)
 - [Channels and DMs](#channels-and-dms)
 - [Writing messages](#writing-messages)
