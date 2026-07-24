@@ -33,16 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.10.0",
-        "🔑 v1.10.0 — Change your password\n"
-        "• Open your profile and hit Change password to set a new one\n"
-        "• You'll need your current password to confirm; if you signed in with "
-        "Google and never had one, you can set a password here instead\n"
-        "• Separate from your message-encryption passphrase — changing your "
-        "password doesn't affect encrypted DMs\n"
-        "• Signing in now drops you straight into #whatsnew",
-    ),
-    (
         "1.11.0",
         "🛡️ v1.11.0 — Privacy settings\n"
         "• Open your profile and hit Privacy to control what you share\n"
@@ -134,6 +124,18 @@ WHATSNEW_POSTS = [
         "line, Enter to send\n"
         "• Existing blank-looking messages fix themselves — the text was "
         "always there, it just wasn't being shown",
+    ),
+    (
+        "1.19.0",
+        "🎨 v1.19.0 — A visual polish pass\n"
+        "• Avatars are now colour-coded per person, so conversations are far "
+        "easier to scan\n"
+        "• Smoother hovers, presses and modal transitions throughout\n"
+        "• Slimmer, theme-matched scrollbars\n"
+        "• Big channels no longer list every offline member at once — a "
+        "'Show more' keeps things quick\n"
+        "• Mentions read as pills, and reactions show more clearly when you've "
+        "reacted",
     ),
 ]
 

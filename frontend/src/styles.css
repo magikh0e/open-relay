@@ -2,13 +2,29 @@
   --bg: #1a1c22;
   --bg-2: #23262e;
   --bg-3: #2b2f38;
+  --bg-hover: #2f333d;
   --line: #343945;
   --text: #e6e8ec;
   --muted: #8b90a0;
   --accent: #5b8cff;
   --accent-2: #7aa2ff;
+  --accent-soft: rgba(91, 140, 255, 0.14);
   --danger: #ff6b6b;
   --online: #4ade80;
+  --warn: #f2c94c;
+
+  /* radius scale — everything rounds to one of these */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+
+  /* elevation */
+  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.24);
+  --shadow-2: 0 12px 32px rgba(0, 0, 0, 0.4);
+
+  /* one easing/duration for every hover, focus and press */
+  --t: 130ms ease;
 }
 
 * {
@@ -1763,3 +1779,159 @@ button.e2ee-badge { cursor: pointer; }
 }
 .composer-input:focus { border-color: var(--accent); }
 .composer { align-items: flex-end; }
+
+/* ========================================================================== */
+/*  Polish layer — motion, scrollbars, and micro-interactions.                */
+/* ========================================================================== */
+
+/* Smooth every interactive surface. Buttons, rows and inputs previously
+   snapped between states; a short shared transition makes the whole app feel
+   settled rather than twitchy. Respect a user's reduced-motion preference. */
+button,
+input,
+textarea,
+a,
+.row,
+.member-main,
+.reaction,
+.act,
+.result,
+.mention {
+  transition: background-color var(--t), border-color var(--t), color var(--t),
+    opacity var(--t), transform var(--t), box-shadow var(--t);
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Primary buttons get a gentle press so clicks feel physical. */
+button.primary:not(:disabled):active,
+.btn.primary:active {
+  transform: translateY(1px);
+}
+button.primary:not(:disabled):hover {
+  background: var(--accent-2);
+}
+
+/* Thin, theme-coloured scrollbars — the default chunky grey ones read as
+   unstyled against the dark UI. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: var(--r-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #454b59;
+  background-clip: padding-box;
+}
+
+/* Modals ease in rather than popping. */
+.modal-backdrop {
+  animation: fade-in 120ms ease;
+}
+.modal,
+.confirm-modal,
+.e2ee-modal {
+  animation: modal-rise 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+@keyframes modal-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+
+/* Message rows: a touch more room to breathe, and a hover that's actually
+   visible (the previous 0.02 white was imperceptible). */
+.msg {
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  margin: 0 6px;
+  transition: background-color var(--t);
+}
+.msg:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+.messages {
+  gap: 1px;
+}
+
+/* Mentions read as pills. */
+.mention {
+  background: var(--accent-soft);
+  border-radius: var(--r-sm);
+  padding: 0 4px;
+  font-weight: 600;
+  color: var(--accent-2);
+}
+.mention:hover {
+  background: rgba(91, 140, 255, 0.24);
+}
+.mention.mention-me {
+  background: rgba(242, 201, 76, 0.18);
+  color: var(--warn);
+}
+
+/* Reactions: rounder, with a clearer "you reacted" state. */
+.reaction {
+  border-radius: var(--r-pill);
+}
+.reaction:hover {
+  border-color: var(--accent);
+}
+.reaction.me {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* Sidebar rows shift ever so slightly on hover for tactility. */
+.row:hover {
+  transform: translateX(1px);
+}
+.row.active {
+  box-shadow: var(--shadow-1);
+}
+
+/* Online dot: a soft halo so presence reads at a glance. */
+.online-dot,
+.presence-dot {
+  box-shadow: 0 0 0 2px var(--bg-2);
+}
+
+/* "Show N more" control in the roster. */
+.member-more {
+  margin: 4px 8px 0;
+  padding: 5px 8px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  color: var(--accent-2);
+  text-align: left;
+}
+.member-more:hover {
+  background: var(--bg-3);
+}
+
+/* Empty-state text (e.g. "Pick a channel") sits centred and calm. */
+.center.muted {
+  gap: 8px;
+  font-size: 14px;
+}
+
+/* Amber literals → the token, so away/operator accents stay consistent. */
+.role-tag.op { color: var(--warn); border-color: rgba(242, 201, 76, 0.33); }
+.presence-dot.away { background: var(--warn); }

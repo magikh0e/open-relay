@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-APP_VERSION = "1.18.1"
+APP_VERSION = "1.19.0"
 
 app = FastAPI(title="Open Relay API", version=APP_VERSION, lifespan=lifespan)
 

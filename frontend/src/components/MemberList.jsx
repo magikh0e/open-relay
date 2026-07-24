@@ -1,4 +1,9 @@
+import { useState } from "react";
 import Avatar from "./Avatar.jsx";
+
+// Big channels can have hundreds of offline members; render a slice and let the
+// user ask for the rest, rather than putting thousands of rows in the DOM.
+const COLLAPSE_AT = 50;
 
 // Right-hand panel: channel members split into Online / Offline using the live
 // presence set. Moderators see kick/ban actions on other members.
@@ -62,12 +67,15 @@ function Section({
   onBan,
   onSetRole,
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const overflow = members.length - COLLAPSE_AT;
+  const shown = expanded ? members : members.slice(0, COLLAPSE_AT);
   return (
     <div className="section">
       <div className="section-head">
         <span>{title}</span>
       </div>
-      {members.map((m) => {
+      {shown.map((m) => {
         // Can't act on yourself or the channel owner.
         const targetable = m.id !== myId && m.role !== "owner";
         const showRole = canManageRoles && targetable;
@@ -136,6 +144,14 @@ function Section({
           </div>
         );
       })}
+      {overflow > 0 && (
+        <button
+          className="member-more"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "Show fewer" : `Show ${overflow} more`}
+        </button>
+      )}
     </div>
   );
 }

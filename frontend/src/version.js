@@ -1,3 +1,3 @@
 // Single source of truth for the app name + version (bump on each release).
 export const APP_NAME = "Open Relay";
-export const APP_VERSION = "1.18.1";
+export const APP_VERSION = "1.19.0";
