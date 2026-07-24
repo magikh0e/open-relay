@@ -12,7 +12,12 @@
 const MENTION_RE = /@([a-zA-Z0-9_.-]{3,32})/g;
 
 // Fenced code blocks, with an optional language tag we ignore.
-const FENCE_RE = /```[^\n]*\n?([\s\S]*?)```/g;
+//
+// The language tag only counts when a newline follows it. Matching it as a
+// bare `[^\n]*` swallowed the code on a single-line ```like this``` fence,
+// leaving an empty block — which was every fence, since the composer couldn't
+// produce newlines at the time.
+const FENCE_RE = /```(?:[a-zA-Z0-9+#._-]*\n)?([\s\S]*?)```/g;
 
 // Inline spans. Order matters: `code` first so formatting characters inside
 // backticks stay literal, and ** before * so bold wins over italic.

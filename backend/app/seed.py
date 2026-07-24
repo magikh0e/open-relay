@@ -33,13 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.9.1",
-        "🧹 v1.9.1 — Tidier release notes\n"
-        "• Fixed this channel showing the same update several times over\n"
-        "• Each release now appears exactly once, however many times the "
-        "server restarts",
-    ),
-    (
         "1.10.0",
         "🔑 v1.10.0 — Change your password\n"
         "• Open your profile and hit Change password to set a new one\n"
@@ -132,6 +125,15 @@ WHATSNEW_POSTS = [
         "• Half-written messages are kept per channel when you switch away\n"
         "• Download everything we hold about you, or delete your account "
         "outright, from your profile",
+    ),
+    (
+        "1.18.1",
+        "⌨️ v1.18.1 — Code blocks actually work now\n"
+        "• Fixed ```code blocks``` coming out empty\n"
+        "• The message box now takes multiple lines: Shift+Enter for a new "
+        "line, Enter to send\n"
+        "• Existing blank-looking messages fix themselves — the text was "
+        "always there, it just wasn't being shown",
     ),
 ]
 

@@ -1744,3 +1744,22 @@ button.e2ee-badge { cursor: pointer; }
   color: var(--text);
   outline: none;
 }
+
+/* Composer is a textarea so multi-line messages and code blocks are typable.
+   Enter sends; Shift+Enter inserts a newline. */
+.composer-input {
+  flex: 1;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  outline: none;
+  font: inherit;
+  resize: none;
+  overflow-y: auto;
+  max-height: 180px;
+  line-height: 1.4;
+}
+.composer-input:focus { border-color: var(--accent); }
+.composer { align-items: flex-end; }

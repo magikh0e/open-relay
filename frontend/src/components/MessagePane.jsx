@@ -324,6 +324,12 @@ export default function MessagePane({
   function handleChange(e) {
     const value = e.target.value;
     setText(value);
+    // Grow with the content up to a ceiling, then scroll internally.
+    const el = e.target;
+    if (el.style) {
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+    }
     const now = Date.now();
     if (now - lastTypingSent.current > 2000) {
       lastTypingSent.current = now;
@@ -352,6 +358,20 @@ export default function MessagePane({
   // Keyboard control for the @mention menu: arrows to move, Enter/Tab to
   // complete, Esc to dismiss. Falls through to normal typing when closed.
   function onComposerKeyDown(e) {
+    // In a textarea Enter would insert a newline, so sending is explicit.
+    // Shift+Enter (or Ctrl/Cmd+Enter) is how you get an actual line break —
+    // which is what makes multi-line code blocks possible to type at all.
+    if (
+      e.key === "Enter" &&
+      !e.shiftKey &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      mentionResults.length === 0
+    ) {
+      e.preventDefault();
+      send(e);
+      return;
+    }
     if (mentionResults.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -944,8 +964,13 @@ export default function MessagePane({
            aria-label="Attach a file">
             📎
           </button>
-          <input
+          {/* A textarea, not an input: code blocks and multi-line messages
+              need real newlines. Enter still sends; Shift+Enter breaks the
+              line. */}
+          <textarea
             ref={inputRef}
+            className="composer-input"
+            rows={1}
             placeholder={`Message ${isDm ? channel.name : "#" + channel.name}`}
             value={text}
             onChange={handleChange}
