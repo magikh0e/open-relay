@@ -1647,3 +1647,14 @@ button.primary:disabled {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* Brand logo. The artwork is dark-on-dark, so it blends into the card; the
+   rounded corners just stop its near-black backdrop reading as a hard edge
+   against the slightly lighter card. */
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  margin: -6px 0 2px;
+}

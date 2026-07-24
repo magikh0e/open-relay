@@ -42,20 +42,12 @@
         background:
           radial-gradient(60% 120% at 50% 0%, rgba(91, 140, 255, 0.14), transparent 70%);
       }
-      .mark {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        font-weight: 800;
-        font-size: 15px;
-        letter-spacing: 0.02em;
-        color: var(--muted);
-        margin-bottom: 26px;
-      }
-      .mark .dot {
-        width: 10px; height: 10px; border-radius: 50%;
-        background: var(--online);
-        box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.15);
+      .hero-logo {
+        display: block;
+        width: min(420px, 78vw);
+        height: auto;
+        border-radius: 14px;
+        margin: 0 auto 26px;
       }
       h1 {
         font-size: clamp(32px, 6vw, 52px);
@@ -188,7 +180,13 @@
   <body>
     <div class="hero">
       <div class="wrap">
-        <div class="mark"><span class="dot"></span> RELAY</div>
+        <img
+          class="hero-logo"
+          src="/openrelay.webp"
+          alt="Open Relay"
+          width="1000"
+          height="546"
+        />
         <h1>Chat you actually control.</h1>
         <p class="sub">
           A small, self-hosted chat service. Channels, threads and direct

@@ -55,7 +55,13 @@ export default function Login() {
   return (
     <div className="center">
       <form className="auth-card" onSubmit={submit}>
-        <h1>{APP_NAME}</h1>
+        <img
+          className="brand-logo"
+          src="/openrelay.webp"
+          alt={APP_NAME}
+          width="1000"
+          height="546"
+        />
         <div className="tabs">
           <button
             type="button"
