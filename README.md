@@ -153,6 +153,19 @@ Everything is environment variables (`backend/.env.example` is the reference):
 New here? The [**user guide**](docs/USER_GUIDE.md) covers encryption, formatting,
 the slash commands, notifications, and managing your data.
 
+## Desktop app
+
+Native desktop builds — a thin [Tauri](https://tauri.app) shell around the same
+web UI — are on the [**releases page**](https://github.com/magikh0e/open-relay/releases)
+for macOS (universal), Linux (`.AppImage`/`.deb`/`.rpm`) and Windows
+(`.msi`/`.exe`). They're ~4 MB and open the app in its own window pointed at a
+server of your choice. Source is in [`desktop/`](desktop/README.md); building
+your own needs only the Rust toolchain.
+
+Client developers: the [**developer guide**](frontend/public/developers.html)
+documents the full REST + WebSocket API, the E2EE wire format, and how to point
+any client at a server.
+
 ## Tests
 
 The backend has a pytest suite that runs against **real** Postgres and Redis
