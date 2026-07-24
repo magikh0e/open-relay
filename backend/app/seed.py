@@ -33,14 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.7.0",
-        "📄 v1.7.0 — Privacy policy\n"
-        "• A plain-English privacy page now explains exactly what is stored "
-        "and who can see it — linked from the login screen\n"
-        "• It covers the awkward bits too: upload links are public, and "
-        "deleted messages are retained",
-    ),
-    (
         "1.8.0",
         "🔒 v1.8.0 — Encrypted direct messages\n"
         "• DMs can now be end-to-end encrypted — turn it on from any DM\n"
@@ -129,6 +121,16 @@ WHATSNEW_POSTS = [
         "• The tab now shows a proper icon instead of a blank page symbol\n"
         "• Nothing about your account, messages or keys changes — it's the "
         "same service, just properly dressed",
+    ),
+    (
+        "1.16.0",
+        "📲 v1.16.0 — Install it like an app\n"
+        "• Open Relay can now be added to your home screen or desktop and "
+        "opens in its own window, without browser chrome\n"
+        "• On Android and desktop Chrome look for 'Install'; on iPhone use "
+        "Share → Add to Home Screen\n"
+        "• The app shell loads offline, though you'll still need a connection "
+        "to send or receive anything",
     ),
 ]
 
