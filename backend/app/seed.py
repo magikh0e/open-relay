@@ -33,18 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.8.0",
-        "🔒 v1.8.0 — Encrypted direct messages\n"
-        "• DMs can now be end-to-end encrypted — turn it on from any DM\n"
-        "• Your key is generated in your browser and protected by a "
-        "passphrase; the server only ever stores scrambled text\n"
-        "• Both people need it switched on, and a lock icon shows when a "
-        "conversation is protected\n"
-        "• Forget the passphrase and those messages are unrecoverable — there "
-        "is no reset, and the admin can't help either: the key they store is "
-        "locked with your passphrase",
-    ),
-    (
         "1.9.0",
         "✖️ v1.9.0 — Closing DMs + smoother encryption\n"
         "• You can now close a direct message: hover it in the sidebar and hit "
@@ -131,6 +119,15 @@ WHATSNEW_POSTS = [
         "Share → Add to Home Screen\n"
         "• The app shell loads offline, though you'll still need a connection "
         "to send or receive anything",
+    ),
+    (
+        "1.17.0",
+        "📜 v1.17.0 — Terms of service\n"
+        "• A plain-English terms page now sits alongside the privacy policy, "
+        "linked from the sign-in screen\n"
+        "• It covers what's expected of you, how moderation works, and is "
+        "blunt that the service comes with no guarantees\n"
+        "• Signing in with Discord now works",
     ),
 ]
 

@@ -153,6 +153,10 @@ export default function Login() {
           <a className="policy-link" href="/privacy.html" target="_blank" rel="noreferrer">
             Privacy
           </a>
+          <span className="sep">·</span>
+          <a className="policy-link" href="/terms.html" target="_blank" rel="noreferrer">
+            Terms
+          </a>
         </div>
       </form>
     </div>
