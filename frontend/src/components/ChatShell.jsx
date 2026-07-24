@@ -11,6 +11,7 @@ import ChannelSettings from "./ChannelSettings.jsx";
 import ThreadPane from "./ThreadPane.jsx";
 import SearchModal from "./SearchModal.jsx";
 import E2EESetup from "./E2EESetup.jsx";
+import ConfirmDialog from "./ConfirmDialog.jsx";
 import {
   decryptMessage,
   deriveSharedKey,
@@ -58,6 +59,16 @@ export default function ChatShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false); // mobile roster drawer
+  const [dialog, setDialog] = useState(null); // in-app confirm/alert
+
+  // Promise-based stand-ins for window.confirm / window.alert so call sites
+  // stay readable while the UI stays in the app's own visual language.
+  function ask(opts) {
+    return new Promise((resolve) => setDialog({ ...opts, resolve }));
+  }
+  function notify(message, title = "Something went wrong") {
+    return ask({ title, body: message, alertOnly: true });
+  }
 
   // --- DM end-to-end encryption ---
   const [privateKey, setPrivateKey] = useState(null);
@@ -363,6 +374,10 @@ export default function ChatShell() {
   const autoOpenedRef = useRef(false);
   useEffect(() => {
     if (autoOpenedRef.current || activeId || !channels.length) return;
+    // On mobile the sidebar IS the home screen — auto-opening a channel would
+    // mean pressing back on every launch. Desktop shows both at once, so
+    // landing in #whatsnew there costs nothing.
+    if (window.matchMedia("(max-width: 768px)").matches) return;
     const wn = channels.find((c) => c.slug === "whatsnew");
     if (!wn) return;
     autoOpenedRef.current = true;
@@ -377,7 +392,7 @@ export default function ChatShell() {
       setActiveId((prev) => (prev === channel.id ? null : prev));
       await refreshLists();
     } catch (e) {
-      window.alert(e.message);
+      notify(e.message, "Couldn't close that conversation");
     }
   }
 
@@ -388,7 +403,7 @@ export default function ChatShell() {
       await refreshLists(); // ensure the DM shows in the sidebar
       openChannel(dm.id);
     } catch (e) {
-      window.alert(e.message);
+      notify(e.message, "Couldn't open that conversation");
     }
   }
 
@@ -609,7 +624,13 @@ export default function ChatShell() {
     const verb = action === "ban" ? "Ban" : "Kick";
     const extra =
       action === "ban" ? " They won't be able to rejoin." : "";
-    if (!window.confirm(`${verb} ${member.display_name}?${extra}`)) return;
+    const ok = await ask({
+      title: `${verb} ${member.display_name}?`,
+      body: extra.trim() || undefined,
+      confirmLabel: verb,
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await api(`/channels/${channelId}/${action}`, {
         method: "POST",
@@ -618,7 +639,7 @@ export default function ChatShell() {
       const rows = await api(`/channels/${channelId}/members`);
       setMembersByChannel((prev) => ({ ...prev, [channelId]: rows }));
     } catch (e) {
-      window.alert(e.message);
+      notify(e.message, `Couldn't ${action} that member`);
     }
   }
 
@@ -716,7 +737,7 @@ export default function ChatShell() {
       const rows = await api(`/channels/${channelId}/members`);
       setMembersByChannel((prev) => ({ ...prev, [channelId]: rows }));
     } catch (e) {
-      window.alert(e.message);
+      notify(e.message, "Couldn't change that role");
     }
   }
 
@@ -735,18 +756,19 @@ export default function ChatShell() {
   }
 
   async function deleteChannel(channel) {
-    if (
-      !window.confirm(
-        `Delete #${channel.name}? This permanently removes the channel and all its messages for everyone.`
-      )
-    )
-      return;
+    const ok = await ask({
+      title: `Delete #${channel.name}?`,
+      body: "This permanently removes the channel and all of its messages, for everyone.",
+      confirmLabel: "Delete channel",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await api(`/channels/${channel.id}`, { method: "DELETE" });
       setActiveId((prev) => (prev === channel.id ? null : prev));
       await refreshLists();
     } catch (e) {
-      window.alert(e.message);
+      notify(e.message, "Couldn't delete that channel");
     }
   }
 
@@ -881,6 +903,16 @@ export default function ChatShell() {
         />
       )}
 
+      {dialog && (
+        <ConfirmDialog
+          {...dialog}
+          onResolve={(answer) => {
+            dialog.resolve(answer);
+            setDialog(null);
+          }}
+        />
+      )}
+
       {e2eeModal && (
         <E2EESetup
           mode={e2eeModal}
@@ -905,6 +937,7 @@ export default function ChatShell() {
 
       {settingsOpen && active && active.kind !== "dm" && (
         <ChannelSettings
+          onConfirm={ask}
           channel={active}
           members={activeMembers}
           myId={user.id}

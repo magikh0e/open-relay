@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Relay — chat you actually control</title>
+    <meta
+      name="description"
+      content="Relay is a small, self-hosted chat service. End-to-end encrypted DMs, no ads, no analytics, no tracking — and an honest account of what it does and doesn't protect."
+    />
+    <style>
+      :root {
+        --bg: #1a1c22;
+        --bg-2: #23262e;
+        --bg-3: #2b2f38;
+        --line: #343945;
+        --text: #e6e8ec;
+        --muted: #8b90a0;
+        --accent: #5b8cff;
+        --accent-2: #7aa2ff;
+        --online: #4ade80;
+        --warn: #ffb454;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: 940px; margin: 0 auto; padding: 0 22px; }
+      a { color: var(--accent); }
+
+      /* --- hero --- */
+      .hero {
+        padding: 88px 0 64px;
+        text-align: center;
+        border-bottom: 1px solid var(--line);
+        background:
+          radial-gradient(60% 120% at 50% 0%, rgba(91, 140, 255, 0.14), transparent 70%);
+      }
+      .mark {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        font-size: 15px;
+        letter-spacing: 0.02em;
+        color: var(--muted);
+        margin-bottom: 26px;
+      }
+      .mark .dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: var(--online);
+        box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.15);
+      }
+      h1 {
+        font-size: clamp(32px, 6vw, 52px);
+        line-height: 1.1;
+        margin: 0 0 18px;
+        letter-spacing: -0.02em;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: clamp(16px, 2.4vw, 19px);
+        max-width: 620px;
+        margin: 0 auto 32px;
+      }
+      .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+      .btn {
+        display: inline-block;
+        padding: 12px 22px;
+        border-radius: 10px;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid var(--line);
+        color: var(--text);
+        background: var(--bg-2);
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .btn:hover { border-color: var(--accent-2); }
+
+      /* --- sections --- */
+      section { padding: 62px 0; border-bottom: 1px solid var(--line); }
+      h2 {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--muted);
+        margin: 0 0 8px;
+        font-weight: 700;
+      }
+      .lede {
+        font-size: clamp(21px, 3vw, 27px);
+        line-height: 1.35;
+        margin: 0 0 12px;
+        letter-spacing: -0.01em;
+      }
+      .note { color: var(--muted); max-width: 680px; }
+
+      /* --- feature grid --- */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+        margin-top: 30px;
+      }
+      .card {
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 18px;
+      }
+      .card h3 {
+        margin: 0 0 6px;
+        font-size: 15.5px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+      .ico { font-size: 17px; }
+
+      /* --- privacy list --- */
+      .plist { list-style: none; padding: 0; margin: 26px 0 0; }
+      .plist li {
+        display: flex;
+        gap: 13px;
+        padding: 14px 0;
+        border-top: 1px solid var(--line);
+      }
+      .plist li:first-child { border-top: none; }
+      .plist .k { flex-shrink: 0; font-size: 17px; line-height: 1.5; }
+      .plist strong { display: block; margin-bottom: 2px; }
+      .plist span.d { color: var(--muted); font-size: 14.5px; }
+
+      .callout {
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--warn);
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin-top: 26px;
+      }
+      .callout h3 { margin: 0 0 8px; font-size: 15.5px; color: var(--warn); }
+      .callout ul { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14.5px; }
+      .callout li { margin: 5px 0; }
+
+      /* --- commands --- */
+      .cmds {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 26px;
+      }
+      code, .cmd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 13px;
+      }
+      .cmd {
+        background: var(--bg-3);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 4px 9px;
+        color: var(--accent-2);
+      }
+
+      footer {
+        padding: 40px 0 64px;
+        color: var(--muted);
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      footer a { color: var(--muted); text-decoration: none; }
+      footer a:hover { color: var(--text); }
+    </style>
+  </head>
+  <body>
+    <div class="hero">
+      <div class="wrap">
+        <div class="mark"><span class="dot"></span> RELAY</div>
+        <h1>Chat you actually control.</h1>
+        <p class="sub">
+          A small, self-hosted chat service. Channels, threads and direct
+          messages — with end-to-end encryption where it counts, and a plain
+          account of what it does and doesn't protect.
+        </p>
+        <div class="cta">
+          <a class="btn primary" href="/">Open Relay</a>
+          <a class="btn" href="/privacy.html">Read the privacy policy</a>
+        </div>
+      </div>
+    </div>
+
+    <section>
+      <div class="wrap">
+        <h2>What it is</h2>
+        <p class="lede">
+          Someone you know runs this server. That's the whole model.
+        </p>
+        <p class="note">
+          There are no accounts to buy, no ads, no analytics, and no third-party
+          trackers anywhere in the app. Nothing you write is mined, profiled or
+          sold, because there's no business here to sell it to. Relay is free
+          software under the GNU GPL-3.0 — anyone can read exactly what it does.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Features</h2>
+        <p class="lede">Everything you'd expect from a chat app.</p>
+        <div class="grid">
+          <div class="card">
+            <h3><span class="ico">#</span> Channels &amp; DMs</h3>
+            <p>
+              Public and private channels, plus one-to-one direct messages.
+              Close a DM to tidy your sidebar without deleting anything.
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="ico">🧵</span> Threads &amp; replies</h3>
+            <p>
+              Branch a side conversation into a thread, or reply inline with the
+              original quoted above your message.
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="ico">🔔</span> Unread &amp; mentions</h3>
+            <p>
+              Unread counts on every channel, with a highlighted badge when
+              someone actually mentions you.
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="ico">📎</span> Files &amp; images</h3>
+            <p>
+              Drag a file anywhere to send it. Images preview inline; documents
+              arrive as a download card.
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="ico">😀</span> Reactions &amp; GIFs</h3>
+            <p>
+              React with emoji, and search GIFs without your address ever being
+              handed to the GIF provider.
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="ico">🔍</span> Search</h3>
+            <p>
+              Search back through everything you can see. Encrypted DMs are
+              excluded — the server can't read them to index them.
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="ico">🟢</span> Presence</h3>
+            <p>
+              See who's around, who's typing and who's away — or switch all of
+              that off and use Relay invisibly.
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="ico">🛠️</span> Moderation</h3>
+            <p>
+              Channel owners and operators can invite, kick, ban and promote,
+              with every privileged action written to an audit log.
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="ico">📱</span> Works on your phone</h3>
+            <p>
+              A proper mobile layout with swipe navigation — swipe back to your
+              channels, swipe across for the member list.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Privacy</h2>
+        <p class="lede">Protections that hold up, described precisely.</p>
+        <ul class="plist">
+          <li>
+            <span class="k">🔒</span>
+            <span>
+              <strong>End-to-end encrypted direct messages</strong>
+              <span class="d">
+                Turn it on and your browser generates a key that never leaves
+                your device. DMs are encrypted before they're sent, so the
+                server stores text it has no way to unlock — the person running
+                it genuinely cannot read them.
+              </span>
+            </span>
+          </li>
+          <li>
+            <span class="k">🗂️</span>
+            <span>
+              <strong>Encrypted files, not just messages</strong>
+              <span class="d">
+                Files shared in an encrypted DM are encrypted too. The server
+                doesn't store the contents, the filename, or even the file
+                type — only an anonymous blob.
+              </span>
+            </span>
+          </li>
+          <li>
+            <span class="k">📍</span>
+            <span>
+              <strong>Photos don't carry your location</strong>
+              <span class="d">
+                Every image is re-encoded in your browser before upload, which
+                strips EXIF data including GPS coordinates. If that processing
+                fails, the upload is refused rather than sending the original.
+              </span>
+            </span>
+          </li>
+          <li>
+            <span class="k">🎛️</span>
+            <span>
+              <strong>Controls the server actually honours</strong>
+              <span class="d">
+                Hide your typing, appear offline, block new DMs, or stay out of
+                user search. Each is enforced server-side, so switching one off
+                stops the signal being produced — not just hidden on your screen.
+              </span>
+            </span>
+          </li>
+          <li>
+            <span class="k">🚫</span>
+            <span>
+              <strong>No tracking of any kind</strong>
+              <span class="d">
+                No analytics, no advertising, no third-party scripts, no
+                tracking cookies. Your browser stores your sign-in and nothing
+                else.
+              </span>
+            </span>
+          </li>
+          <li>
+            <span class="k">🧹</span>
+            <span>
+              <strong>Deleting really deletes</strong>
+              <span class="d">
+                Deleted messages disappear immediately and are erased from the
+                database after 30 days, along with any files left behind.
+              </span>
+            </span>
+          </li>
+          <li>
+            <span class="k">🔑</span>
+            <span>
+              <strong>Sensible account security</strong>
+              <span class="d">
+                Passwords are hashed with Argon2 and never stored in the clear.
+                Changing yours signs out every other device immediately.
+              </span>
+            </span>
+          </li>
+        </ul>
+
+        <div class="callout">
+          <h3>And what it doesn't protect</h3>
+          <ul>
+            <li>
+              <strong>Channel messages are readable by whoever runs the
+              server.</strong> Only direct messages can be end-to-end encrypted.
+            </li>
+            <li>
+              Encryption hides <em>what</em> you said, not <em>that</em> you said
+              it — who you message and when is still recorded.
+            </li>
+            <li>
+              Files shared in ordinary channels sit behind an unguessable but
+              public link. Anyone given that link can open it.
+            </li>
+            <li>
+              Forget your encryption passphrase and those messages are gone for
+              everyone, permanently. There is no reset.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>For the IRC crowd</h2>
+        <p class="lede">The commands you already know still work.</p>
+        <p class="note">
+          Type <code>/help</code> in any channel for the full list.
+        </p>
+        <div class="cmds">
+          <span class="cmd">/me</span><span class="cmd">/nick</span
+          ><span class="cmd">/join</span><span class="cmd">/part</span
+          ><span class="cmd">/topic</span><span class="cmd">/invite</span
+          ><span class="cmd">/query</span><span class="cmd">/whois</span
+          ><span class="cmd">/names</span><span class="cmd">/away</span
+          ><span class="cmd">/back</span><span class="cmd">/ignore</span
+          ><span class="cmd">/op</span><span class="cmd">/deop</span
+          ><span class="cmd">/kick</span><span class="cmd">/ban</span
+          ><span class="cmd">/close</span><span class="cmd">/shrug</span
+          ><span class="cmd">/slap</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <footer>
+        <span>Relay — free software under the GNU GPL&#8209;3.0.</span>
+        <span>
+          <a href="/">Open Relay</a> · <a href="/privacy.html">Privacy</a>
+        </span>
+      </footer>
+    </div>
+  </body>
+</html>

@@ -48,7 +48,7 @@ export default function ThreadPane({
     <aside className="thread-pane">
       <div className="thread-head">
         <span className="thread-title">Thread</span>
-        <button className="link" onClick={onClose} title="Close thread">
+        <button className="link" onClick={onClose} title="Close thread" aria-label="Close thread">
           ✕
         </button>
       </div>

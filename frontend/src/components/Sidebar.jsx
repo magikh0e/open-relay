@@ -33,7 +33,7 @@ export default function Sidebar({
           <Avatar name={user.display_name} admin={user.is_admin} size="" />
           <div className="me-name">{user.display_name}</div>
         </button>
-        <button className="link" onClick={logout} title="Log out">
+        <button className="link" onClick={logout} title="Log out" aria-label="Log out">
           ⏻
         </button>
       </div>
@@ -117,7 +117,7 @@ export default function Sidebar({
                     e.stopPropagation();
                     onCloseDm(c);
                   }}
-                >
+                 aria-label="Close this conversation (hides it for you only)">
                   ✕
                 </button>
               )}

@@ -14,7 +14,7 @@ export default function ChannelSettings({
   onDelete,
   onOpenProfile,
   onClose,
-}) {
+  onConfirm,}) {
   const [name, setName] = useState(channel.name);
   const [topic, setTopic] = useState(channel.topic || "");
   const [isPrivate, setIsPrivate] = useState(channel.kind === "private");
@@ -111,13 +111,14 @@ export default function ChannelSettings({
                       </button>
                       <button
                         className="mini"
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              `Transfer ownership to ${m.display_name}? You'll become an operator.`
-                            )
-                          )
-                            onSetRole(m, "owner");
+                        onClick={async () => {
+                          const ok = await onConfirm?.({
+                            title: `Transfer ownership to ${m.display_name}?`,
+                            body: "You'll become an operator of this channel.",
+                            confirmLabel: "Transfer ownership",
+                            danger: true,
+                          });
+                          if (ok) onSetRole(m, "owner");
                         }}
                       >
                         Make owner

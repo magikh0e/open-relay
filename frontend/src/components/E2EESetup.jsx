@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.js";
+import { useDialog } from "../useDialog.js";
 import {
   cacheUnlockedKey,
   exportPublicKey,
@@ -17,6 +18,7 @@ export default function E2EESetup({ mode, onUnlocked, onClose }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const setup = mode === "setup";
+  const dialogRef = useDialog(onClose);
 
   async function submit(e) {
     e.preventDefault();
@@ -58,6 +60,9 @@ export default function E2EESetup({ mode, onUnlocked, onClose }) {
     <div className="modal-backdrop" onClick={onClose}>
       <form
         className="modal e2ee-modal"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
       >

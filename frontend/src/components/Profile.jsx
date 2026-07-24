@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, tokens } from "../api.js";
+import { useDialog } from "../useDialog.js";
 import { useAuth } from "../auth.jsx";
 import Avatar from "./Avatar.jsx";
 
@@ -16,6 +17,7 @@ export default function Profile({ userId, onClose, onMessage }) {
   const [privacyOpen, setPrivacyOpen] = useState(false);
 
   const isMe = user?.id === userId;
+  const dialogRef = useDialog(onClose);
 
   useEffect(() => {
     let alive = true;
@@ -57,7 +59,13 @@ export default function Profile({ userId, onClose, onMessage }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal profile-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal profile-modal"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button className="link profile-close" onClick={onClose}>
           ✕
         </button>

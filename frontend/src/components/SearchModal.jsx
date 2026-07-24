@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { useDialog } from "../useDialog.js";
 
 // Highlight query matches by splitting into React text nodes + <mark> — never
 // innerHTML, so it's XSS-safe.
@@ -24,6 +25,7 @@ export default function SearchModal({ onClose, onOpen }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const dialogRef = useDialog(onClose);
 
   useEffect(() => {
     const query = q.trim();
@@ -57,7 +59,13 @@ export default function SearchModal({ onClose, onOpen }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal search-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal search-modal"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
           <input
             className="search-input"
@@ -72,6 +80,10 @@ export default function SearchModal({ onClose, onOpen }) {
           <button className="link" onClick={onClose}>
             ✕
           </button>
+        </div>
+        <div className="search-note muted small">
+          🔒 Encrypted direct messages aren't searchable — the server can't read
+          them to index them.
         </div>
         <div className="search-results">
           {loading && <div className="muted small">Searching…</div>}

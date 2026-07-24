@@ -416,7 +416,7 @@ export default function MessagePane({
               className="act mobile-only back-btn"
               title="Back to channels"
               onClick={onBack}
-            >
+             aria-label="Back to channels">
               ‹
             </button>
           )}
@@ -482,7 +482,7 @@ export default function MessagePane({
               className="act mobile-only"
               title="Members"
               onClick={onToggleRoster}
-            >
+             aria-label="Members">
               👥
             </button>
           )}
@@ -491,7 +491,7 @@ export default function MessagePane({
               className="act"
               title="Channel settings"
               onClick={onOpenSettings}
-            >
+             aria-label="Channel settings">
               ⚙
             </button>
           )}
@@ -500,7 +500,7 @@ export default function MessagePane({
               className="act danger"
               title="Delete channel"
               onClick={onDeleteChannel}
-            >
+             aria-label="Delete channel">
               🗑
             </button>
           )}
@@ -712,7 +712,7 @@ export default function MessagePane({
                         });
                         requestAnimationFrame(() => inputRef.current?.focus());
                       }}
-                    >
+                     aria-label="Reply">
                       ↩
                     </button>
                   )}
@@ -721,7 +721,7 @@ export default function MessagePane({
                       className="act"
                       title="Reply in thread"
                       onClick={() => onOpenThread?.(m)}
-                    >
+                     aria-label="Reply in thread">
                       🧵
                     </button>
                   )}
@@ -731,7 +731,7 @@ export default function MessagePane({
                     onClick={() =>
                       setPickerFor(pickerFor === m.id ? null : m.id)
                     }
-                  >
+                   aria-label="React">
                     🙂
                   </button>
                   {mine && !m.encrypted && (
@@ -743,14 +743,14 @@ export default function MessagePane({
                           setEditingId(m.id);
                           setEditText(m.content);
                         }}
-                      >
+                       aria-label="Edit">
                         ✎
                       </button>
                       <button
                         className="act"
                         title="Delete"
                         onClick={() => remove(m.id)}
-                      >
+                       aria-label="Delete">
                         🗑
                       </button>
                     </>
@@ -790,7 +790,7 @@ export default function MessagePane({
             className="link"
             title="Cancel reply"
             onClick={() => setReplyingTo(null)}
-          >
+           aria-label="Cancel reply">
             ✕
           </button>
         </div>
@@ -862,7 +862,7 @@ export default function MessagePane({
                   className="link"
                   title="Remove attachment"
                   onClick={() => setPendingAttachment(null)}
-                >
+                 aria-label="Remove attachment">
                   ✕
                 </button>
               </>
@@ -881,7 +881,7 @@ export default function MessagePane({
             className="attach-btn"
             title="Attach a file"
             onClick={() => fileInputRef.current?.click()}
-          >
+           aria-label="Attach a file">
             📎
           </button>
           <input

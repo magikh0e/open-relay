@@ -65,7 +65,7 @@ export default function MessageContent({ content, mentions = [], myId, onOpenPro
           className={`mention ${isMe ? "mention-me" : ""}`}
           onClick={() => onOpenProfile?.(mention.id)}
           title={`@${mention.username}`}
-        >
+         aria-label={`@${mention.username}`}>
           @{mention.display_name}
         </button>
       );

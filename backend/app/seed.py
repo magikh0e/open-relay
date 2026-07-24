@@ -33,15 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.6.1",
-        "📍 v1.6.1 — Location data stripped from every photo\n"
-        "• Photos are always re-encoded in your browser now, even when that "
-        "doesn't make the file smaller\n"
-        "• Previously a small or already-optimised image was sent untouched, "
-        "so its EXIF/GPS tags went with it\n"
-        "• GIFs and documents still upload as-is",
-    ),
-    (
         "1.6.2",
         "🚫 v1.6.2 — Uploads refuse rather than leak\n"
         "• If an image can't be re-encoded in your browser, the upload is now "
@@ -126,6 +117,17 @@ WHATSNEW_POSTS = [
         "can't see the contents, the name or even the file type\n"
         "• Changing your password now signs out your other devices\n"
         "• Deleted messages and leftover files are cleared for real after 30 days",
+    ),
+    (
+        "1.14.0",
+        "👋 v1.14.0 — An intro page, and a friendlier interface\n"
+        "• New About page explaining what Relay is, what it protects and what "
+        "it doesn't — linked from the sign-in screen\n"
+        "• Confirmations now appear in-app instead of as browser popups\n"
+        "• Dialogs close with Escape and keep keyboard focus inside them\n"
+        "• Icon buttons are properly labelled for screen readers\n"
+        "• On phones you now land on your channel list instead of being "
+        "dropped into a conversation",
     ),
 ]
 

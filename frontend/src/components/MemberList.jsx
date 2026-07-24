@@ -119,14 +119,14 @@ function Section({
                       className="act"
                       title={`Kick ${m.display_name}`}
                       onClick={() => onKick(m)}
-                    >
+                     aria-label={`Kick ${m.display_name}`}>
                       ✖
                     </button>
                     <button
                       className="act danger"
                       title={`Ban ${m.display_name}`}
                       onClick={() => onBan(m)}
-                    >
+                     aria-label={`Ban ${m.display_name}`}>
                       ⛔
                     </button>
                   </>

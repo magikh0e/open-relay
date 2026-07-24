@@ -1605,3 +1605,45 @@ button.primary:disabled {
   text-align: center;
   padding: 6px 0 10px;
 }
+
+/* In-app confirm/alert, replacing window.confirm / window.alert. */
+.confirm-modal {
+  width: 400px;
+  max-width: 92vw;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.confirm-modal h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.confirm-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+.confirm-actions .primary {
+  min-width: 110px;
+}
+.primary.danger-btn {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+.search-note {
+  padding: 0 2px 6px;
+}
+
+/* Visible keyboard focus — previously focus was effectively invisible on the
+   icon buttons, which made the focus trap useless to keyboard users. */
+:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
