@@ -3,6 +3,7 @@ import { api, tokens } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import { useSwipe } from "../useSwipe.js";
 import { maybeCompressImage } from "../imageCompress.js";
+import { encryptFile } from "../e2ee.js";
 import MessageContent from "./MessageContent.jsx";
 import Avatar from "./Avatar.jsx";
 import GifPicker from "./GifPicker.jsx";
@@ -16,6 +17,7 @@ export default function MessagePane({
   typing,
   online,
   onSent,
+  onPrepend,
   onTyping,
   onOpenProfile,
   canDelete,
@@ -31,6 +33,7 @@ export default function MessagePane({
   decrypted = {},
   encryptContent = null,
   e2ee = null,
+  dmKey = null,
 }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
@@ -50,6 +53,8 @@ export default function MessagePane({
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [activeMsgId, setActiveMsgId] = useState(null); // mobile: tap to reveal actions
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [exhausted, setExhausted] = useState(false);
   const fileInputRef = useRef(null);
   const dragDepth = useRef(0);
 
@@ -103,7 +108,17 @@ export default function MessagePane({
       // un-stripped original is never sent.
       const toSend = await maybeCompressImage(file);
       const form = new FormData();
-      form.append("file", toSend);
+      if (dmKey) {
+        // Encrypted conversation: the file is sealed with the same key as the
+        // messages, so the server stores opaque bytes and never learns the
+        // real name or type.
+        const { blob, meta } = await encryptFile(dmKey, toSend);
+        form.append("file", blob, "blob.bin");
+        form.append("encrypted", "true");
+        form.append("enc_meta", meta);
+      } else {
+        form.append("file", toSend);
+      }
       const res = await fetch("/api/uploads", {
         method: "POST",
         headers: { Authorization: `Bearer ${tokens.access}` },
@@ -147,12 +162,42 @@ export default function MessagePane({
   const inputRef = useRef(null);
   const lastTypingSent = useRef(0);
 
-  // Track whether the user is pinned near the bottom (vs. scrolled up reading).
+  // Track whether the user is pinned near the bottom (vs. scrolled up reading),
+  // and pull older history in when they reach the top.
   function handleScroll() {
     const el = messagesRef.current;
     if (!el) return;
     const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
     nearBottomRef.current = gap < 120;
+    if (el.scrollTop < 80) loadOlder();
+  }
+
+  async function loadOlder() {
+    const el = messagesRef.current;
+    if (!el || loadingOlder || exhausted || !messages.length) return;
+    setLoadingOlder(true);
+    try {
+      const oldest = messages[0].created_at;
+      const older = await api(
+        `/channels/${channel.id}/messages?before=${encodeURIComponent(oldest)}&limit=50`
+      );
+      if (!older.length) {
+        setExhausted(true);
+        return;
+      }
+      // Keep the viewport steady: prepending grows the scroll height, so
+      // restore the offset from the bottom rather than the top.
+      const prevHeight = el.scrollHeight;
+      const prevTop = el.scrollTop;
+      onPrepend?.(older);
+      requestAnimationFrame(() => {
+        el.scrollTop = el.scrollHeight - prevHeight + prevTop;
+      });
+    } catch {
+      /* leave it; the user can scroll again to retry */
+    } finally {
+      setLoadingOlder(false);
+    }
   }
 
   // Auto-scroll ONLY the messages container (never the window), and only when
@@ -163,6 +208,10 @@ export default function MessagePane({
       el.scrollTop = el.scrollHeight;
     }
   }, [messages.length]);
+
+  useEffect(() => {
+    setExhausted(false);
+  }, [channel.id]);
 
   useEffect(() => {
     if (!note) return;
@@ -459,6 +508,9 @@ export default function MessagePane({
       </header>
 
       <div className="messages" ref={messagesRef} onScroll={handleScroll}>
+        {loadingOlder && (
+          <div className="load-older muted small">Loading earlier messages…</div>
+        )}
         {messages.map((m, i) => {
           const prev = messages[i - 1];
           // Encrypted bodies are ciphertext until the decrypt pass fills them
@@ -590,7 +642,9 @@ export default function MessagePane({
                   </div>
                 )}
 
-                {m.attachment && <Attachment attachment={m.attachment} />}
+                {m.attachment && (
+                  <Attachment attachment={m.attachment} dmKey={dmKey} />
+                )}
 
                 {/* reactions */}
                 {(m.reactions?.length > 0 || pickerFor === m.id) && (

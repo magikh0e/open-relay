@@ -157,6 +157,6 @@ async def callback(
         return _front("#error=account_disabled")
     await db.commit()
 
-    access = create_access_token(user.id)
-    refresh = create_refresh_token(user.id)
+    access = create_access_token(user.id, user.token_version)
+    refresh = create_refresh_token(user.id, user.token_version)
     return _front(f"#access={access}&refresh={refresh}")

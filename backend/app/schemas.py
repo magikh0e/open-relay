@@ -153,6 +153,10 @@ class ChannelOut(BaseModel):
     read_only: bool = False
     member_count: int | None = None
     is_member: bool | None = None
+    # Messages since the viewer's last_read_at, and how many of those mention
+    # them (so the sidebar can show a plain badge vs an @ badge).
+    unread_count: int = 0
+    mention_count: int = 0
 
 
 class ChannelUpdate(BaseModel):
@@ -170,6 +174,10 @@ class AttachmentOut(BaseModel):
     size: int
     is_image: bool
     url: str
+    # Client-encrypted attachment: `name`/`content_type` are placeholders and
+    # the real values live in `enc_meta` ciphertext.
+    encrypted: bool = False
+    enc_meta: str = ""
 
 
 class MessageCreate(BaseModel):

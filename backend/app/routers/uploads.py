@@ -2,7 +2,7 @@ import os
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 
 from ..config import settings
@@ -52,12 +52,18 @@ def attachment_out(up: Upload) -> AttachmentOut:
         size=up.size,
         is_image=up.is_image,
         url=upload_url(up.id),
+        encrypted=up.encrypted,
+        enc_meta=up.enc_meta,
     )
 
 
 @router.post("", response_model=AttachmentOut, status_code=status.HTTP_201_CREATED)
 async def upload_file(
-    db: DB, user: CurrentUser, file: UploadFile = File(...)
+    db: DB,
+    user: CurrentUser,
+    file: UploadFile = File(...),
+    encrypted: bool = Form(default=False),
+    enc_meta: str = Form(default=""),
 ) -> AttachmentOut:
     if await rate_limit_hit(
         f"rl:upload:{user.id}", settings.upload_rate_per_min, 60
@@ -67,15 +73,23 @@ async def upload_file(
             detail="You're uploading too fast — wait a minute.",
         )
 
-    original = sanitize_text(
-        os.path.basename(file.filename or "file"), max_length=200
-    ) or "file"
-    ext = original.rsplit(".", 1)[-1].lower() if "." in original else ""
-    if ext not in ALLOWED:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"File type .{ext or '?'} is not allowed",
-        )
+    if encrypted:
+        # The bytes are ciphertext, so there is no extension to validate and no
+        # real name to record — both would leak. The true name and MIME type
+        # live in `enc_meta`, which only the conversation's members can read.
+        original, ext = "Encrypted file", "bin"
+        if len(enc_meta) > 4000:
+            raise HTTPException(status_code=400, detail="Attachment metadata too large")
+    else:
+        original = sanitize_text(
+            os.path.basename(file.filename or "file"), max_length=200
+        ) or "file"
+        ext = original.rsplit(".", 1)[-1].lower() if "." in original else ""
+        if ext not in ALLOWED:
+            raise HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail=f"File type .{ext or '?'} is not allowed",
+            )
 
     # Read with a hard size cap so a huge upload can't exhaust memory.
     max_bytes = settings.max_upload_mb * 1024 * 1024
@@ -102,9 +116,15 @@ async def upload_file(
         uploader_id=user.id,
         filename=original,
         stored_name=stored_name,
-        content_type=ALLOWED[ext],
+        content_type=(
+            "application/octet-stream" if encrypted else ALLOWED[ext]
+        ),
         size=size,
-        is_image=ext in IMAGE_TYPES,
+        # Encrypted blobs are never rendered inline by the browser; the client
+        # decrypts them and builds its own object URL.
+        is_image=(False if encrypted else ext in IMAGE_TYPES),
+        encrypted=encrypted,
+        enc_meta=enc_meta if encrypted else "",
     )
     db.add(up)
     await db.commit()

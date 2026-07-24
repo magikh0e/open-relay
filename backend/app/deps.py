@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database import get_db
 from .models import Ban, ChannelMember, User
-from .security import decode_token
+from .security import decode_token_claims
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -18,11 +18,15 @@ async def get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
 
 async def resolve_token_user(db: AsyncSession, token: str) -> User | None:
     """Shared by HTTP deps and the WebSocket handshake."""
-    user_id = decode_token(token, expected_type="access")
-    if not user_id:
+    claims = decode_token_claims(token, expected_type="access")
+    if not claims:
         return None
+    user_id, tv = claims
     user = await get_user_by_id(db, user_id)
     if not user or not user.is_active:
+        return None
+    # Token issued before the user's credentials changed — treat as revoked.
+    if tv != user.token_version:
         return None
     # Ban is keyed by its own id, so look it up by user_id explicitly.
     banned = (

@@ -52,6 +52,11 @@ class User(Base):
     pronouns: Mapped[str] = mapped_column(String(40), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)  # site-wide moderator
+    # Embedded in every issued JWT. Bumping it invalidates all outstanding
+    # access AND refresh tokens for this user (used on password change).
+    token_version: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0"
+    )
 
     # --- privacy preferences (all opt-out; enforced server-side) ---
     # Emit "X is typing…" to others.
@@ -222,6 +227,13 @@ class Upload(Base):
     content_type: Mapped[str] = mapped_column(String(128))
     size: Mapped[int] = mapped_column(Integer)
     is_image: Mapped[bool] = mapped_column(Boolean, default=False)
+    # True when the stored bytes are client-encrypted. The server then knows
+    # nothing about the real file: `enc_meta` holds the ciphertext of
+    # {name, type}, which only the conversation's participants can read.
+    encrypted: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
+    enc_meta: Mapped[str] = mapped_column(Text, default="", server_default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 

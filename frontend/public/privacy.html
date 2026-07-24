@@ -76,7 +76,7 @@
     <main>
       <a class="back" href="/">&lsaquo; Back to Relay</a>
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: 23 July 2026</p>
+      <p class="updated">Last updated: 24 July 2026</p>
 
       <p class="lede">
         Relay is a small, self-hosted chat service. It is not a commercial
@@ -181,9 +181,16 @@
           can open the file without logging in, whether or not they belong to
           the channel it was shared in. The link is not published or guessable,
           but it is the only thing protecting the file — so treat anything you
-          upload as shareable.
+          upload to a channel as shareable.
         </p>
       </div>
+      <p>
+        <strong>Files sent in an encrypted DM are the exception.</strong> They
+        are encrypted in your browser before they are uploaded, so the link
+        leads only to scrambled bytes. The server stores no filename and no file
+        type for them either — just an anonymous blob — and only the two of you
+        can turn it back into a file.
+      </p>
       <p>Other details about uploads:</p>
       <ul>
         <li>
@@ -209,9 +216,28 @@
       <h2>Your IP address</h2>
       <p>
         Your IP address is used briefly to limit repeated failed sign-in
-        attempts. It is held in a short-lived cache (about a minute) and is not
-        attached to your profile or message history. As with any website, the
-        server software may record ordinary request metadata in its logs.
+        attempts and to cap how many accounts can be created from one place. It
+        is held in a short-lived cache and is not attached to your profile or
+        message history. As with any website, the server software may record
+        ordinary request metadata in its logs.
+      </p>
+
+      <h2>Controls you have</h2>
+      <p>
+        Open your profile to find these. Each one is enforced by the server, so
+        switching it off actually stops the information being produced rather
+        than just hiding it on your screen.
+      </p>
+      <ul>
+        <li><strong>Typing indicators</strong> — stop others seeing when you're writing.</li>
+        <li><strong>Online status</strong> — appear offline while still using Relay.</li>
+        <li><strong>Direct messages</strong> — stop people starting new conversations with you.</li>
+        <li><strong>Search visibility</strong> — hide yourself from user search. You stay visible in channels you're already in.</li>
+      </ul>
+      <p>
+        You can also change your password there. Doing so signs out every other
+        device, so it's the thing to reach for if you think someone else has
+        access to your account.
       </p>
 
       <h2>Third parties</h2>
@@ -245,15 +271,17 @@
       <h2>Deletion and retention</h2>
       <ul>
         <li>
-          <strong>Deleting a message hides it, but does not erase it.</strong>
-          A deleted message disappears for everyone in the app, and its record
-          is retained in the database marked as deleted. Assume an
-          administrator can still recover it.
+          <strong>Deleting a message hides it immediately and erases it after
+          30 days.</strong> It disappears for everyone straight away, but the
+          record stays in the database, marked as deleted, until a scheduled
+          clean-up removes it for good. During that window an administrator
+          could still recover it.
         </li>
         <li>
-          <strong>Uploaded files are not deleted</strong> when the message
-          containing them is removed. The file stays on the server and its link
-          keeps working.
+          <strong>Uploaded files are removed once nothing points at them.</strong>
+          When the message carrying a file is deleted, the file itself is
+          deleted from the server by the same 30-day clean-up, and its link
+          stops working.
         </li>
         <li>
           Account information is kept until the operator removes it. Ask the

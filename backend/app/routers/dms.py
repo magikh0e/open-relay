@@ -12,6 +12,7 @@ from ..models import (
 )
 from ..schemas import ChannelOut, DMCreate, UserPublic
 from ..ws_manager import manager
+from .channels import _unread_for
 
 router = APIRouter(prefix="/dms", tags=["dms"])
 
@@ -40,6 +41,7 @@ async def list_dms(db: DB, user: CurrentUser) -> list[ChannelOut]:
 
     out: list[ChannelOut] = []
     for ch in channels:
+        unread, mentions = await _unread_for(db, ch.id, user.id)
         other = (
             await db.execute(
                 select(User)
@@ -60,6 +62,8 @@ async def list_dms(db: DB, user: CurrentUser) -> list[ChannelOut]:
                 created_at=ch.created_at,
                 member_count=2,
                 is_member=True,
+                unread_count=unread,
+                mention_count=mentions,
             )
         )
     return out

@@ -33,14 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.6.0",
-        "📣 v1.6.0 — Announcements + tidier messages\n"
-        "• New read-only #whatsnew channel for release notes — you're reading it\n"
-        "• React to any update; replies are disabled here\n"
-        "• Message actions (reply, thread, react) now sit next to the message "
-        "instead of out at the far right",
-    ),
-    (
         "1.6.1",
         "📍 v1.6.1 — Location data stripped from every photo\n"
         "• Photos are always re-encoded in your browser now, even when that "
@@ -122,6 +114,18 @@ WHATSNEW_POSTS = [
         "time, and they'd stay lit up indefinitely\n"
         "• Online status is now a short lease your app keeps renewing, so it "
         "corrects itself within a minute no matter what",
+    ),
+    (
+        "1.13.0",
+        "🧰 v1.13.0 — Unread badges, older messages, encrypted files\n"
+        "• Unread counts in the sidebar, with a highlighted badge when someone "
+        "mentions you\n"
+        "• Scroll up to load earlier messages — history is no longer capped at "
+        "the most recent 50\n"
+        "• Files sent in an encrypted DM are now encrypted too; the server "
+        "can't see the contents, the name or even the file type\n"
+        "• Changing your password now signs out your other devices\n"
+        "• Deleted messages and leftover files are cleared for real after 30 days",
     ),
 ]
 

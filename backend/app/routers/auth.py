@@ -11,7 +11,7 @@ from ..seed import WHATSNEW_SLUG
 from ..security import (
     create_access_token,
     create_refresh_token,
-    decode_token,
+    decode_token_claims,
     hash_password,
     needs_rehash,
     verify_password,
@@ -21,7 +21,16 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
-async def register(body: RegisterIn, db: DB) -> TokenPair:
+async def register(body: RegisterIn, request: Request, db: DB) -> TokenPair:
+    # Signup is open, so throttle per IP — otherwise one script can mint
+    # unlimited accounts (each of which also lands in #whatsnew).
+    if await rate_limit_hit(
+        f"register:ip:{client_ip(request)}", settings.register_rate_per_hour, 3600
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many accounts created from here. Try again later.",
+        )
     exists = (
         await db.execute(
             select(User).where(
@@ -56,8 +65,8 @@ async def register(body: RegisterIn, db: DB) -> TokenPair:
         )
     await db.commit()
     return TokenPair(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
+        access_token=create_access_token(user.id, user.token_version),
+        refresh_token=create_refresh_token(user.id, user.token_version),
     )
 
 
@@ -100,14 +109,15 @@ async def login(body: LoginIn, request: Request, db: DB) -> TokenPair:
         user.password_hash = hash_password(body.password)
         await db.commit()
     return TokenPair(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
+        access_token=create_access_token(user.id, user.token_version),
+        refresh_token=create_refresh_token(user.id, user.token_version),
     )
 
 
 @router.post("/refresh", response_model=TokenPair)
 async def refresh(body: RefreshIn, db: DB) -> TokenPair:
-    user_id = decode_token(body.refresh_token, expected_type="refresh")
+    claims = decode_token_claims(body.refresh_token, expected_type="refresh")
+    user_id = claims[0] if claims else None
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -118,7 +128,14 @@ async def refresh(body: RefreshIn, db: DB) -> TokenPair:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
         )
+    # Without this a revoked refresh token could still mint fresh access
+    # tokens, which would defeat the whole point of revocation.
+    if claims[1] != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired — please sign in again",
+        )
     return TokenPair(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
+        access_token=create_access_token(user.id, user.token_version),
+        refresh_token=create_refresh_token(user.id, user.token_version),
     )

@@ -14,13 +14,19 @@ from ..sanitize import sanitize_text
 from ..schemas import (
     AwayIn,
     PasswordChange,
+    TokenPair,
     PrivacySettings,
     ProfileOut,
     ProfileUpdate,
     UserOut,
     UserPublic,
 )
-from ..security import hash_password, verify_password
+from ..security import (
+    create_access_token,
+    create_refresh_token,
+    hash_password,
+    verify_password,
+)
 from ..ws_manager import manager
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -77,9 +83,15 @@ async def update_me(body: ProfileUpdate, db: DB, user: CurrentUser) -> User:
     return user
 
 
-@router.post("/me/password", status_code=204)
-async def change_password(body: PasswordChange, db: DB, user: CurrentUser) -> None:
-    """Change (or, for SSO-only accounts, first set) your own password."""
+@router.post("/me/password", response_model=TokenPair)
+async def change_password(
+    body: PasswordChange, db: DB, user: CurrentUser
+) -> TokenPair:
+    """Change (or, for SSO-only accounts, first set) your own password.
+
+    Returns a fresh token pair: changing the password revokes every existing
+    token, so the caller needs new ones to stay signed in here.
+    """
     # Confirming the current password is a guessable secret, so throttle it the
     # way login is throttled rather than allowing unlimited attempts.
     if await rate_limit_hit(f"rl:pw:{user.id}", 5, 300):
@@ -104,7 +116,14 @@ async def change_password(body: PasswordChange, db: DB, user: CurrentUser) -> No
     # first time; the authenticated session is the proof of identity.
 
     user.password_hash = hash_password(body.new_password)
+    # Revoke every outstanding token so a changed password actually signs other
+    # devices out, including anyone holding a stolen one.
+    user.token_version += 1
     await db.commit()
+    return TokenPair(
+        access_token=create_access_token(user.id, user.token_version),
+        refresh_token=create_refresh_token(user.id, user.token_version),
+    )
 
 
 @router.get("/search", response_model=list[UserPublic])

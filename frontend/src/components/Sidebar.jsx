@@ -59,6 +59,11 @@ export default function Sidebar({
               {c.read_only ? "📣" : c.kind === "private" ? "🔒" : "#"}
             </span>
             <span className="row-name">{c.name}</span>
+            {(c.mention_count > 0 || c.unread_count > 0) && (
+                <span className={`unread-badge ${c.mention_count > 0 ? "mention" : ""}`}>
+                  {c.mention_count > 0 ? `@${c.mention_count}` : c.unread_count}
+                </span>
+              )}
           </button>
         ))}
       </div>
@@ -98,6 +103,11 @@ export default function Sidebar({
                 <span className="dot-name">
                   <span className="row-name">{c.name}</span>
                 </span>
+                {(c.mention_count > 0 || c.unread_count > 0) && (
+                <span className={`unread-badge ${c.mention_count > 0 ? "mention" : ""}`}>
+                  {c.mention_count > 0 ? `@${c.mention_count}` : c.unread_count}
+                </span>
+              )}
               </button>
               {onCloseDm && (
                 <button

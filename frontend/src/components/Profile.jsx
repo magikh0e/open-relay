@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { api, tokens } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import Avatar from "./Avatar.jsx";
 
@@ -226,13 +226,16 @@ function PasswordForm({ hasPassword }) {
     }
     setBusy(true);
     try {
-      await api("/users/me/password", {
+      // Changing the password revokes every existing token, so the response
+      // carries a fresh pair — store it or we'd sign ourselves out.
+      const pair = await api("/users/me/password", {
         method: "POST",
         body: {
           current_password: hasPassword ? current : null,
           new_password: next,
         },
       });
+      if (pair?.access_token) tokens.set(pair);
       setDone(true);
       setCurrent("");
       setNext("");
@@ -248,8 +251,7 @@ function PasswordForm({ hasPassword }) {
     return (
       <div className="pw-form">
         <div className="pw-ok">
-          ✓ Password updated. Sessions already signed in on other devices stay
-          signed in.
+          ✓ Password updated. Every other device has been signed out.
         </div>
       </div>
     );

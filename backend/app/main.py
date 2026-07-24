@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -5,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import Base, engine
+from .purge import purge_loop
 from .redis_client import reset_presence
 from .seed import ensure_whatsnew
 from .routers import (
@@ -38,12 +40,14 @@ async def lifespan(app: FastAPI):
     # sessions re-register on their next heartbeat.
     await reset_presence()
     await manager.start()
+    purge_task = asyncio.create_task(purge_loop())
     yield
+    purge_task.cancel()
     await manager.stop()
     await engine.dispose()
 
 
-APP_VERSION = "1.12.0"
+APP_VERSION = "1.13.0"
 
 app = FastAPI(title="Relay API", version=APP_VERSION, lifespan=lifespan)
 

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import func, select
 
@@ -14,6 +15,8 @@ from ..models import (
     Channel,
     ChannelBan,
     ChannelMember,
+    Message,
+    MessageMention,
     User,
 )
 from ..schemas import (
@@ -71,7 +74,52 @@ async def _is_member(db, channel_id: str, user_id: str) -> bool:
     ).scalar_one_or_none() is not None
 
 
-def _to_out(ch: Channel, member_count: int, is_member: bool) -> ChannelOut:
+async def _unread_for(db, channel_id: str, user_id: str) -> tuple[int, int]:
+    """(unread, mentions) since the member's last_read_at. Own messages and
+    deleted ones don't count."""
+    member = (
+        await db.execute(
+            select(ChannelMember).where(
+                ChannelMember.channel_id == channel_id,
+                ChannelMember.user_id == user_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if member is None:
+        return 0, 0
+    base = (
+        select(Message.id)
+        .where(
+            Message.channel_id == channel_id,
+            Message.created_at > member.last_read_at,
+            Message.deleted_at.is_(None),
+            Message.sender_id != user_id,
+        )
+        .subquery()
+    )
+    unread = (
+        await db.execute(select(func.count()).select_from(base))
+    ).scalar_one()
+    mentions = (
+        await db.execute(
+            select(func.count())
+            .select_from(MessageMention)
+            .where(
+                MessageMention.user_id == user_id,
+                MessageMention.message_id.in_(select(base.c.id)),
+            )
+        )
+    ).scalar_one()
+    return int(unread), int(mentions)
+
+
+def _to_out(
+    ch: Channel,
+    member_count: int,
+    is_member: bool,
+    unread: int = 0,
+    mentions: int = 0,
+) -> ChannelOut:
     return ChannelOut(
         id=ch.id,
         kind=ch.kind,
@@ -83,6 +131,8 @@ def _to_out(ch: Channel, member_count: int, is_member: bool) -> ChannelOut:
         read_only=ch.read_only,
         member_count=member_count,
         is_member=is_member,
+        unread_count=unread,
+        mention_count=mentions,
     )
 
 
@@ -116,11 +166,14 @@ async def list_channels(db: DB, user: CurrentUser) -> list[ChannelOut]:
 
     out: list[ChannelOut] = []
     for ch in [*public, *private]:
+        unread, mentions = await _unread_for(db, ch.id, user.id)
         out.append(
             _to_out(
                 ch,
                 await _member_count(db, ch.id),
                 await _is_member(db, ch.id, user.id),
+                unread,
+                mentions,
             )
         )
     return out
@@ -549,3 +602,11 @@ async def delete_channel(channel_id: str, db: DB, user: CurrentUser) -> None:
     await manager.publish_room(
         channel_id, {"type": "channel_deleted", "data": {"channel_id": channel_id}}
     )
+
+
+@router.post("/{channel_id}/read", status_code=status.HTTP_204_NO_CONTENT)
+async def mark_read(channel_id: str, db: DB, user: CurrentUser) -> None:
+    """Mark everything up to now as read, clearing this channel's badge."""
+    member = await require_membership(db, channel_id, user.id)
+    member.last_read_at = datetime.now(timezone.utc)
+    await db.commit()

@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     msg_rate_per_10s: int = 10
     # Login attempts allowed per identifier per minute (brute-force throttle).
     login_rate_per_min: int = 10
+    register_rate_per_hour: int = 5
+    # Retention: how long deleted messages and orphaned uploads are kept.
+    purge_after_days: int = 30
 
     # --- OAuth / SSO ---
     # Public origin the browser hits (used to build redirect URIs). Set to your

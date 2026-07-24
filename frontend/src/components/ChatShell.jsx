@@ -128,6 +128,8 @@ export default function ChatShell() {
           if (list.some((m) => m.id === data.id)) return prev; // dedupe echo
           return { ...prev, [data.channel_id]: [...list, data] };
         });
+        // Update unread badges for channels the user isn't currently looking at.
+        if (data.channel_id !== activeIdRef.current) refreshLists();
       }
     } else if (type === "message_deleted") {
       setMsgsByChannel((prev) => {
@@ -337,6 +339,23 @@ export default function ChatShell() {
     setThreadRootId(null);
     setThreadMessages([]);
   }
+
+  // Opening a channel (or receiving while it's open) clears its badge.
+  useEffect(() => {
+    if (!activeId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await api(`/channels/${activeId}/read`, { method: "POST" });
+        if (!cancelled) refreshLists();
+      } catch {
+        /* badge will catch up on the next refresh */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId, msgsByChannel[activeId]?.length, refreshLists]);
 
   // Land in #whatsnew on sign-in so release notes are the first thing seen.
   // Guarded by a ref so it only happens once — re-renders (or the user closing
@@ -769,6 +788,15 @@ export default function ChatShell() {
                 return { ...prev, [active.id]: [...list, m] };
               })
             }
+            onPrepend={(older) =>
+              setMsgsByChannel((prev) => {
+                const list = prev[active.id] || [];
+                const seen = new Set(list.map((m) => m.id));
+                const fresh = older.filter((m) => !seen.has(m.id));
+                if (!fresh.length) return prev;
+                return { ...prev, [active.id]: [...fresh, ...list] };
+              })
+            }
             onTyping={() => {
               // Honour the preference here too, so the signal isn't even sent
               // (the server drops it as well, but no reason to emit it).
@@ -786,6 +814,7 @@ export default function ChatShell() {
             canPost={canPost}
             decrypted={decrypted}
             encryptContent={dmKey ? encryptForActive : null}
+            dmKey={dmKey}
             e2ee={
               isDmChannel
                 ? {

@@ -1578,3 +1578,30 @@ button.primary:disabled {
     padding: 10px 12px 14px;
   }
 }
+
+/* Unread badges in the sidebar. A mention badge outranks a plain count. */
+.unread-badge {
+  margin-left: auto;
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+.unread-badge.mention {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.row.active .unread-badge {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: transparent;
+}
+.load-older {
+  text-align: center;
+  padding: 6px 0 10px;
+}

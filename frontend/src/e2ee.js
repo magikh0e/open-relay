@@ -177,3 +177,45 @@ export async function loadCachedKey() {
 export function clearCachedKey() {
   sessionStorage.removeItem(CACHE_KEY);
 }
+
+// --- file attachments ------------------------------------------------------
+//
+// Same AES-GCM envelope as messages, applied to the raw file bytes. The name
+// and MIME type are encrypted separately so the server stores no hint of what
+// the file is — it only ever sees an opaque blob.
+
+/** Encrypt a File. Returns the ciphertext blob plus encrypted metadata. */
+export async function encryptFile(sharedKey, file) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    sharedKey,
+    await file.arrayBuffer()
+  );
+  const payload = new Uint8Array(iv.length + ct.byteLength);
+  payload.set(iv, 0);
+  payload.set(new Uint8Array(ct), iv.length);
+  const meta = await encryptMessage(
+    sharedKey,
+    JSON.stringify({ name: file.name, type: file.type })
+  );
+  return { blob: new Blob([payload]), meta };
+}
+
+/** Decrypt a fetched attachment back into a blob URL plus its real name/type. */
+export async function decryptFile(sharedKey, buffer, metaB64) {
+  const bytes = new Uint8Array(buffer);
+  const plain = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: bytes.slice(0, 12) },
+    sharedKey,
+    bytes.slice(12)
+  );
+  let meta = { name: "file", type: "application/octet-stream" };
+  try {
+    meta = JSON.parse(await decryptMessage(sharedKey, metaB64));
+  } catch {
+    /* fall back to generic name/type */
+  }
+  const blob = new Blob([plain], { type: meta.type || "application/octet-stream" });
+  return { url: URL.createObjectURL(blob), name: meta.name, type: meta.type };
+}
