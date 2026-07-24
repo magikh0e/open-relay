@@ -3,3 +3,7 @@
 
 # Tauri-generated schemas
 /gen/schemas
+
+# Mobile icon sets (desktop-only client) — regenerate with `tauri icon` if needed
+/icons/android
+/icons/ios

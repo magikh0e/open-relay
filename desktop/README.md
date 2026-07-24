@@ -67,13 +67,21 @@ or repoint the constant.
 
 ## Server-side requirement (CORS)
 
-The webview's origin is **`http://tauri.localhost`** (Windows/WebView2) or
-**`tauri://localhost`** (macOS/Linux). The app makes cross-origin calls to the
-server, so the server's `CORS_ORIGINS` **must include those origins** or every
-request fails (the classic "Failed to fetch"). Add both on the VPS `.env.prod`:
+The app makes cross-origin calls to the server, so the server's `CORS_ORIGINS`
+**must include the webview's origin** or every request fails (the classic
+"Failed to fetch"). The origin differs by mode:
+
+| Mode | Webview origin |
+|---|---|
+| `tauri:build` on Windows | `http://tauri.localhost` |
+| `tauri:build` on macOS/Linux | `tauri://localhost` |
+| **`tauri:dev`** (any OS) | `http://localhost:5173` (the Vite dev server) |
+
+So allow all three on the VPS `.env.prod` — the last one only matters while
+developing against a remote server, and can be dropped afterwards:
 
 ```
-CORS_ORIGINS=https://openrelay.pl,tauri://localhost,http://tauri.localhost
+CORS_ORIGINS=https://openrelay.pl,tauri://localhost,http://tauri.localhost,http://localhost:5173
 ```
 
 The WebSocket (`/ws`) is not CORS-gated, so it needs no change.

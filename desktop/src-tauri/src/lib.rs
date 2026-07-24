@@ -30,7 +30,7 @@ pub fn run() {
                 .title("Open Relay")
                 .inner_size(1100.0, 780.0)
                 .min_inner_size(400.0, 560.0)
-                .initialization_script(&init)
+                .initialization_script(init.as_str())
                 .build()?;
 
             Ok(())
