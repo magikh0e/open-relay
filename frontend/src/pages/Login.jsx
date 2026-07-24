@@ -146,6 +146,10 @@ export default function Login() {
         <div className="app-version">
           {APP_NAME} v{APP_VERSION}
           <span className="sep">·</span>
+          <a className="policy-link" href="/guide.html" target="_blank" rel="noreferrer">
+            Guide
+          </a>
+          <span className="sep">·</span>
           <a className="policy-link" href="/about.html" target="_blank" rel="noreferrer">
             About
           </a>

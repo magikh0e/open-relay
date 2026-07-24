@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>User Guide — Open Relay</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <style>
+      :root {
+        --bg: #1a1c22;
+        --bg-2: #23262e;
+        --bg-3: #2b2f38;
+        --line: #343945;
+        --text: #e6e8ec;
+        --muted: #8b90a0;
+        --accent: #5b8cff;
+        --accent-2: #7aa2ff;
+        --warn: #ffb454;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 40px 20px 80px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      main { max-width: 760px; margin: 0 auto; }
+      h1 { font-size: 28px; margin: 0 0 4px; }
+      h2 {
+        font-size: 19px;
+        margin: 38px 0 10px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+      p, li, td { color: #d3d7df; }
+      ul { padding-left: 22px; }
+      li { margin: 6px 0; }
+      a { color: var(--accent); }
+      .updated { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+      .lede { color: var(--muted); }
+      .back {
+        display: inline-block;
+        margin: 0 14px 24px 0;
+        color: var(--muted);
+        text-decoration: none;
+      }
+      .back:hover { color: var(--text); }
+      .toc {
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin: 8px 0 8px;
+        columns: 2;
+        column-gap: 28px;
+      }
+      .toc a { text-decoration: none; display: block; padding: 2px 0; }
+      .toc a:hover { text-decoration: underline; }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 12px 0;
+        font-size: 15px;
+      }
+      th, td {
+        text-align: left;
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+      code, kbd {
+        background: var(--bg-3);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 13px;
+      }
+      kbd { font-weight: 600; }
+      pre {
+        background: var(--bg-3);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 14px;
+        overflow-x: auto;
+      }
+      pre code { background: none; border: none; padding: 0; }
+      .shot {
+        width: 100%;
+        max-width: 560px;
+        display: block;
+        margin: 14px auto;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+      }
+      blockquote {
+        margin: 14px 0;
+        padding: 10px 16px;
+        border-left: 3px solid var(--warn);
+        background: var(--bg-2);
+        border-radius: 8px;
+        color: var(--muted);
+      }
+      footer {
+        margin-top: 44px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/">&lsaquo; Back to Open Relay</a>
+      <a class="back" href="/about.html">About</a>
+      <a class="back" href="/privacy.html">Privacy</a>
+      <h1>User Guide</h1>
+      <p class="updated">Everything you need to get comfortable.</p>
+
+      <nav class="toc">
+        <a href="#signing-in">Signing in</a>
+        <a href="#channels">Channels &amp; DMs</a>
+        <a href="#writing">Writing messages</a>
+        <a href="#formatting">Formatting</a>
+        <a href="#files">Files &amp; images</a>
+        <a href="#search">Search</a>
+        <a href="#encryption">Encrypted DMs</a>
+        <a href="#notifications">Notifications</a>
+        <a href="#privacy">Presence &amp; privacy</a>
+        <a href="#account">Your account &amp; data</a>
+        <a href="#install">Install as an app</a>
+        <a href="#commands">Slash commands</a>
+      </nav>
+
+      <h2 id="signing-in">Signing in</h2>
+      <p>
+        Register with a username, email and password, or use
+        <strong>Continue with Discord</strong> if the server has it enabled. You
+        land in <code>#whatsnew</code>, a read-only channel where release notes
+        are posted — you can react to those but not reply.
+      </p>
+
+      <h2 id="channels">Channels and DMs</h2>
+      <ul>
+        <li><strong>Channels</strong> live in the left sidebar. Public ones anyone can open and join; private ones you have to be invited to.</li>
+        <li><strong>Create a channel</strong> with the <code>+</code> next to <em>Channels</em> (up to two if you're not an admin).</li>
+        <li><strong>Direct messages</strong> are one-to-one. Start one from the <code>+</code> next to <em>Direct Messages</em>, or from someone's profile.</li>
+        <li><strong>Close a DM</strong> by hovering it and clicking <code>✕</code>, or typing <code>/close</code>. It only hides it for you — nothing is deleted, and it comes back if either of you writes again.</li>
+      </ul>
+      <p>
+        An <strong>unread badge</strong> shows on channels with new messages; if
+        someone <strong>@mentions</strong> you, the badge is highlighted so you
+        can tell it apart from ordinary traffic.
+      </p>
+
+      <h2 id="writing">Writing messages</h2>
+      <ul>
+        <li><kbd>Enter</kbd> sends. <kbd>Shift</kbd>+<kbd>Enter</kbd> starts a new line.</li>
+        <li><strong>Reply</strong> from a message's hover menu — your reply shows the original quoted above it.</li>
+        <li><strong>Start a thread</strong> to branch a side conversation without cluttering the channel.</li>
+        <li><strong>React</strong> with emoji from the same hover menu.</li>
+        <li><strong>@mention</strong> someone by typing <code>@</code> and picking from the list.</li>
+        <li><strong>Edit or delete</strong> your own messages from their hover menu (on mobile, tap a message to reveal its actions).</li>
+      </ul>
+      <p>
+        Half-written messages are saved <strong>per channel</strong> — switch
+        away and come back and your draft is still there.
+      </p>
+
+      <h2 id="formatting">Formatting</h2>
+      <p>Type it inline as you write:</p>
+      <table>
+        <tr><th>You type</th><th>You get</th></tr>
+        <tr><td><code>**bold**</code></td><td><strong>bold</strong></td></tr>
+        <tr><td><code>*italic*</code></td><td><em>italic</em></td></tr>
+        <tr><td><code>~~strike~~</code></td><td><s>strike</s></td></tr>
+        <tr><td><code>`code`</code></td><td><code>code</code></td></tr>
+      </table>
+      <p>
+        For multi-line code, fence it with triple backticks (use
+        <kbd>Shift</kbd>+<kbd>Enter</kbd> for the line breaks):
+      </p>
+      <pre><code>```
+def hello():
+    return "world"
+```</code></pre>
+      <p>
+        Anything inside backticks stays literal — so pasted code with
+        <code>*asterisks*</code> or <code>@names</code> won't be turned into
+        formatting or mentions.
+      </p>
+
+      <h2 id="files">Files and images</h2>
+      <p>
+        Drag a file anywhere onto the conversation, or use the 📎 button. Images
+        preview inline; other files arrive as a download card.
+      </p>
+      <p>
+        <strong>Photos are re-encoded in your browser before upload</strong>,
+        which shrinks them and strips embedded location (EXIF/GPS) data — the
+        original with your coordinates never leaves your device.
+      </p>
+      <blockquote>
+        Files shared in an ordinary channel sit behind an unguessable but
+        <strong>public</strong> link: anyone given that link can open it. Files
+        in an <em>encrypted</em> DM are encrypted too (see below).
+      </blockquote>
+
+      <h2 id="search">Search</h2>
+      <p>
+        Search from the box at the top of the sidebar. Results
+        <strong>jump straight to the message</strong> and highlight it in its
+        channel, so you see it in context. Encrypted DMs are excluded — the
+        server can't read them to index them.
+      </p>
+
+      <h2 id="encryption">Encrypted direct messages</h2>
+      <p>
+        Direct messages can be <strong>end-to-end encrypted</strong>: your
+        browser holds a private key the server never sees, so it stores
+        scrambled text it has no way to read.
+      </p>
+      <img class="shot" src="/guide-encrypted.png"
+           alt="An encrypted DM showing the lock badge and a safety number" />
+      <p><strong>Turning it on</strong></p>
+      <ol>
+        <li>Open a DM and use the prompt to <strong>set up encryption</strong>.</li>
+        <li>Choose a passphrase. This protects your key; you'll enter it on each new device.</li>
+        <li>Both people need encryption enabled. When it's active, a <strong>🔒&nbsp;Encrypted</strong> badge appears at the top of the conversation.</li>
+      </ol>
+      <p>
+        <strong>Verify it's really private.</strong> Click the 🔒 badge to reveal
+        a <strong>safety number</strong>. Read it aloud to the other person — in
+        a call or in person. If your numbers match, nobody is intercepting the
+        conversation. Worth doing once per contact.
+      </p>
+      <blockquote>
+        If you <strong>forget your passphrase</strong>, those messages are gone
+        for everyone, permanently. There is no reset — not even the server admin
+        can recover them, because the key they store is locked with your
+        passphrase.
+      </blockquote>
+      <p>
+        Encryption hides <em>what</em> you said, not <em>that</em> you said it:
+        the server still records who you message and when. Files you send in an
+        encrypted DM are encrypted too — the server never learns their contents,
+        name or type.
+      </p>
+
+      <h2 id="notifications">Notifications</h2>
+      <p>
+        Open your profile → <strong>Privacy</strong> → <em>Notify me on this
+        device</em> to get browser notifications for DMs and mentions, even with
+        the app closed. Notifications tell you <strong>who</strong> messaged you
+        and <strong>where</strong> — never the message text. That keeps message
+        contents off the notification and out of the push service entirely.
+      </p>
+
+      <h2 id="privacy">Presence and privacy</h2>
+      <p>
+        Open your profile → <strong>Privacy</strong>. Each toggle is enforced by
+        the server, so turning one off actually stops the signal — it isn't just
+        hidden on your screen:
+      </p>
+      <ul>
+        <li><strong>Show when I'm typing</strong> — the "is typing…" indicator.</li>
+        <li><strong>Show when I'm online</strong> — turn off to always appear offline.</li>
+        <li><strong>Allow new direct messages</strong> — existing conversations keep working.</li>
+        <li><strong>Let people find me in search</strong> — you stay visible in channels you're in.</li>
+      </ul>
+
+      <h2 id="account">Your account and data</h2>
+      <p>From your profile:</p>
+      <ul>
+        <li><strong>Change password</strong> — you'll confirm the current one. Changing it <strong>signs out every other device</strong>, which is what to do if you think someone else has access.</li>
+        <li><strong>Your data → Download my data</strong> — everything the server holds about you, as a JSON file. Encrypted messages come out as the scrambled text the server stores.</li>
+        <li><strong>Your data → Delete my account</strong> — permanent and immediate. Your account, keys and settings are erased; messages you sent stay in other people's conversations but stop being attributed to you.</li>
+      </ul>
+
+      <h2 id="install">Install it as an app</h2>
+      <p>Open Relay can be installed like a native app and opens in its own window:</p>
+      <ul>
+        <li><strong>Android / desktop Chrome</strong> — use the <strong>Install</strong> option in the address bar or menu.</li>
+        <li><strong>iPhone / iPad</strong> — <strong>Share → Add to Home Screen</strong>.</li>
+      </ul>
+      <p>The app shell loads offline, though you still need a connection to send or receive messages.</p>
+
+      <h2 id="commands">Slash commands</h2>
+      <p>Type these in the message box. <code>/help</code> lists them in-app.</p>
+      <table>
+        <tr><th>Command</th><th>What it does</th></tr>
+        <tr><td><code>/me &lt;action&gt;</code></td><td>Post an action ("* Alice waves")</td></tr>
+        <tr><td><code>/nick &lt;name&gt;</code></td><td>Change your display name</td></tr>
+        <tr><td><code>/join &lt;#channel&gt;</code></td><td>Join and open a public channel</td></tr>
+        <tr><td><code>/part</code> · <code>/close</code></td><td>Leave a channel, or close a DM</td></tr>
+        <tr><td><code>/query &lt;user&gt;</code> · <code>/dm &lt;user&gt;</code></td><td>Open a DM</td></tr>
+        <tr><td><code>/invite &lt;user&gt;</code></td><td>Add someone to the current channel</td></tr>
+        <tr><td><code>/whois &lt;user&gt;</code></td><td>Open a user's profile</td></tr>
+        <tr><td><code>/names</code></td><td>List who's in the channel</td></tr>
+        <tr><td><code>/topic &lt;text&gt;</code></td><td>Set the channel topic</td></tr>
+        <tr><td><code>/away [message]</code> · <code>/back</code></td><td>Set or clear your away status</td></tr>
+        <tr><td><code>/ignore &lt;user&gt;</code></td><td>Hide a user's messages (local to you)</td></tr>
+        <tr><td><code>/op &lt;user&gt;</code> · <code>/deop &lt;user&gt;</code></td><td>Grant or remove operator status</td></tr>
+        <tr><td><code>/kick</code> · <code>/ban</code> · <code>/unban</code></td><td>Moderation</td></tr>
+        <tr><td><code>/shrug</code> · <code>/slap &lt;user&gt;</code></td><td>The classics</td></tr>
+        <tr><td><code>/version</code></td><td>Show the app version</td></tr>
+      </table>
+      <p class="lede">Moderation commands require you to be a channel operator or admin.</p>
+
+      <footer>
+        Open Relay is free software under the GNU GPL&#8209;3.0.
+      </footer>
+    </main>
+  </body>
+</html>
