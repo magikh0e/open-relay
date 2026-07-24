@@ -1,136 +1,175 @@
-# Relay
+<p align="center">
+  <img src="docs/screenshots/01-login.png" alt="Open Relay" width="440">
+</p>
 
-**v1.0.0** — a self-hosted, IRC-style chat service with public & private
-channels, DMs, real-time messaging, presence, and typing indicators.
+<h1 align="center">Open Relay</h1>
 
-- **Backend:** FastAPI + WebSockets, PostgreSQL, Redis pub/sub
-- **Frontend:** React + Vite
-- **Auth:** JWT access/refresh, argon2 password hashing
+<p align="center">
+  A small, self-hosted chat service. Channels, threads and direct messages —
+  with end-to-end encryption where it counts, and a plain account of what it
+  does and doesn't protect.
+</p>
 
-## Architecture at a glance
+<p align="center">
+  <em>No ads. No analytics. No trackers. Free software under the GNU GPL-3.0.</em>
+</p>
+
+---
+
+Open Relay is a chat server you run yourself. It's built for small groups —
+friends, a team, a community — where the person running the server is someone
+you know, rather than a company monetising your messages. It looks and feels
+like a modern chat app, but the whole thing is a single Docker Compose stack
+you own end to end.
+
+## Screenshots
+
+**A channel** — colour-coded avatars, formatting, code blocks, replies, mentions and reactions:
+
+![Channel](docs/screenshots/02-chat.png)
+
+**An encrypted DM** — a lock badge, and a safety number both people can compare to rule out interception:
+
+![Encrypted DM](docs/screenshots/03-encrypted-dm.png)
+
+<p align="center">
+  <img src="docs/screenshots/04-mobile.png" alt="Mobile" width="300"><br>
+  <em>Installable as a home-screen app, with a proper mobile layout.</em>
+</p>
+
+## Features
+
+**Chat**
+- Public and private channels, and one-to-one direct messages you can close and reopen
+- Threads, inline replies with a quoted preview, and @mentions
+- Unread counts per channel, with a distinct badge when you're mentioned
+- Emoji reactions, and GIF search (proxied, so your IP isn't handed to the GIF provider)
+- File and image uploads — drag-and-drop, images compressed client-side
+- Message formatting: **bold**, *italic*, ~~strikethrough~~, `inline code` and fenced code blocks
+- Full-text search that jumps straight to the message, and infinite scroll-back
+- Live presence, typing indicators and away status
+- The IRC slash commands you'd expect (`/me`, `/nick`, `/join`, `/topic`, `/op`, …)
+
+**Privacy & security**
+- **End-to-end encrypted direct messages** — keys generated in your browser (ECDH P-256 + AES-256-GCM via the Web Crypto API), so the server stores ciphertext it can't read
+- **Encrypted attachments** in encrypted DMs — the server never learns the file's contents, name or type
+- **Safety numbers** to verify a conversation isn't being intercepted
+- Photos are re-encoded in the browser before upload, stripping EXIF/GPS
+- Privacy toggles (typing, presence, DMs, discoverability) that are **enforced server-side**, not just hidden
+- Argon2 password hashing, token revocation on password change, and rate limiting on login, registration, messaging and uploads
+- Self-service **data export** and **account deletion**
+- Deleted messages and orphaned files are purged after a retention window
+
+**Platform**
+- Installable PWA (add to home screen / desktop); the app shell works offline
+- Push notifications for DMs and mentions — payloads say *who* and *where*, never *what*
+- Optional Discord (and Google) SSO alongside username/password
+- A read-only `#whatsnew` announcements channel, seeded automatically
+
+### What it deliberately does **not** protect
+
+Being honest about this is the point:
+
+- **Channel messages are readable by whoever runs the server** — only DMs can be end-to-end encrypted.
+- Encryption hides message *contents*, not *metadata* — who talks to whom, and when, is recorded.
+- Files shared in ordinary channels sit behind an unguessable but **publicly accessible** link.
+- Forget your encryption passphrase and those messages are unrecoverable — there is no reset.
+
+The full details are in the in-app [privacy policy](frontend/public/privacy.html).
+
+## How it's built
 
 ```
-Browser (React)
-   │  HTTP (REST)                 WebSocket (one per session)
-   ▼                              ▼
+Browser (React + Vite)
+   │  HTTPS (REST)                WebSocket (one per session)
+   ▼                             ▼
 FastAPI workers  ── persist ──▶  PostgreSQL
-   │  publish/subscribe
+   │  publish / subscribe
    ▼
- Redis  ◀── fan-out ──▶  every worker forwards to its local sockets
+ Redis  ◀── fan-out ──▶  every worker forwards to its own local sockets
 ```
 
-- Public channels, private channels, and DMs are all rows in one `channels`
-  table (distinguished by `kind`). Every message flows through one `messages`
-  table, and every live subscription is just "a channel" — which keeps the
-  real-time layer uniform.
-- A chat message is **persisted to Postgres and published to Redis**. Redis
-  fans it out to all worker processes, so you can run many workers / hosts with
-  no sticky sessions.
+- **Backend** — FastAPI, async SQLAlchemy 2.0 (asyncpg), Alembic migrations, PostgreSQL, Redis (pub/sub fan-out, presence leases, rate limiting). WebSockets for realtime; messages posted over REST.
+- **Frontend** — React + Vite, no UI framework. The end-to-end crypto is vanilla Web Crypto with no dependencies.
+- **Serving** — Caddy reverse proxy (automatic HTTPS) serves the built SPA and proxies `/api` and `/ws` to gunicorn/uvicorn.
 
-## Run it (development)
+## Run it locally
 
-**1. Start Postgres + Redis** (Docker):
+You need Docker, Python 3.13 and Node.
 
 ```bash
-docker compose up -d
+# 1. datastores
+docker compose up -d            # Postgres + Redis
+
+# 2. backend
+cd backend
+py -3.13 -m venv .venv && . .venv/Scripts/activate   # (Linux/macOS: source .venv/bin/activate)
+pip install -r requirements.txt
+cp .env.example .env            # dev defaults are fine
+alembic upgrade head            # create the schema
+uvicorn app.main:app --reload --port 8000
+
+# 3. frontend (separate shell)
+cd frontend
+npm install
+npm run dev                     # http://localhost:5173
 ```
 
-**2. Backend:**
+The first backend start seeds the `#whatsnew` channel. Register a user in the
+app and you're in.
+
+## Deploy it
+
+Production is a four-service Compose stack — Caddy + backend + Postgres + Redis
+— in `docker-compose.prod.yml`. Caddy serves the built frontend and terminates
+HTTPS automatically.
+
+```bash
+cp backend/.env.example .env.prod   # then edit: JWT_SECRET, PUBLIC_BASE_URL, SITE_ADDRESS, …
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+Migrations run automatically on backend start (`alembic upgrade head` in the
+container entrypoint). Set `SITE_ADDRESS` to your domain and Caddy provisions a
+certificate. See [`DEPLOY.md`](DEPLOY.md) for a full VPS walkthrough, including
+the git push-to-deploy hook.
+
+### Configuration
+
+Everything is environment variables (`backend/.env.example` is the reference):
+
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL`, `REDIS_URL` | Datastore connections |
+| `JWT_SECRET` | **Change this** — signs auth tokens |
+| `PUBLIC_BASE_URL` | Public origin, used to build OAuth redirects |
+| `CORS_ORIGINS` | Allowed browser origins |
+| `GOOGLE_*` / `DISCORD_*` | Optional SSO credentials |
+| `GIPHY_API_KEY` | Optional; enables GIF search |
+| VAPID keys | Auto-generated and stored in the DB on first boot — push works with no config |
+
+## Using it
+
+New here? The [**user guide**](docs/USER_GUIDE.md) covers encryption, formatting,
+the slash commands, notifications, and managing your data.
+
+## Tests
+
+The backend has a pytest suite that runs against **real** Postgres and Redis
+(the same containers dev uses), because the things worth testing — advisory
+locks, cascade deletes, rate limiting, token revocation, encrypted-upload
+opacity — only behave realistically against the real thing.
 
 ```bash
 cd backend
-python -m venv .venv
-# Windows:  .venv\Scripts\activate
-# macOS/Linux:  source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env          # then set a real JWT_SECRET
-alembic upgrade head          # create the schema
-uvicorn app.main:app --reload --port 8000
+pytest -q          # ~49 tests
 ```
 
-The API is now at http://localhost:8000 (docs at `/docs`).
+## License
 
-> The schema is managed by **Alembic**. Run `alembic upgrade head` after
-> pulling changes that add migrations. For a quick throwaway dev DB you can skip
-> Alembic and set `AUTO_CREATE_TABLES=1` in `.env` to have tables created on
-> startup instead.
+[GNU GPL-3.0](LICENSE). Free to use, modify and run yourself. These terms cover
+the software; each running instance sets its own terms of use.
 
-**3. Frontend:**
+---
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open http://localhost:5173. Vite proxies `/api` and `/ws` to the backend, so
-everything is same-origin in dev.
-
-## Try it
-
-1. Register two accounts (open a second browser / incognito window).
-2. Create a channel, send messages — they appear live in both windows.
-3. Search for the other user under **Direct Messages → +** to open a DM.
-4. Watch presence dots and the "typing…" indicator update in real time.
-
-## Making yourself an admin (for moderation)
-
-Site admins can ban/unban users via `/moderation/*`. Flip the flag directly in
-the DB for your first admin:
-
-```sql
-UPDATE users SET is_admin = true WHERE username = 'you';
-```
-
-## Security notes
-
-- **XSS:** the primary defense is output encoding — the React frontend renders
-  all user content as text nodes and **never** uses `innerHTML` /
-  `dangerouslySetInnerHTML`. `MessageContent.jsx` parses @mentions by building
-  React elements (not HTML strings), so a message like `<script>…` renders as
-  literal text. Verified: an `alert()` payload produces no `<script>` node and
-  is entity-escaped in the DOM.
-- **Input hardening (defense-in-depth):** `app/sanitize.py` normalizes Unicode
-  (NFC) and strips control/format/zero-width/bidi-override characters, then
-  hard-caps length, on all free-text (messages, display name, bio, pronouns).
-- **Avatars are initials only** — no user-supplied image URLs, so there's no
-  SSRF / tracking-pixel / `src`-injection surface.
-- **Mentions** are resolved server-side against real, active users;
-  usernames follow a strict `[a-zA-Z0-9_.-]{3,32}` charset and email-like
-  `foo@bar` text is never treated as a mention.
-- **Admin (`is_admin`)** can only be granted via direct DB access (no API
-  writes it); it's never carried in the JWT (read fresh from the DB per
-  request) and every privileged action is enforced server-side — the UI crown
-  is cosmetic.
-- **Login throttling:** Redis-backed limit of `LOGIN_RATE_PER_MIN` attempts per
-  identifier per minute (plus a looser per-IP cap) → 429 on brute force.
-- **Audit log:** all moderation actions (site & channel ban/kick/unban) are
-  recorded to `audit_logs` with actor, target, and timestamp; readable by
-  admins at `GET /moderation/audit`.
-
-## Deployment
-
-See **[DEPLOY.md](DEPLOY.md)** for the full containerized VPS deployment
-(Caddy + automatic HTTPS, gunicorn/uvicorn, Postgres, Redis) and the
-push-to-deploy GitHub Actions workflow. Migrations run automatically on
-container startup.
-
-## Roadmap (post-MVP)
-
-- [x] Alembic migrations, CI, Docker images, VPS deploy (see DEPLOY.md)
-- [x] Message editing + emoji reactions
-- [x] Inline replies (reply-to a message with quoted preview)
-- [x] @mentions (autocomplete, highlight, mention-me) + user profiles (bio/pronouns)
-- [x] Channel moderation: kick / ban / unban + admin crowns + owner/mod roles
-- [x] Delete channels (site admin or channel owner) — cascades + audited
-- [x] Channel operators (IRC-style op = mod role): owner/admin grant/revoke, editable topic
-- [x] Channel settings panel: name/topic/privacy, role management, ownership transfer, delete
-- [ ] Role management UI (promote to mod, transfer ownership)
-- [x] Threads (Slack-style: root + replies in a side panel, flattened, live)
-- [x] SSO / OAuth sign-in (Google & Discord, verified-email linking) — see DEPLOY.md
-- [x] Slash commands (/topic /kick /ban /op /dm /slap /shrug …) + update-refresh banner
-- [ ] File & image uploads
-- [ ] Full-text message search
-- [ ] Read receipts / unread badges (`last_read_at` column already exists)
-- [ ] Rate-limit tuning + abuse reporting
-- [ ] Refresh-token rotation/revocation (currently stateless)
+<sub>Screenshots are generated reproducibly by <code>frontend/capture-screenshots.mjs</code> (Playwright, dev-only — not a project dependency).</sub>
