@@ -56,8 +56,9 @@ WHATSNEW_POSTS = [
         "passphrase; the server only ever stores scrambled text\n"
         "• Both people need it switched on, and a lock icon shows when a "
         "conversation is protected\n"
-        "• Forget the passphrase and those messages are unrecoverable — "
-        "there is no reset",
+        "• Forget the passphrase and those messages are unrecoverable — there "
+        "is no reset, and the admin can't help either: the key they store is "
+        "locked with your passphrase",
     ),
     (
         "1.9.0",
