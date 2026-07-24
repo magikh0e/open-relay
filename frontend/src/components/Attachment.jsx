@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { decryptFile } from "../e2ee.js";
+import { resolveUrl } from "../config.js";
 
 function formatSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -23,7 +24,7 @@ export default function Attachment({ attachment, dmKey }) {
     let objectUrl = null;
     (async () => {
       try {
-        const res = await fetch(url);
+        const res = await fetch(resolveUrl(url));
         if (!res.ok) throw new Error("fetch failed");
         const out = await decryptFile(dmKey, await res.arrayBuffer(), enc_meta);
         if (!alive) {
@@ -71,15 +72,16 @@ export default function Attachment({ attachment, dmKey }) {
     );
   }
 
+  const src = resolveUrl(url);
   if (is_image) {
     return (
-      <a className="attachment-link" href={url} target="_blank" rel="noreferrer">
-        <img className="attachment-img" src={url} alt={name} loading="lazy" />
+      <a className="attachment-link" href={src} target="_blank" rel="noreferrer">
+        <img className="attachment-img" src={src} alt={name} loading="lazy" />
       </a>
     );
   }
   return (
-    <a className="file-card" href={url} target="_blank" rel="noreferrer" download>
+    <a className="file-card" href={src} target="_blank" rel="noreferrer" download>
       <span className="file-icon">📄</span>
       <span className="file-info">
         <span className="file-name">{name}</span>

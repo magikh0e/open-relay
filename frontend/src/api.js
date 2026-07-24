@@ -1,6 +1,8 @@
 // Thin fetch wrapper. Stores tokens in localStorage and transparently
 // refreshes the access token on a 401 once before giving up.
 
+import { API_BASE } from "./config.js";
+
 const ACCESS = "chat_access";
 const REFRESH = "chat_refresh";
 
@@ -24,7 +26,7 @@ export const tokens = {
 export async function refreshAccess() {
   const rt = tokens.refresh;
   if (!rt) return false;
-  const res = await fetch("/api/auth/refresh", {
+  const res = await fetch(`${API_BASE}/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: rt }),
@@ -44,11 +46,11 @@ export async function api(path, { method = "GET", body, auth = true } = {}) {
   const opts = { method, headers };
   if (body !== undefined) opts.body = JSON.stringify(body);
 
-  let res = await fetch(`/api${path}`, opts);
+  let res = await fetch(`${API_BASE}${path}`, opts);
 
   if (res.status === 401 && auth && (await refreshAccess())) {
     headers.Authorization = `Bearer ${tokens.access}`;
-    res = await fetch(`/api${path}`, opts);
+    res = await fetch(`${API_BASE}${path}`, opts);
   }
 
   if (res.status === 204) return null;

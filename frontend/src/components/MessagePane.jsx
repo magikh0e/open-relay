@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, tokens } from "../api.js";
+import { API_BASE } from "../config.js";
 import { useAuth } from "../auth.jsx";
 import { useSwipe } from "../useSwipe.js";
 import { maybeCompressImage } from "../imageCompress.js";
@@ -131,7 +132,7 @@ export default function MessagePane({
       } else {
         form.append("file", toSend);
       }
-      const res = await fetch("/api/uploads", {
+      const res = await fetch(`${API_BASE}/uploads`, {
         method: "POST",
         headers: { Authorization: `Bearer ${tokens.access}` },
         body: form,

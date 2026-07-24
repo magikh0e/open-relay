@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { refreshAccess, tokens } from "./api.js";
+import { wsBase } from "./config.js";
 
 // Opens one WebSocket for the session and fans server events out to a set of
 // handlers. Reconnects with backoff and sends periodic pings for keepalive.
@@ -20,10 +21,7 @@ export function useSocket(enabled, onEvent) {
       // expired token (the socket is long-lived; tokens expire in ~30 min).
       await refreshAccess();
       if (closedByUs) return;
-      const proto = location.protocol === "https:" ? "wss" : "ws";
-      const url = `${proto}://${location.host}/ws?token=${encodeURIComponent(
-        tokens.access
-      )}`;
+      const url = `${wsBase()}/ws?token=${encodeURIComponent(tokens.access)}`;
       const ws = new WebSocket(url);
       wsRef.current = ws;
 

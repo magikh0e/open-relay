@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { API_BASE } from "../config.js";
 import { useAuth } from "../auth.jsx";
 import { APP_NAME, APP_VERSION } from "../version.js";
 
@@ -134,7 +135,7 @@ export default function Login() {
                 type="button"
                 className={`oauth-btn oauth-${p}`}
                 onClick={() => {
-                  window.location.href = `/api/auth/oauth/${p}/start`;
+                  window.location.href = `${API_BASE}/auth/oauth/${p}/start`;
                 }}
               >
                 {PROVIDER_LABELS[p] || `Continue with ${p}`}
@@ -148,6 +149,10 @@ export default function Login() {
           <span className="sep">·</span>
           <a className="policy-link" href="/guide.html" target="_blank" rel="noreferrer">
             Guide
+          </a>
+          <span className="sep">·</span>
+          <a className="policy-link" href="/developers.html" target="_blank" rel="noreferrer">
+            Developers
           </a>
           <span className="sep">·</span>
           <a className="policy-link" href="/about.html" target="_blank" rel="noreferrer">
