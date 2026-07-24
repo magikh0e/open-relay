@@ -35,7 +35,19 @@
         margin: 38px 0 10px;
         padding-top: 18px;
         border-top: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
+      h2 .sec-ico { font-size: 20px; line-height: 1; }
+      .guide-logo {
+        display: block;
+        width: min(300px, 70vw);
+        height: auto;
+        border-radius: 12px;
+        margin: 0 auto 26px;
+      }
+      .toc a .ti { margin-right: 7px; }
       p, li, td { color: #d3d7df; }
       ul { padding-left: 22px; }
       li { margin: 6px 0; }
@@ -117,6 +129,7 @@
   </head>
   <body>
     <main>
+      <img class="guide-logo" src="/openrelay.webp" alt="Open Relay" width="1000" height="546" />
       <a class="back" href="/">&lsaquo; Back to Open Relay</a>
       <a class="back" href="/about.html">About</a>
       <a class="back" href="/privacy.html">Privacy</a>
@@ -124,21 +137,21 @@
       <p class="updated">Everything you need to get comfortable.</p>
 
       <nav class="toc">
-        <a href="#signing-in">Signing in</a>
-        <a href="#channels">Channels &amp; DMs</a>
-        <a href="#writing">Writing messages</a>
-        <a href="#formatting">Formatting</a>
-        <a href="#files">Files &amp; images</a>
-        <a href="#search">Search</a>
-        <a href="#encryption">Encrypted DMs</a>
-        <a href="#notifications">Notifications</a>
-        <a href="#privacy">Presence &amp; privacy</a>
-        <a href="#account">Your account &amp; data</a>
-        <a href="#install">Install as an app</a>
-        <a href="#commands">Slash commands</a>
+        <a href="#signing-in"><span class="ti">🔑</span>Signing in</a>
+        <a href="#channels"><span class="ti">💬</span>Channels &amp; DMs</a>
+        <a href="#writing"><span class="ti">✏️</span>Writing messages</a>
+        <a href="#formatting"><span class="ti">✍️</span>Formatting</a>
+        <a href="#files"><span class="ti">📎</span>Files &amp; images</a>
+        <a href="#search"><span class="ti">🔍</span>Search</a>
+        <a href="#encryption"><span class="ti">🔒</span>Encrypted DMs</a>
+        <a href="#notifications"><span class="ti">🔔</span>Notifications</a>
+        <a href="#privacy"><span class="ti">🎛️</span>Presence &amp; privacy</a>
+        <a href="#account"><span class="ti">📦</span>Your account &amp; data</a>
+        <a href="#install"><span class="ti">📲</span>Install as an app</a>
+        <a href="#commands"><span class="ti">⌨️</span>Slash commands</a>
       </nav>
 
-      <h2 id="signing-in">Signing in</h2>
+      <h2 id="signing-in"><span class="sec-ico">🔑</span>Signing in</h2>
       <p>
         Register with a username, email and password, or use
         <strong>Continue with Discord</strong> if the server has it enabled. You
@@ -146,7 +159,7 @@
         are posted — you can react to those but not reply.
       </p>
 
-      <h2 id="channels">Channels and DMs</h2>
+      <h2 id="channels"><span class="sec-ico">💬</span>Channels and DMs</h2>
       <ul>
         <li><strong>Channels</strong> live in the left sidebar. Public ones anyone can open and join; private ones you have to be invited to.</li>
         <li><strong>Create a channel</strong> with the <code>+</code> next to <em>Channels</em> (up to two if you're not an admin).</li>
@@ -159,7 +172,7 @@
         can tell it apart from ordinary traffic.
       </p>
 
-      <h2 id="writing">Writing messages</h2>
+      <h2 id="writing"><span class="sec-ico">✏️</span>Writing messages</h2>
       <ul>
         <li><kbd>Enter</kbd> sends. <kbd>Shift</kbd>+<kbd>Enter</kbd> starts a new line.</li>
         <li><strong>Reply</strong> from a message's hover menu — your reply shows the original quoted above it.</li>
@@ -173,7 +186,7 @@
         away and come back and your draft is still there.
       </p>
 
-      <h2 id="formatting">Formatting</h2>
+      <h2 id="formatting"><span class="sec-ico">✍️</span>Formatting</h2>
       <p>Type it inline as you write:</p>
       <table>
         <tr><th>You type</th><th>You get</th></tr>
@@ -196,7 +209,7 @@ def hello():
         formatting or mentions.
       </p>
 
-      <h2 id="files">Files and images</h2>
+      <h2 id="files"><span class="sec-ico">📎</span>Files and images</h2>
       <p>
         Drag a file anywhere onto the conversation, or use the 📎 button. Images
         preview inline; other files arrive as a download card.
@@ -212,7 +225,7 @@ def hello():
         in an <em>encrypted</em> DM are encrypted too (see below).
       </blockquote>
 
-      <h2 id="search">Search</h2>
+      <h2 id="search"><span class="sec-ico">🔍</span>Search</h2>
       <p>
         Search from the box at the top of the sidebar. Results
         <strong>jump straight to the message</strong> and highlight it in its
@@ -220,7 +233,7 @@ def hello():
         server can't read them to index them.
       </p>
 
-      <h2 id="encryption">Encrypted direct messages</h2>
+      <h2 id="encryption"><span class="sec-ico">🔒</span>Encrypted direct messages</h2>
       <p>
         Direct messages can be <strong>end-to-end encrypted</strong>: your
         browser holds a private key the server never sees, so it stores
@@ -253,7 +266,7 @@ def hello():
         name or type.
       </p>
 
-      <h2 id="notifications">Notifications</h2>
+      <h2 id="notifications"><span class="sec-ico">🔔</span>Notifications</h2>
       <p>
         Open your profile → <strong>Privacy</strong> → <em>Notify me on this
         device</em> to get browser notifications for DMs and mentions, even with
@@ -262,7 +275,7 @@ def hello():
         contents off the notification and out of the push service entirely.
       </p>
 
-      <h2 id="privacy">Presence and privacy</h2>
+      <h2 id="privacy"><span class="sec-ico">🎛️</span>Presence and privacy</h2>
       <p>
         Open your profile → <strong>Privacy</strong>. Each toggle is enforced by
         the server, so turning one off actually stops the signal — it isn't just
@@ -275,7 +288,7 @@ def hello():
         <li><strong>Let people find me in search</strong> — you stay visible in channels you're in.</li>
       </ul>
 
-      <h2 id="account">Your account and data</h2>
+      <h2 id="account"><span class="sec-ico">📦</span>Your account and data</h2>
       <p>From your profile:</p>
       <ul>
         <li><strong>Change password</strong> — you'll confirm the current one. Changing it <strong>signs out every other device</strong>, which is what to do if you think someone else has access.</li>
@@ -283,7 +296,7 @@ def hello():
         <li><strong>Your data → Delete my account</strong> — permanent and immediate. Your account, keys and settings are erased; messages you sent stay in other people's conversations but stop being attributed to you.</li>
       </ul>
 
-      <h2 id="install">Install it as an app</h2>
+      <h2 id="install"><span class="sec-ico">📲</span>Install it as an app</h2>
       <p>Open Relay can be installed like a native app and opens in its own window:</p>
       <ul>
         <li><strong>Android / desktop Chrome</strong> — use the <strong>Install</strong> option in the address bar or menu.</li>
@@ -291,7 +304,7 @@ def hello():
       </ul>
       <p>The app shell loads offline, though you still need a connection to send or receive messages.</p>
 
-      <h2 id="commands">Slash commands</h2>
+      <h2 id="commands"><span class="sec-ico">⌨️</span>Slash commands</h2>
       <p>Type these in the message box. <code>/help</code> lists them in-app.</p>
       <table>
         <tr><th>Command</th><th>What it does</th></tr>
