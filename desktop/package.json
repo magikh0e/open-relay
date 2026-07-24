@@ -1,0 +1,15 @@
+{
+  "name": "openrelay-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Open Relay desktop client (Tauri shell around the web UI)",
+  "scripts": {
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
