@@ -104,9 +104,10 @@
           only as an Argon2 hash; the plain password is never saved.
         </li>
         <li>
-          <strong>Google sign-in</strong> — if you sign in with Google, basic
-          profile information (email address and name) is received from Google
-          to create and identify your account. No other provider is used.
+          <strong>Discord sign-in</strong> — if you sign in with Discord, your
+          Discord account's email address and username are received from
+          Discord to create and identify your account. Nothing is posted to
+          your Discord account, and no other sign-in provider is used.
         </li>
         <li>
           <strong>Messages</strong> — what you post in channels, along with
@@ -228,7 +229,8 @@
       <h2>Notifications</h2>
       <p>
         If you turn on notifications, your browser registers a push endpoint
-        with Google or Mozilla (whoever makes your browser) so the server can
+        with your browser's push service (Google's for Chrome, Mozilla's for
+        Firefox — unrelated to signing in) so the server can
         wake it. Those notifications deliberately contain only who messaged you
         and where — never the message itself. Sending the text would hand it to
         a third party, which for an encrypted conversation would defeat the
@@ -268,7 +270,8 @@
           containing their images would.
         </li>
         <li>
-          <strong>Google</strong> — only if you choose to sign in with Google.
+          <strong>Discord</strong> — only if you choose to sign in with
+          Discord, and only to identify you at sign-in.
         </li>
       </ul>
       <p>There are no other third parties, and no advertising or analytics services of any kind.</p>
