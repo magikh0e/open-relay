@@ -33,17 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.9.0",
-        "✖️ v1.9.0 — Closing DMs + smoother encryption\n"
-        "• You can now close a direct message: hover it in the sidebar and hit "
-        "✕, or type /close\n"
-        "• Closing only hides it for you — nothing is deleted, and it comes "
-        "back if either of you writes again\n"
-        "• /part now closes a DM instead of complaining that you can't leave one\n"
-        "• When the other person switches encryption on, your open conversation "
-        "picks it up straight away instead of needing a reopen",
-    ),
-    (
         "1.9.1",
         "🧹 v1.9.1 — Tidier release notes\n"
         "• Fixed this channel showing the same update several times over\n"
@@ -128,6 +117,21 @@ WHATSNEW_POSTS = [
         "• It covers what's expected of you, how moderation works, and is "
         "blunt that the service comes with no guarantees\n"
         "• Signing in with Discord now works",
+    ),
+    (
+        "1.18.0",
+        "🔔 v1.18.0 — Notifications, formatting, and your data\n"
+        "• Turn on notifications in your profile to hear about DMs and "
+        "mentions even with the app closed — they say who and where, never "
+        "what was said\n"
+        "• Write **bold**, *italic*, `code` and ```fenced blocks``` — pasted "
+        "code finally stays readable\n"
+        "• Encrypted conversations now show a safety number: read it aloud to "
+        "the other person and if it matches, nobody is in the middle\n"
+        "• Search results jump straight to the message and highlight it\n"
+        "• Half-written messages are kept per channel when you switch away\n"
+        "• Download everything we hold about you, or delete your account "
+        "outright, from your profile",
     ),
 ]
 

@@ -16,6 +16,7 @@ from ..models import (
     Upload,
     User,
 )
+from ..push import notify_in_background
 from ..redis_client import redis_client
 from ..sanitize import extract_mention_usernames, sanitize_text
 from ..schemas import (
@@ -252,9 +253,48 @@ async def history(
     db: DB,
     user: CurrentUser,
     before: datetime | None = Query(default=None),
+    around: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
 ) -> list[MessageOut]:
     await require_membership(db, channel_id, user.id)
+
+    # "Jump to message": return a window centred on one message so a search
+    # result can be shown in context instead of paging back to find it.
+    if around:
+        target = await db.get(Message, around)
+        if target is None or target.channel_id != channel_id:
+            raise HTTPException(status_code=404, detail="Message not found")
+        half = max(1, limit // 2)
+        older = (
+            await db.execute(
+                select(Message)
+                .options(selectinload(Message.sender))
+                .where(
+                    Message.channel_id == channel_id,
+                    Message.deleted_at.is_(None),
+                    Message.thread_root_id.is_(None),
+                    Message.created_at <= target.created_at,
+                )
+                .order_by(Message.created_at.desc())
+                .limit(half)
+            )
+        ).scalars().all()
+        newer = (
+            await db.execute(
+                select(Message)
+                .options(selectinload(Message.sender))
+                .where(
+                    Message.channel_id == channel_id,
+                    Message.deleted_at.is_(None),
+                    Message.thread_root_id.is_(None),
+                    Message.created_at > target.created_at,
+                )
+                .order_by(Message.created_at)
+                .limit(half)
+            )
+        ).scalars().all()
+        rows = list(reversed(older)) + list(newer)
+        return await _enrich(db, rows, user.id)
     stmt = (
         select(Message)
         .options(selectinload(Message.sender))
@@ -408,7 +448,43 @@ async def post_message(
     await manager.publish_room(
         channel_id, {"type": "message", "data": out.model_dump(mode="json")}
     )
+    await _push_notify(db, channel, user, msg, mentioned)
     return out
+
+
+async def _push_notify(db, channel, sender, msg, mentioned) -> None:
+    """Notify people who'd want to know: DM recipients and anyone mentioned.
+
+    Payloads carry who and where, never the message text — a push payload
+    passes through a third-party push service, and for an encrypted DM that
+    would leak exactly what the encryption protects.
+    """
+    if channel is None:
+        return
+    url = f"/?c={channel.id}"
+    targets: dict[str, tuple[str, str]] = {}
+
+    if channel.kind == KIND_DM:
+        others = (
+            await db.execute(
+                select(ChannelMember.user_id).where(
+                    ChannelMember.channel_id == channel.id,
+                    ChannelMember.user_id != sender.id,
+                )
+            )
+        ).scalars().all()
+        for uid in others:
+            targets[uid] = (sender.display_name, "sent you a message")
+    else:
+        for u in mentioned:
+            if u.id != sender.id:
+                targets[u.id] = (
+                    sender.display_name,
+                    f"mentioned you in #{channel.name}",
+                )
+
+    for uid, (title, body) in targets.items():
+        notify_in_background(uid, title, body, url, f"ch-{channel.id}")
 
 
 @router.patch("/{message_id}", response_model=MessageOut)

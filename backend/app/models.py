@@ -358,3 +358,39 @@ class Ban(Base):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class AppSecret(Base):
+    """Small key/value store for server-generated secrets.
+
+    Used for the VAPID keypair: generating and persisting it here means push
+    works on first boot without anyone hand-editing environment variables, and
+    it stays stable across restarts (a changed key silently invalidates every
+    existing push subscription).
+    """
+
+    __tablename__ = "app_secrets"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[str] = mapped_column(Text)
+
+
+class PushSubscription(Base):
+    """A browser push endpoint belonging to a user.
+
+    One row per device/browser. Endpoints go stale constantly (reinstalls,
+    cleared data), so 404/410 responses from the push service delete the row.
+    """
+
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, default=_uuid
+    )
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    endpoint: Mapped[str] = mapped_column(Text, unique=True)
+    p256dh: Mapped[str] = mapped_column(String(255))
+    auth: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

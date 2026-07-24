@@ -1658,3 +1658,89 @@ button.primary:disabled {
   border-radius: 10px;
   margin: -6px 0 2px;
 }
+
+/* Message formatting: inline code, fenced blocks, emphasis. */
+.msg-text code,
+.thread-msg-body code {
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+.code-block {
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 6px 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+.code-block code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.msg-text del { opacity: 0.65; }
+
+/* Safety number panel for verifying an encrypted conversation. */
+.fingerprint-panel {
+  margin: 0 18px 8px;
+  padding: 12px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.fingerprint-head {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.fingerprint {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  color: var(--online);
+  word-spacing: 6px;
+  margin-bottom: 8px;
+}
+.fingerprint-panel p { margin: 0; }
+button.e2ee-badge { cursor: pointer; }
+
+/* Brief highlight when arriving at a message from search. */
+.msg.jump-flash {
+  animation: jump-flash 2s ease-out;
+  border-radius: 6px;
+}
+@keyframes jump-flash {
+  0%, 35% { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+  100% { background: transparent; }
+}
+
+/* Account deletion: visually separated so it isn't clicked by accident. */
+.danger-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+}
+.danger-zone input {
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--text);
+  outline: none;
+}

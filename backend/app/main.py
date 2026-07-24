@@ -16,6 +16,7 @@ from .routers import (
     giphy,
     keys,
     messages,
+    push,
     moderation,
     oauth,
     search,
@@ -47,7 +48,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-APP_VERSION = "1.17.0"
+APP_VERSION = "1.18.0"
 
 app = FastAPI(title="Open Relay API", version=APP_VERSION, lifespan=lifespan)
 
@@ -67,6 +68,7 @@ app.include_router(messages.router)
 app.include_router(dms.router)
 app.include_router(uploads.router)
 app.include_router(keys.router)
+app.include_router(push.router)
 app.include_router(giphy.router)
 app.include_router(search.router)
 app.include_router(moderation.router)

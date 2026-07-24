@@ -31,58 +31,57 @@ async def purge_once() -> dict[str, int]:
     removed_files = 0
 
     async with SessionLocal() as db:
+        # Transaction-scoped, so it's released when this transaction ends. A
+        # session-scoped lock leaked here: the commit below can return the
+        # connection to the pool while the lock is still held, after which
+        # later sweeps found it taken and silently did nothing.
         locked = (
             await db.execute(
-                text("SELECT pg_try_advisory_lock(:key)"), {"key": PURGE_LOCK_KEY}
+                text("SELECT pg_try_advisory_xact_lock(:key)"),
+                {"key": PURGE_LOCK_KEY},
             )
         ).scalar_one()
         if not locked:
             return {"messages": 0, "files": 0}
-        try:
-            # 1. Hard-delete messages soft-deleted longer ago than the cutoff.
-            doomed = (
-                await db.execute(
-                    select(Message.id).where(
-                        Message.deleted_at.is_not(None),
-                        Message.deleted_at < cutoff,
-                    )
-                )
-            ).scalars().all()
-            if doomed:
-                await db.execute(
-                    delete(Message).where(Message.id.in_(doomed))
-                )
-                removed_messages = len(doomed)
 
-            # 2. Delete uploads no live message references any more. Uploads are
-            #    detached (SET NULL) when their message goes, so an orphan is
-            #    simply one with no message pointing at it.
-            referenced = select(Message.upload_id).where(
-                Message.upload_id.is_not(None)
-            )
-            orphans = (
-                await db.execute(
-                    select(Upload).where(
-                        Upload.id.not_in(referenced),
-                        Upload.created_at < cutoff,
-                    )
-                )
-            ).scalars().all()
-            upload_dir = Path(settings.upload_dir)
-            for up in orphans:
-                try:
-                    (upload_dir / up.stored_name).unlink(missing_ok=True)
-                except OSError:  # pragma: no cover - disk-level failure
-                    log.warning("could not unlink %s", up.stored_name)
-                await db.delete(up)
-                removed_files += 1
-
-            await db.commit()
-        finally:
+        # 1. Hard-delete messages soft-deleted longer ago than the cutoff.
+        doomed = (
             await db.execute(
-                text("SELECT pg_advisory_unlock(:key)"), {"key": PURGE_LOCK_KEY}
+                select(Message.id).where(
+                    Message.deleted_at.is_not(None),
+                    Message.deleted_at < cutoff,
+                )
             )
-            await db.commit()
+        ).scalars().all()
+        if doomed:
+            await db.execute(delete(Message).where(Message.id.in_(doomed)))
+            removed_messages = len(doomed)
+
+        # 2. Delete uploads no live message references any more. Uploads are
+        #    detached (SET NULL) when their message goes, so an orphan is
+        #    simply one with no message pointing at it.
+        referenced = select(Message.upload_id).where(
+            Message.upload_id.is_not(None)
+        )
+        orphans = (
+            await db.execute(
+                select(Upload).where(
+                    Upload.id.not_in(referenced),
+                    Upload.created_at < cutoff,
+                )
+            )
+        ).scalars().all()
+        upload_dir = Path(settings.upload_dir)
+        for up in orphans:
+            try:
+                (upload_dir / up.stored_name).unlink(missing_ok=True)
+            except OSError:  # pragma: no cover - disk-level failure
+                log.warning("could not unlink %s", up.stored_name)
+            await db.delete(up)
+            removed_files += 1
+
+        # Committing also drops the advisory lock, since it's transaction-scoped.
+        await db.commit()
 
     if removed_messages or removed_files:
         log.info(

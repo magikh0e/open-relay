@@ -219,3 +219,25 @@ export async function decryptFile(sharedKey, buffer, metaB64) {
   const blob = new Blob([plain], { type: meta.type || "application/octet-stream" });
   return { url: URL.createObjectURL(blob), name: meta.name, type: meta.type };
 }
+
+// --- key verification (safety numbers) -------------------------------------
+//
+// The server hands out public keys, so in principle it could substitute its
+// own and read "encrypted" DMs transparently. Comparing this fingerprint out of
+// band — in person, over the phone — is the only way to rule that out. Both
+// sides derive it from the same two public keys, sorted, so the value matches
+// regardless of who computes it.
+
+export async function safetyNumber(publicKeyA, publicKeyB) {
+  const pair = [publicKeyA, publicKeyB].sort().join("|");
+  const digest = await crypto.subtle.digest("SHA-256", enc.encode(pair));
+  const bytes = new Uint8Array(digest);
+  // 60 digits, grouped in fives — same shape as Signal's, and easy to read
+  // aloud without losing your place.
+  let out = "";
+  for (let i = 0; i < 12; i++) {
+    const chunk = (bytes[i * 2] << 8) | bytes[i * 2 + 1];
+    out += String(chunk % 100000).padStart(5, "0");
+  }
+  return out.match(/.{5}/g).join(" ");
+}

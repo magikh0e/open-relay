@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, tokens } from "../api.js";
+import { disablePush, enablePush, isSubscribed, pushSupported } from "../push.js";
 import { useDialog } from "../useDialog.js";
 import { useAuth } from "../auth.jsx";
 import Avatar from "./Avatar.jsx";
@@ -15,6 +16,7 @@ export default function Profile({ userId, onClose, onMessage }) {
   const [saving, setSaving] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   const isMe = user?.id === userId;
   const dialogRef = useDialog(onClose);
@@ -25,6 +27,7 @@ export default function Profile({ userId, onClose, onMessage }) {
     setEditing(false);
     setPwOpen(false);
     setPrivacyOpen(false);
+    setAccountOpen(false);
     setError("");
     api(`/users/${userId}`)
       .then((p) => {
@@ -186,13 +189,25 @@ export default function Profile({ userId, onClose, onMessage }) {
                     >
                       Privacy
                     </button>
+                    <button
+                      className="mini"
+                      onClick={() => setAccountOpen((o) => !o)}
+                    >
+                      Your data
+                    </button>
                   </>
                 )}
               </div>
             )}
 
             {isMe && pwOpen && <PasswordForm hasPassword={user?.has_password !== false} />}
-            {isMe && privacyOpen && <PrivacyForm />}
+            {isMe && accountOpen && <AccountData onClose={onClose} />}
+            {isMe && privacyOpen && (
+              <>
+                <PrivacyForm />
+                <NotificationToggle />
+              </>
+            )}
 
             {!isMe && (
               <div className="profile-actions">
@@ -373,6 +388,148 @@ function PrivacyForm() {
       <div className="muted small">
         These are enforced by the server, not just hidden here.
       </div>
+    </div>
+  );
+}
+
+// Browser push notifications. Kept beside the privacy toggles because it's the
+// same kind of decision: what this device is allowed to do on your behalf.
+function NotificationToggle() {
+  const [on, setOn] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const supported = pushSupported();
+
+  useEffect(() => {
+    let alive = true;
+    isSubscribed().then((v) => alive && setOn(v));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  async function toggle(next) {
+    setBusy(true);
+    setError("");
+    try {
+      if (next) await enablePush();
+      else await disablePush();
+      setOn(next);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!supported) return null;
+
+  return (
+    <div className="privacy-form">
+      <label className="privacy-row">
+        <input
+          type="checkbox"
+          checked={on}
+          disabled={busy}
+          onChange={(e) => toggle(e.target.checked)}
+        />
+        <span className="privacy-text">
+          <span className="privacy-label">Notify me on this device</span>
+          <span className="muted small">
+            For direct messages and mentions. Notifications say who and where,
+            never what was said.
+          </span>
+        </span>
+      </label>
+      {error && <div className="error">{error}</div>}
+    </div>
+  );
+}
+
+// Export or delete your own account. Deletion is irreversible, so it demands
+// the password and a typed confirmation rather than a single click.
+function AccountData({ onClose }) {
+  const { logout } = useAuth();
+  const [confirm, setConfirm] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+
+  async function download() {
+    setBusy("export");
+    setError("");
+    try {
+      const data = await api("/users/me/export");
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "open-relay-export.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function remove() {
+    setBusy("delete");
+    setError("");
+    try {
+      await api("/users/me/delete", { method: "POST", body: { password } });
+      onClose?.();
+      logout();
+    } catch (e) {
+      setError(e.message);
+      setBusy("");
+    }
+  }
+
+  return (
+    <div className="privacy-form">
+      <div>
+        <button className="mini" disabled={busy === "export"} onClick={download}>
+          {busy === "export" ? "Preparing…" : "Download my data"}
+        </button>
+        <div className="muted small" style={{ marginTop: 6 }}>
+          Your profile, settings and messages as JSON. Encrypted messages are
+          included as the scrambled text the server holds — it can't read them
+          either.
+        </div>
+      </div>
+
+      <div className="danger-zone">
+        <div className="privacy-label">Delete my account</div>
+        <div className="muted small">
+          Permanent and immediate. Your account, encryption keys and settings
+          are erased. Messages you sent stay in other people's conversations but
+          are no longer attributed to you.
+        </div>
+        <input
+          type="password"
+          placeholder="Your password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <input
+          placeholder='Type DELETE to confirm'
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
+        <button
+          className="primary danger-btn"
+          disabled={confirm !== "DELETE" || busy === "delete"}
+          onClick={remove}
+        >
+          {busy === "delete" ? "Deleting…" : "Delete my account"}
+        </button>
+      </div>
+      {error && <div className="error">{error}</div>}
     </div>
   );
 }

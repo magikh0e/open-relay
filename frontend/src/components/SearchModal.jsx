@@ -94,7 +94,7 @@ export default function SearchModal({ onClose, onOpen }) {
             <button
               key={r.id}
               className="search-result"
-              onClick={() => onOpen(r.channel_id)}
+              onClick={() => onOpen(r.channel_id, r.id)}
             >
               <div className="search-meta">
                 <span className="search-channel">

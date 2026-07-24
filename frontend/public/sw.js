@@ -12,7 +12,7 @@
 //   * A new worker activates immediately rather than waiting for every tab to
 //     close, so a bad deploy can always be corrected by the next one.
 
-const CACHE = "openrelay-v1";
+const CACHE = "openrelay-v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -85,5 +85,54 @@ self.addEventListener("fetch", (event) => {
         }
         return Response.error();
       })
+  );
+});
+
+// --- push notifications ----------------------------------------------------
+//
+// Payloads carry only who and where — never message text — so nothing
+// sensitive passes through the push service or sits in the notification.
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    /* malformed payload: fall through to the generic message below */
+  }
+  const title = data.title || "Open Relay";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || "New activity",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      // Same tag per channel so a burst collapses into one notification
+      // instead of stacking up.
+      tag: data.tag || "openrelay",
+      renotify: true,
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      // Focus an existing tab rather than piling up new ones.
+      for (const client of all) {
+        if (client.url.includes(self.location.origin)) {
+          await client.focus();
+          if ("navigate" in client) await client.navigate(target);
+          return;
+        }
+      }
+      await self.clients.openWindow(target);
+    })()
   );
 });

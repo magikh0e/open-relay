@@ -30,13 +30,24 @@ export default function MessagePane({
   onBack,
   onToggleRoster,
   canPost = true,
+  jumpTo = null,
+  onJumped,
   decrypted = {},
   encryptContent = null,
   e2ee = null,
   dmKey = null,
 }) {
   const { user } = useAuth();
-  const [text, setText] = useState("");
+  // Drafts are per channel and survive switching away (and a reload). Kept in
+  // localStorage rather than state so they outlive the component.
+  const draftKey = `relay_draft_${channel.id}`;
+  const [text, setText] = useState(() => {
+    try {
+      return localStorage.getItem(`relay_draft_${channel.id}`) || "";
+    } catch {
+      return "";
+    }
+  });
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
@@ -53,6 +64,7 @@ export default function MessagePane({
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [activeMsgId, setActiveMsgId] = useState(null); // mobile: tap to reveal actions
+  const [showFingerprint, setShowFingerprint] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [exhausted, setExhausted] = useState(false);
   const fileInputRef = useRef(null);
@@ -211,7 +223,38 @@ export default function MessagePane({
 
   useEffect(() => {
     setExhausted(false);
+    try {
+      setText(localStorage.getItem(`relay_draft_${channel.id}`) || "");
+    } catch {
+      setText("");
+    }
   }, [channel.id]);
+
+  // Persist the draft as it changes; clear the entry when it's empty so we
+  // don't accumulate junk keys for every channel ever visited.
+  useEffect(() => {
+    try {
+      if (text) localStorage.setItem(draftKey, text);
+      else localStorage.removeItem(draftKey);
+    } catch {
+      /* private mode / quota: drafts are a convenience, not critical */
+    }
+  }, [text, draftKey]);
+
+  // Land on a message opened from search: scroll it into view and flash it so
+  // the eye can find it among its neighbours.
+  useEffect(() => {
+    if (!jumpTo) return;
+    const el = messagesRef.current?.querySelector(`[data-mid="${jumpTo}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: "center" });
+    el.classList.add("jump-flash");
+    const t = setTimeout(() => {
+      el.classList.remove("jump-flash");
+      onJumped?.();
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [jumpTo, messages.length, onJumped]);
 
   useEffect(() => {
     if (!note) return;
@@ -468,9 +511,13 @@ export default function MessagePane({
         </div>
         <div className="pane-head-right">
           {e2ee?.ready && (
-            <span className="e2ee-badge" title="End-to-end encrypted — the server can't read these messages">
+            <button
+              className="e2ee-badge"
+              title="End-to-end encrypted — click to verify the connection"
+              onClick={() => setShowFingerprint((v) => !v)}
+            >
               🔒 Encrypted
-            </span>
+            </button>
           )}
           {!isDm && (
             <span className="muted small member-count-label">
@@ -507,6 +554,18 @@ export default function MessagePane({
         </div>
       </header>
 
+      {showFingerprint && e2ee?.fingerprint && (
+        <div className="fingerprint-panel">
+          <div className="fingerprint-head">Safety number</div>
+          <code className="fingerprint">{e2ee.fingerprint}</code>
+          <p className="muted small">
+            Read this aloud to {channel.name} — over the phone or in person. If
+            your numbers match, nobody is sitting in the middle. If they don't,
+            stop and don't share anything sensitive here.
+          </p>
+        </div>
+      )}
+
       <div className="messages" ref={messagesRef} onScroll={handleScroll}>
         {loadingOlder && (
           <div className="load-older muted small">Loading earlier messages…</div>
@@ -539,6 +598,7 @@ export default function MessagePane({
           return (
             <div
               key={m.id}
+              data-mid={m.id}
               className={`msg ${grouped ? "grouped" : ""} ${
                 mentionsMe ? "mentions-me" : ""
               } ${activeMsgId === m.id ? "active" : ""}`}

@@ -16,8 +16,10 @@ import {
   decryptMessage,
   deriveSharedKey,
   encryptMessage,
+  exportPublicKey,
   importPublicKey,
   loadCachedKey,
+  safetyNumber,
 } from "../e2ee.js";
 import { APP_VERSION } from "../version.js";
 
@@ -77,6 +79,8 @@ export default function ChatShell() {
   const [e2eeModal, setE2eeModal] = useState(null); // "setup" | "unlock" | null
   const [sharedKeys, setSharedKeys] = useState({}); // channelId -> AES key
   const [keyEpoch, setKeyEpoch] = useState(0); // bumped to force re-derivation
+  const [fingerprints, setFingerprints] = useState({}); // channelId -> safety number
+  const [jumpTo, setJumpTo] = useState(null); // message id to scroll to on open
   const [decrypted, setDecrypted] = useState({}); // messageId -> plaintext | null
   const [threadRootId, setThreadRootId] = useState(null);
   const [threadMessages, setThreadMessages] = useState([]);
@@ -324,7 +328,20 @@ export default function ChatShell() {
     };
   }, []);
 
-  async function openChannel(id) {
+  async function openChannel(id, jumpToMessageId = null) {
+    if (jumpToMessageId) {
+      // Load a window of context around the target rather than the newest
+      // page, so the message is actually on screen when we arrive.
+      try {
+        const rows = await api(
+          `/channels/${id}/messages?around=${jumpToMessageId}&limit=50`
+        );
+        setMsgsByChannel((prev) => ({ ...prev, [id]: rows }));
+      } catch {
+        /* fall back to normal history */
+      }
+      setJumpTo(jumpToMessageId);
+    }
     setActiveId(id);
     setSettingsOpen(false);
     setRosterOpen(false);
@@ -677,8 +694,11 @@ export default function ChatShell() {
           privateKey,
           await importPublicKey(public_key)
         );
+        const mine = await api("/keys/me");
+        const fp = await safetyNumber(mine.public_key, public_key);
         if (!cancelled) {
           setSharedKeys((prev) => ({ ...prev, [active.id]: shared }));
+          setFingerprints((prev) => ({ ...prev, [active.id]: fp }));
         }
       } catch {
         /* peer has no key yet */
@@ -834,6 +854,8 @@ export default function ChatShell() {
             onOpenThread={openThread}
             onCommand={runCommand}
             canPost={canPost}
+            jumpTo={jumpTo}
+            onJumped={() => setJumpTo(null)}
             decrypted={decrypted}
             encryptContent={dmKey ? encryptForActive : null}
             dmKey={dmKey}
@@ -842,6 +864,7 @@ export default function ChatShell() {
                 ? {
                     ready: !!dmKey,
                     status: keyStatus,
+                    fingerprint: fingerprints[active.id],
                     onUnlock: () =>
                       setE2eeModal(keyStatus === "none" ? "setup" : "unlock"),
                   }
@@ -928,9 +951,9 @@ export default function ChatShell() {
       {searchOpen && (
         <SearchModal
           onClose={() => setSearchOpen(false)}
-          onOpen={(channelId) => {
+          onOpen={(channelId, messageId) => {
             setSearchOpen(false);
-            openChannel(channelId);
+            openChannel(channelId, messageId);
           }}
         />
       )}

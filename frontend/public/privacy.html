@@ -225,6 +225,16 @@
         ordinary request metadata in its logs.
       </p>
 
+      <h2>Notifications</h2>
+      <p>
+        If you turn on notifications, your browser registers a push endpoint
+        with Google or Mozilla (whoever makes your browser) so the server can
+        wake it. Those notifications deliberately contain only who messaged you
+        and where — never the message itself. Sending the text would hand it to
+        a third party, which for an encrypted conversation would defeat the
+        encryption entirely. You can turn this off in your profile at any time.
+      </p>
+
       <h2>Controls you have</h2>
       <p>
         Open your profile to find these. Each one is enforced by the server, so
@@ -287,8 +297,17 @@
           stops working.
         </li>
         <li>
-          Account information is kept until the operator removes it. Ask the
-          administrator if you want your account and content deleted.
+          <strong>You can delete your own account</strong> from your profile,
+          without asking anyone. It is immediate and permanent: your account,
+          encryption keys, push registrations and settings are erased. Messages
+          you sent remain in other people's conversations but stop being
+          attributed to you.
+        </li>
+        <li>
+          <strong>You can download everything</strong> the server holds about
+          you as a JSON file, also from your profile. Encrypted messages are
+          included as the scrambled text the server stores, because it cannot
+          read them either.
         </li>
       </ul>
 

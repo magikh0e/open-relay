@@ -1,8 +1,10 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import or_, select
 
 from ..deps import DB, CurrentUser
-from ..models import ChannelMember, User
+from ..models import Channel, ChannelMember, Message, User
 from ..redis_client import (
     away_map,
     clear_away,
@@ -12,6 +14,7 @@ from ..redis_client import (
 )
 from ..sanitize import sanitize_text
 from ..schemas import (
+    AccountDelete,
     AwayIn,
     PasswordChange,
     TokenPair,
@@ -199,3 +202,69 @@ async def profile(user_id: str, db: DB, viewer: CurrentUser) -> User:
     if target is None or not target.is_active:
         raise HTTPException(status_code=404, detail="User not found")
     return target
+
+
+@router.get("/me/export")
+async def export_me(db: DB, user: CurrentUser) -> dict:
+    """Everything this account holds, as JSON.
+
+    Encrypted DMs are included as the ciphertext actually stored — the server
+    can't decrypt them, and pretending otherwise would be worse than saying so.
+    """
+    rows = (
+        await db.execute(
+            select(Message, Channel)
+            .join(Channel, Channel.id == Message.channel_id)
+            .where(Message.sender_id == user.id, Message.deleted_at.is_(None))
+            .order_by(Message.created_at)
+        )
+    ).all()
+    return {
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "account": {
+            "username": user.username,
+            "email": user.email,
+            "display_name": user.display_name,
+            "bio": user.bio,
+            "pronouns": user.pronouns,
+            "created_at": user.created_at.isoformat(),
+        },
+        "settings": {
+            "share_typing": user.share_typing,
+            "share_presence": user.share_presence,
+            "allow_dms": user.allow_dms,
+            "discoverable": user.discoverable,
+        },
+        "messages": [
+            {
+                "channel": ch.name or ch.slug or "direct message",
+                "channel_kind": ch.kind,
+                "sent_at": m.created_at.isoformat(),
+                "edited_at": m.edited_at.isoformat() if m.edited_at else None,
+                # True when the value below is ciphertext this server cannot read.
+                "encrypted": m.encrypted,
+                "content": m.content,
+            }
+            for m, ch in rows
+        ],
+    }
+
+
+@router.post("/me/delete", status_code=204)
+async def delete_me(body: AccountDelete, db: DB, user: CurrentUser) -> None:
+    """Permanently delete your own account.
+
+    Messages are not removed outright: the sender FK is SET NULL, so
+    conversations other people are part of stay readable rather than becoming
+    full of holes. The account, its memberships, encryption keys, push
+    subscriptions and privacy settings all go.
+    """
+    if user.password_hash:
+        if not body.password or not verify_password(
+            body.password, user.password_hash
+        ):
+            raise HTTPException(
+                status_code=403, detail="Password is incorrect"
+            )
+    await db.delete(user)
+    await db.commit()

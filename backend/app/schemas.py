@@ -290,3 +290,18 @@ class KeyBundleOut(BaseModel):
 class PublicKeyOut(BaseModel):
     user_id: str
     public_key: str
+
+
+# --- Push notifications ---------------------------------------------------
+
+class PushSubscribeIn(BaseModel):
+    endpoint: str = Field(max_length=2000)
+    p256dh: str = Field(max_length=255)
+    auth: str = Field(max_length=255)
+
+
+class AccountDelete(BaseModel):
+    """Deleting an account is irreversible, so it re-confirms the password.
+    SSO-only accounts have none, hence optional."""
+
+    password: str | None = None

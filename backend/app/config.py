@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     # Retention: how long deleted messages and orphaned uploads are kept.
     purge_after_days: int = 30
 
+    # Web Push. Left blank, a keypair is generated and stored in the database
+    # on first use so a fresh deploy has working push with no configuration.
+    vapid_private_key: str = ""
+    vapid_public_key: str = ""
+
     # --- OAuth / SSO ---
     # Public origin the browser hits (used to build redirect URIs). Set to your
     # domain in prod, e.g. https://fckord.magikh0e.pl
