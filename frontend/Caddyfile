@@ -28,3 +28,11 @@
 		file_server
 	}
 }
+
+# Old-domain redirect. Set REDIRECT_FROM to a retired domain (e.g.
+# old.example.com) and Caddy serves it, gets a cert for it, and 301s every path
+# to the canonical site below. Left at the localhost default it binds a
+# throwaway HTTP-only site (no ACME attempts), so local :80 testing stays quiet.
+{$REDIRECT_FROM:http://localhost:8099} {
+	redir https://openrelay.pl{uri} permanent
+}
