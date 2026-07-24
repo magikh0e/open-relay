@@ -26,20 +26,12 @@ WHATSNEW_TOPIC = "Release notes & product updates — react, don't reply."
 SEED_LOCK_KEY = 8_274_100_119
 
 # Canonical release notes, posted with sender_id=None (system authored) — the
-# UI labels these "Relay". Keyed by version and upserted on every boot, so
+# UI labels these "Open Relay". Keyed by version and upserted on every boot, so
 # adding an entry publishes it and editing one corrects the live post in place.
 # Keep only the LAST 10 RELEASES here: versions dropped from this list have
 # their posts pruned from the channel on the next boot.
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
-    (
-        "1.6.2",
-        "🚫 v1.6.2 — Uploads refuse rather than leak\n"
-        "• If an image can't be re-encoded in your browser, the upload is now "
-        "refused instead of quietly sending the original\n"
-        "• Stops a photo's location data reaching the server in the rare cases "
-        "where processing fails",
-    ),
     (
         "1.7.0",
         "📄 v1.7.0 — Privacy policy\n"
@@ -93,7 +85,7 @@ WHATSNEW_POSTS = [
         "🛡️ v1.11.0 — Privacy settings\n"
         "• Open your profile and hit Privacy to control what you share\n"
         "• Turn off typing indicators so nobody sees “is typing…”\n"
-        "• Appear offline while still using Relay normally\n"
+        "• Appear offline while still using Open Relay normally\n"
         "• Stop new people starting DMs with you, or hide yourself from "
         "user search\n"
         "• All four are enforced by the server, not just hidden in your app",
@@ -122,13 +114,21 @@ WHATSNEW_POSTS = [
     (
         "1.14.0",
         "👋 v1.14.0 — An intro page, and a friendlier interface\n"
-        "• New About page explaining what Relay is, what it protects and what "
+        "• New About page explaining what Open Relay is, what it protects and what "
         "it doesn't — linked from the sign-in screen\n"
         "• Confirmations now appear in-app instead of as browser popups\n"
         "• Dialogs close with Escape and keep keyboard focus inside them\n"
         "• Icon buttons are properly labelled for screen readers\n"
         "• On phones you now land on your channel list instead of being "
         "dropped into a conversation",
+    ),
+    (
+        "1.15.0",
+        "✨ v1.15.0 — We're now Open Relay\n"
+        "• New name and logo across the app, sign-in screen and About page\n"
+        "• The tab now shows a proper icon instead of a blank page symbol\n"
+        "• Nothing about your account, messages or keys changes — it's the "
+        "same service, just properly dressed",
     ),
 ]
 

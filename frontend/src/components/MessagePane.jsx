@@ -535,7 +535,7 @@ export default function MessagePane({
           // Seeded announcements have no sender; show them as from the app.
           const authorName =
             m.sender?.display_name ||
-            (channel.read_only ? "Relay" : "Unknown");
+            (channel.read_only ? "Open Relay" : "Unknown");
           return (
             <div
               key={m.id}

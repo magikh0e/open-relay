@@ -453,7 +453,7 @@ export default function ChatShell() {
         }
         return {
           ok: true,
-          message: `Relay — client v${APP_VERSION} · server v${server}`,
+          message: `Open Relay — client v${APP_VERSION} · server v${server}`,
         };
       }
       case "me": {

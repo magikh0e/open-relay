@@ -47,9 +47,9 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-APP_VERSION = "1.14.0"
+APP_VERSION = "1.15.0"
 
-app = FastAPI(title="Relay API", version=APP_VERSION, lifespan=lifespan)
+app = FastAPI(title="Open Relay API", version=APP_VERSION, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -75,4 +75,4 @@ app.include_router(ws.router)
 
 @app.get("/health", tags=["meta"])
 async def health() -> dict:
-    return {"status": "ok", "app": "Relay", "version": APP_VERSION}
+    return {"status": "ok", "app": "Open Relay", "version": APP_VERSION}
