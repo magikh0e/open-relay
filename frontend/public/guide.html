@@ -106,9 +106,20 @@
         width: 100%;
         max-width: 560px;
         display: block;
-        margin: 14px auto;
+        margin: 16px auto;
         border-radius: 10px;
         border: 1px solid var(--line);
+      }
+      /* The login card is a tight portrait crop — don't stretch it. */
+      .shot.card { max-width: 340px; }
+      /* Full-app landscape shots break out wider than the text column so the
+         detail is actually legible. */
+      .shot.wide {
+        width: min(96vw, 980px);
+        max-width: none;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
       }
       blockquote {
         margin: 14px 0;
@@ -158,7 +169,7 @@
         land in <code>#whatsnew</code>, a read-only channel where release notes
         are posted — you can react to those but not reply.
       </p>
-      <img class="shot" src="/guide-login.png"
+      <img class="shot card" src="/guide-login.png"
            alt="The Open Relay sign-in screen" />
 
       <h2 id="channels"><span class="sec-ico">💬</span>Channels and DMs</h2>
@@ -241,7 +252,7 @@ def hello():
         browser holds a private key the server never sees, so it stores
         scrambled text it has no way to read.
       </p>
-      <img class="shot" src="/guide-encrypted.png"
+      <img class="shot wide" src="/guide-encrypted.png"
            alt="An encrypted DM showing the lock badge and a safety number" />
       <p><strong>Turning it on</strong></p>
       <ol>
