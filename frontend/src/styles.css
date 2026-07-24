@@ -115,6 +115,9 @@ input {
   color: var(--text);
   text-decoration: underline;
 }
+.app-links {
+  margin-top: 4px;
+}
 .tabs {
   display: flex;
   gap: 6px;
