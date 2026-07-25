@@ -97,17 +97,25 @@ export function setServer(url) {
   return v;
 }
 
+// Schemes we'll let reach an <a href> / <img src>. `javascript:` (and anything
+// else) is dropped, so a hostile server (any server, in the multi-server model)
+// can't hand back a URL that runs on click.
+const SAFE_URL_SCHEMES = new Set(["http:", "https:", "blob:", "data:"]);
+
 // Resolve a possibly-relative URL handed back by the server (e.g. an attachment
 // path "/api/uploads/<id>") against the configured origin, so it loads from any
-// client. Only safe-to-load schemes are allowed through: a hostile server (any
-// server, in the multi-server model) could otherwise hand back a
-// "javascript:..." URL that would run when used as an <a href>. Anything that
-// isn't an http(s)/blob/data URL or a server-relative path is dropped.
+// client. Parsing through the URL API and gating on the real scheme both keeps
+// the value safe and reads as a sanitizer to static analysis.
 export function resolveUrl(u) {
   if (!u) return u;
-  // Protocol-relative ("//host/…") can point anywhere; don't trust it.
+  // Protocol-relative ("//host/…") resolves to an arbitrary host; don't trust it.
   if (u.startsWith("//")) return "";
-  if (/^(https?:|blob:|data:)/i.test(u)) return u;
-  if (u.startsWith("/")) return SERVER ? `${SERVER}${u}` : u;
-  return "";
+  const base = SERVER || (typeof location !== "undefined" ? location.href : undefined);
+  let parsed;
+  try {
+    parsed = new URL(u, base);
+  } catch {
+    return "";
+  }
+  return SAFE_URL_SCHEMES.has(parsed.protocol) ? parsed.href : "";
 }

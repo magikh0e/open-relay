@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { API_BASE, serverLabel } from "../config.js";
+import { SERVER, serverLabel } from "../config.js";
 import { useAuth } from "../auth.jsx";
 import { APP_NAME, APP_VERSION } from "../version.js";
 import ServerPicker from "../components/ServerPicker.jsx";
@@ -150,12 +150,15 @@ export default function Login() {
                 type="button"
                 className={`oauth-btn oauth-${p}`}
                 onClick={() => {
-                  // API_BASE is validated to an http(s) origin in config.js;
-                  // encode the provider id so a hostile provider list can't
-                  // break out of the path.
-                  window.location.href = `${API_BASE}/auth/oauth/${encodeURIComponent(
-                    p
-                  )}/start`;
+                  // Build against the validated http(s) origin (SERVER is
+                  // scheme-checked in config.js) with an encoded provider id, so
+                  // neither the server value nor the provider list can inject a
+                  // scheme into the navigation.
+                  const target = new URL(
+                    `/api/auth/oauth/${encodeURIComponent(p)}/start`,
+                    SERVER || location.origin
+                  );
+                  window.location.href = target.href;
                 }}
               >
                 {PROVIDER_LABELS[p] || `Continue with ${p}`}
