@@ -1,0 +1,90 @@
+# Automated dependency updates.
+#
+# Everything targets `dev`, not the default branch. Releases fast-forward dev
+# into main, so update commits landing on main directly would break that and
+# force merges backwards. Sending them to dev also means they go through CI,
+# which runs the backend suite against real Postgres and Redis on dev PRs.
+#
+# Updates are grouped per ecosystem so a quiet week is one PR rather than a
+# dozen. Major versions are deliberately left ungrouped: they need reading.
+
+version: 2
+updates:
+  # --- Backend (FastAPI, SQLAlchemy, and the pinned test toolchain) ---------
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+    target-branch: dev
+    open-pull-requests-limit: 5
+    labels: [dependencies, backend]
+    commit-message:
+      prefix: deps
+    groups:
+      backend-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # --- Web client ----------------------------------------------------------
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    target-branch: dev
+    open-pull-requests-limit: 5
+    labels: [dependencies, frontend]
+    commit-message:
+      prefix: deps
+    groups:
+      frontend-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # --- Desktop shell (JS side) --------------------------------------------
+  - package-ecosystem: npm
+    directory: /desktop
+    schedule:
+      interval: weekly
+    target-branch: dev
+    open-pull-requests-limit: 3
+    labels: [dependencies, desktop]
+    commit-message:
+      prefix: deps
+    groups:
+      desktop-npm-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # --- Desktop shell (Rust side) ------------------------------------------
+  # Monthly, and worth extra care: CI does not build the Tauri app (that only
+  # runs on a desktop-v* tag), so a Rust update is not verified until a release
+  # is cut. Check the desktop build after merging one of these.
+  - package-ecosystem: cargo
+    directory: /desktop/src-tauri
+    schedule:
+      interval: monthly
+    target-branch: dev
+    open-pull-requests-limit: 3
+    labels: [dependencies, desktop, needs-build-check]
+    commit-message:
+      prefix: deps
+    groups:
+      desktop-cargo-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # --- CI actions ----------------------------------------------------------
+  # These drifted onto a deprecated Node runtime before anyone noticed, which
+  # is exactly what this is for.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: dev
+    open-pull-requests-limit: 3
+    labels: [dependencies, ci]
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
