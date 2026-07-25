@@ -280,7 +280,8 @@ async def join_channel(
             )
     if not already_member:
         db.add(ChannelMember(channel_id=ch.id, user_id=user.id, role=ROLE_MEMBER))
-        await db.commit()
+        # IRC-style join notice; announce_action commits the membership with it.
+        await announce_action(db, ch.id, user, "joined the channel")
     return _to_out(ch, await _member_count(db, ch.id), True)
 
 
@@ -294,7 +295,13 @@ async def leave_channel(channel_id: str, db: DB, user: CurrentUser) -> None:
             detail="You can't leave the announcements channel.",
         )
     await db.delete(member)
-    await db.commit()
+    # IRC-style part notice for public channels (private membership is managed
+    # via invite/kick, which announce separately). announce_action commits the
+    # membership removal together with the notice.
+    if ch is not None and ch.kind == KIND_PUBLIC:
+        await announce_action(db, channel_id, user, "left the channel")
+    else:
+        await db.commit()
 
 
 @router.get("/{channel_id}/members", response_model=list[MemberOut])
@@ -332,6 +339,10 @@ async def update_channel(
     member = await require_membership(db, channel_id, user.id)
     if member.role not in (ROLE_OWNER,) and not user.is_admin:
         raise HTTPException(status_code=403, detail="Only the owner can edit")
+    # Captured before any change so the redacted key notice can say set vs
+    # changed vs removed. The key value itself is never announced.
+    had_password = bool(ch.password_hash)
+    password_notice: str | None = None
     if body.name is not None:
         ch.name = sanitize_text(body.name, max_length=64) or ch.name
     if body.topic is not None:
@@ -356,7 +367,14 @@ async def update_channel(
                     detail="Channel password must be at least 8 characters",
                 )
             ch.password_hash = hash_password(pw)
+            password_notice = (
+                "changed the channel password"
+                if had_password
+                else "set a channel password"
+            )
         else:
+            if had_password:
+                password_notice = "removed the channel password"
             ch.password_hash = None
     await db.commit()
     # Push the change to everyone viewing the channel.
@@ -373,6 +391,10 @@ async def update_channel(
             },
         },
     )
+    # Redacted key notice: members learn a password was set/changed/removed,
+    # never what it is. Posted after the commit as its own system message.
+    if password_notice:
+        await announce_action(db, channel_id, user, password_notice)
     return _to_out(ch, await _member_count(db, ch.id), True)
 
 

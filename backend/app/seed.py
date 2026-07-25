@@ -33,14 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.15.0",
-        "✨ v1.15.0: We're now Open Relay\n"
-        "• New name and logo across the app, sign-in screen and About page\n"
-        "• The tab now shows a proper icon instead of a blank page symbol\n"
-        "• Nothing about your account, messages or keys changes; it's the "
-        "same service, just properly dressed",
-    ),
-    (
         "1.16.0",
         "📲 v1.16.0: Install it like an app\n"
         "• Open Relay can now be added to your home screen or desktop and "
@@ -133,6 +125,13 @@ WHATSNEW_POSTS = [
         "and when they were last active\n"
         "• New privacy switch to hide your last-active from others; it's still "
         "recorded, just not shown",
+    ),
+    (
+        "1.23.1",
+        "📢 v1.23.1: Channel activity notices\n"
+        "• Public channels now show when someone joins or leaves, IRC-style\n"
+        "• Setting, changing or removing a channel password posts a notice too, "
+        "so members know it happened; the password itself is never shown",
     ),
 ]
 

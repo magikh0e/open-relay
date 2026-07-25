@@ -35,6 +35,33 @@ async def test_create_with_password_flags_has_password(client, alice):
     assert "password_hash" not in ch and "password" not in ch
 
 
+async def _channel_texts(client, headers, cid):
+    r = await client.get(f"/channels/{cid}/messages", headers=headers)
+    assert r.status_code == 200, r.text
+    return [m["content"] for m in r.json()]
+
+
+async def test_password_notice_is_redacted(client, alice):
+    ch = await _new_channel(client, alice)  # owner + member, no key yet
+    await client.patch(
+        f"/channels/{ch['id']}", json={"password": KEY}, headers=alice["headers"]
+    )
+    texts = await _channel_texts(client, alice["headers"], ch["id"])
+    # Members see that a key was set...
+    assert any("set a channel password" in t for t in texts)
+    # ...but the key itself is never posted.
+    assert not any(KEY in t for t in texts)
+
+
+async def test_join_and_leave_post_notices(client, alice, bob):
+    ch = await _new_channel(client, alice)
+    await client.post(f"/channels/{ch['id']}/join", headers=bob["headers"])
+    await client.post(f"/channels/{ch['id']}/leave", headers=bob["headers"])
+    texts = await _channel_texts(client, alice["headers"], ch["id"])
+    assert any("joined the channel" in t for t in texts)
+    assert any("left the channel" in t for t in texts)
+
+
 async def test_join_requires_correct_password(client, alice, bob):
     ch = await _new_channel(client, alice, password=KEY)
     url = f"/channels/{ch['id']}/join"

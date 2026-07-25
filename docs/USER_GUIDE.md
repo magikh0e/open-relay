@@ -50,6 +50,9 @@ keys are per-server, so switching is a fresh session.
   directory, but you need the password to join; enter it when prompted, or use
   `/join #channel password`. A channel's owner sets, changes or removes the
   password under **Channel settings**; members already in stay in.
+- **Activity notices**: public channels post a short line when someone joins or
+  leaves, and when a channel password is set, changed or removed. The password
+  itself is never shown; it can't be read back by anyone, only reset.
 
 ![Joining a password-protected channel](screenshots/06-join-password.png)
 
