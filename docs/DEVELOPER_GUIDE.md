@@ -243,7 +243,7 @@ shapes below. Datetimes are ISO 8601 strings; ids are UUID strings.
 | `message_edited` | `{id, channel_id, content, edited_at, mentions:[{id,username,display_name}]}` |
 | `message_deleted` | `{id}` |
 | `reaction` | `{message_id, channel_id, emoji, count, user_id, added}` |
-| `channel_updated` | `{channel_id, name, topic, kind}` |
+| `channel_updated` | `{channel_id, name, topic, kind, has_password}` |
 | `channel_deleted` | `{channel_id}` |
 | `channel_added` | `{channel_id}`, you were added to a channel (personal topic) |
 | `channel_kicked` | `{channel_id, banned}`, you were kicked/banned (personal topic) |
@@ -288,6 +288,7 @@ attachment: AttachmentOut | null
 ```
 id, kind ("public"|"private"|"dm"), slug (str|null; null for DMs),
 name, topic, created_by (str|null), created_at, read_only (bool),
+has_password (bool; true if a channel key is set, the hash is never sent),
 member_count (int|null), is_member (bool|null),
 unread_count (int), mention_count (int)
 ```
@@ -333,12 +334,12 @@ Email is exposed **only** via `GET /users/me/export`.
 | Method · Path | Body | Returns |
 |---|---|---|
 | `GET /channels` | - | `[ChannelOut]` (public directory + your privates; **DMs excluded**) |
-| `POST /channels` | `{slug(2–48,^[a-z0-9-]+$), name(1–64), topic?≤512, is_private}` | `201` ChannelOut (non-admins capped at 2). 409 dup slug |
+| `POST /channels` | `{slug(2–48,^[a-z0-9-]+$), name(1–64), topic?≤512, is_private, password?(8–128)}` | `201` ChannelOut (non-admins capped at 2). 409 dup slug. `password` sets a channel key on public channels; ignored when `is_private` |
 | `GET /channels/{id}` | - | ChannelOut (403 if private/DM & not a member) |
-| `POST /channels/{id}/join` | - | ChannelOut (public only; 403 if banned) |
+| `POST /channels/{id}/join` | `{password?}` | ChannelOut (public only). 403 if banned, or if the channel is key-protected and the password is missing/wrong. Members, invitees, owner and admins skip the key |
 | `POST /channels/{id}/leave` | - | `204` |
 | `GET /channels/{id}/members` | - | `[{id, username, display_name, avatar_url, is_admin, role}]` |
-| `PATCH /channels/{id}` | `{name?, topic?, is_private?}` | ChannelOut (owner/admin) |
+| `PATCH /channels/{id}` | `{name?, topic?, is_private?, password?}` | ChannelOut (owner/admin). `password`: omit = unchanged, `""`/null = remove, non-empty(≥8) = set (public only, else 400); going private clears the key |
 | `DELETE /channels/{id}` | - | `204` (owner/admin) |
 | `POST /channels/{id}/read` | - | `204`, mark read up to now |
 | `POST /channels/{id}/{kick\|ban\|unban\|invite}` | `{user_id, reason?}` | `204` |

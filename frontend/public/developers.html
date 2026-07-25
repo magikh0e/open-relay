@@ -304,7 +304,7 @@ group into twelve 5-digit blocks → "12345 67890 …"</code></pre>
           <tr><td><code>message_edited</code></td><td><code>{id, channel_id, content, edited_at, mentions:[…]}</code></td></tr>
           <tr><td><code>message_deleted</code></td><td><code>{id}</code></td></tr>
           <tr><td><code>reaction</code></td><td><code>{message_id, channel_id, emoji, count, user_id, added}</code></td></tr>
-          <tr><td><code>channel_updated</code></td><td><code>{channel_id, name, topic, kind}</code></td></tr>
+          <tr><td><code>channel_updated</code></td><td><code>{channel_id, name, topic, kind, has_password}</code></td></tr>
           <tr><td><code>channel_deleted</code></td><td><code>{channel_id}</code></td></tr>
           <tr><td><code>channel_added</code></td><td><code>{channel_id}</code>: you were added (personal topic)</td></tr>
           <tr><td><code>channel_kicked</code></td><td><code>{channel_id, banned}</code>: you were kicked/banned (personal topic)</td></tr>
@@ -339,6 +339,7 @@ attachment: AttachmentOut | null</code></pre>
       <p><strong>ChannelOut</strong>:</p>
       <pre><code>id, kind ("public"|"private"|"dm"), slug (str|null; null for DMs),
 name, topic, created_by (str|null), created_at, read_only (bool),
+has_password (bool; true if a channel key is set, the hash is never sent),
 member_count (int|null), is_member (bool|null),
 unread_count (int), mention_count (int)</code></pre>
       <p>For a DM, <code>name</code> is the other person's display name and <code>topic</code> their username.</p>
@@ -386,12 +387,12 @@ unread_count (int), mention_count (int)</code></pre>
         <table>
           <tr><th>Method · Path</th><th>Body</th><th>Returns</th></tr>
           <tr><td><code>GET /channels</code></td><td>-</td><td><code>[ChannelOut]</code> (public directory + your privates; DMs excluded)</td></tr>
-          <tr><td><code>POST /channels</code></td><td><code>{slug(2–48,^[a-z0-9-]+$), name(1–64), topic?≤512, is_private}</code></td><td><code>201</code> ChannelOut (non-admins capped at 2). 409 dup slug</td></tr>
+          <tr><td><code>POST /channels</code></td><td><code>{slug(2–48,^[a-z0-9-]+$), name(1–64), topic?≤512, is_private, password?(8–128)}</code></td><td><code>201</code> ChannelOut (non-admins capped at 2). 409 dup slug. <code>password</code> sets a channel key on public channels; ignored when <code>is_private</code></td></tr>
           <tr><td><code>GET /channels/{id}</code></td><td>-</td><td>ChannelOut (403 if private/DM &amp; not a member)</td></tr>
-          <tr><td><code>POST /channels/{id}/join</code></td><td>-</td><td>ChannelOut (public only; 403 if banned)</td></tr>
+          <tr><td><code>POST /channels/{id}/join</code></td><td><code>{password?}</code></td><td>ChannelOut (public only). 403 if banned, or if the channel is key-protected and the password is missing/wrong. Members, invitees, owner and admins skip the key</td></tr>
           <tr><td><code>POST /channels/{id}/leave</code></td><td>-</td><td><code>204</code></td></tr>
           <tr><td><code>GET /channels/{id}/members</code></td><td>-</td><td><code>[{id, username, display_name, avatar_url, is_admin, role}]</code></td></tr>
-          <tr><td><code>PATCH /channels/{id}</code></td><td><code>{name?, topic?, is_private?}</code></td><td>ChannelOut (owner/admin)</td></tr>
+          <tr><td><code>PATCH /channels/{id}</code></td><td><code>{name?, topic?, is_private?, password?}</code></td><td>ChannelOut (owner/admin). <code>password</code>: omit = unchanged, <code>""</code>/null = remove, non-empty(≥8) = set (public only, else 400); going private clears the key</td></tr>
           <tr><td><code>DELETE /channels/{id}</code></td><td>-</td><td><code>204</code> (owner/admin)</td></tr>
           <tr><td><code>POST /channels/{id}/read</code></td><td>-</td><td><code>204</code>: mark read up to now</td></tr>
           <tr><td><code>POST /channels/{id}/{kick,ban,unban,invite}</code></td><td><code>{user_id, reason?}</code></td><td><code>204</code></td></tr>
