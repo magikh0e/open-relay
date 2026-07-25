@@ -1,0 +1,54 @@
+# Keeps an informational GitHub release in step with the live web app version.
+#
+# The web app deploys via `git push vps` (not GitHub releases), so its release
+# here is purely a version marker. It is always a PRE-RELEASE so it can never
+# take the "latest" badge, which belongs to the desktop client (the desktop
+# updater reads `releases/latest/download/latest.json`; a normal web release
+# with a higher semver would steal "latest" and break auto-update).
+#
+# On every push to main it reads APP_VERSION from frontend/src/version.js and,
+# if no `v<version>` release exists yet, creates one. Idempotent: pushes that
+# don't change the version are a no-op. Never deletes anything.
+
+name: Web release marker
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create the web version marker if missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/.*APP_VERSION *= *"\([^"]*\)".*/\1/p' frontend/src/version.js | head -1)
+          if [ -z "$version" ]; then
+            echo "Could not read APP_VERSION from frontend/src/version.js" >&2
+            exit 1
+          fi
+          tag="v$version"
+          echo "Live web app version: $version (tag $tag)"
+
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $tag already exists; nothing to do."
+            exit 0
+          fi
+
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Open Relay $tag (web app)" \
+            --prerelease \
+            --latest=false \
+            --notes "Informational marker for the live web app version ($version), deployed at chat.openrelay.pl via git push. The web app is not distributed through GitHub releases (the desktop client is); this is a pre-release so it never takes the \"latest\" badge from the desktop updater. See CHANGELOG.txt for the full history."
+          echo "Created pre-release $tag."
