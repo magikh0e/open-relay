@@ -33,15 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.12.0",
-        "🟢 v1.12.0: Accurate online status\n"
-        "• Fixed people showing as online long after they'd gone\n"
-        "• Every server update used to strand whoever was connected at the "
-        "time, and they'd stay lit up indefinitely\n"
-        "• Online status is now a short lease your app keeps renewing, so it "
-        "corrects itself within a minute no matter what",
-    ),
-    (
         "1.13.0",
         "🧰 v1.13.0: Unread badges, older messages, encrypted files\n"
         "• Unread counts in the sidebar, with a highlighted badge when someone "
@@ -136,6 +127,14 @@ WHATSNEW_POSTS = [
         "URL to POST to\n"
         "• Posts appear from a name you choose; set them up with the API for "
         "now (see the developer guide)",
+    ),
+    (
+        "1.21.0",
+        "🎛️ v1.21.0: Webhook management and invite-only sign-up\n"
+        "• Create, copy and revoke a channel's webhooks right from Channel "
+        "settings, no command line needed\n"
+        "• Operators can switch the server to invite-only, so new accounts "
+        "need a code from an admin",
     ),
 ]
 

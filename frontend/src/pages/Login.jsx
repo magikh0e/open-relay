@@ -13,10 +13,14 @@ export default function Login() {
   const { login, register, authError } = useAuth();
   const [mode, setMode] = useState("login");
   const [providers, setProviders] = useState([]);
+  const [inviteRequired, setInviteRequired] = useState(false);
 
   useEffect(() => {
     api("/auth/oauth/providers", { auth: false })
       .then((p) => setProviders(p || []))
+      .catch(() => {});
+    api("/auth/registration", { auth: false })
+      .then((r) => setInviteRequired(!!r?.invite_required))
       .catch(() => {});
   }, []);
   const [form, setForm] = useState({
@@ -25,6 +29,7 @@ export default function Login() {
     email: "",
     password: "",
     display_name: "",
+    invite_code: "",
   });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -44,6 +49,7 @@ export default function Login() {
           email: form.email,
           password: form.password,
           display_name: form.display_name || form.username,
+          invite_code: form.invite_code || undefined,
         });
       }
     } catch (err) {
@@ -106,6 +112,13 @@ export default function Login() {
               value={form.display_name}
               onChange={set("display_name")}
             />
+            {inviteRequired && (
+              <input
+                placeholder="Invite code"
+                value={form.invite_code}
+                onChange={set("invite_code")}
+              />
+            )}
           </>
         )}
 

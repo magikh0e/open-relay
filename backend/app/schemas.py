@@ -12,6 +12,7 @@ class RegisterIn(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     display_name: str | None = Field(default=None, max_length=64)
+    invite_code: str | None = Field(default=None, max_length=32)  # required in invite mode
 
     @field_validator("username")
     @classmethod
@@ -215,6 +216,16 @@ class WebhookCreated(WebhookOut):
 class WebhookMessageIn(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
     name: str | None = Field(default=None, max_length=64)  # override display name
+
+
+# --- Invites --------------------------------------------------------------
+
+class InviteOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    code: str
+    created_at: datetime
+    used_at: datetime | None = None  # non-null once an account has used it
 
 
 class ReplyPreview(BaseModel):

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Avatar from "./Avatar.jsx";
+import ChannelWebhooks from "./ChannelWebhooks.jsx";
 
 // Channel management for owners/admins: details (name, topic, privacy), member
 // roles (op / transfer ownership / kick / ban), and deletion.
@@ -136,6 +137,8 @@ export default function ChannelSettings({
             })}
           </div>
         </div>
+
+        <ChannelWebhooks channel={channel} onConfirm={onConfirm} />
 
         <div className="settings-danger">
           <label>Danger zone</label>

@@ -1071,6 +1071,63 @@ button.primary:disabled {
   max-height: 260px;
   overflow-y: auto;
 }
+.settings-hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin: -2px 0 6px;
+}
+.webhook-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.webhook-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.webhook-name {
+  font-size: 14px;
+}
+.webhook-create {
+  display: flex;
+  gap: 8px;
+}
+.webhook-create .edit-input {
+  flex: 1;
+}
+.webhook-fresh {
+  border: 1px solid var(--online);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  background: rgba(74, 222, 128, 0.08);
+}
+.webhook-fresh-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.webhook-fresh-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.webhook-url {
+  flex: 1;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: 12px;
+  background: var(--bg-3);
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
 .settings-member {
   display: flex;
   align-items: center;

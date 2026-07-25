@@ -1,10 +1,12 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException, Request, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 
 from ..audit import client_ip
 from ..config import settings
 from ..deps import DB
-from ..models import Channel, ChannelMember, ROLE_MEMBER, User
+from ..models import Channel, ChannelMember, Invite, ROLE_MEMBER, User
 from ..redis_client import rate_limit_hit
 from ..schemas import LoginIn, RefreshIn, RegisterIn, TokenPair, UserOut
 from ..seed import WHATSNEW_SLUG
@@ -46,6 +48,25 @@ async def register(body: RegisterIn, request: Request, db: DB) -> TokenPair:
             status_code=status.HTTP_409_CONFLICT,
             detail="Username or email already taken",
         )
+    invite_code = (body.invite_code or "").strip()
+    if settings.registration_mode == "invite":
+        if not invite_code:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="An invite code is required to register on this server.",
+            )
+        invite = (
+            await db.execute(
+                select(Invite).where(
+                    Invite.code == invite_code, Invite.used_at.is_(None)
+                )
+            )
+        ).scalar_one_or_none()
+        if invite is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="That invite code is invalid or has already been used.",
+            )
     user = User(
         username=body.username,
         email=body.email,
@@ -63,11 +84,30 @@ async def register(body: RegisterIn, request: Request, db: DB) -> TokenPair:
         db.add(
             ChannelMember(channel_id=wn.id, user_id=user.id, role=ROLE_MEMBER)
         )
+    if settings.registration_mode == "invite":
+        # Claim the code atomically; if a concurrent signup grabbed it, bail
+        # (the uncommitted user is rolled back on the raised exception).
+        res = await db.execute(
+            update(Invite)
+            .where(Invite.code == invite_code, Invite.used_at.is_(None))
+            .values(used_by=user.id, used_at=datetime.now(timezone.utc))
+        )
+        if res.rowcount != 1:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="That invite code was just used. Ask for another.",
+            )
     await db.commit()
     return TokenPair(
         access_token=create_access_token(user.id, user.token_version),
         refresh_token=create_refresh_token(user.id, user.token_version),
     )
+
+
+@router.get("/registration")
+async def registration_info() -> dict:
+    """Whether new accounts need an invite code (so the sign-up form knows)."""
+    return {"invite_required": settings.registration_mode == "invite"}
 
 
 @router.post("/login", response_model=TokenPair)

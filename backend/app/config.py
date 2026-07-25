@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     # Login attempts allowed per identifier per minute (brute-force throttle).
     login_rate_per_min: int = 10
     register_rate_per_hour: int = 5
+    # "open" = anyone can register; "invite" = a valid invite code is required.
+    registration_mode: str = "open"
     # Retention: how long deleted messages and orphaned uploads are kept.
     purge_after_days: int = 30
 

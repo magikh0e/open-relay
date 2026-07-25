@@ -420,3 +420,28 @@ class Webhook(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now
     )
+
+
+class Invite(Base):
+    """A single-use signup code. Enforced only when REGISTRATION_MODE=invite;
+    created by a site admin, consumed by the account that registers with it.
+    """
+
+    __tablename__ = "invites"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, default=_uuid
+    )
+    code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    created_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now
+    )
+    used_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
