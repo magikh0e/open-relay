@@ -97,6 +97,53 @@ export function setServer(url) {
   return v;
 }
 
+// Servers the user has saved for quick switching, as normalized http(s)
+// origins. The build default is reachable separately (setServer("")).
+export function savedServers() {
+  try {
+    const arr = JSON.parse(localStorage.getItem("relay_servers") || "[]");
+    return Array.isArray(arr) ? arr.filter((s) => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+// Add a server to the saved list (or move it to the front). Non-http(s) values
+// are ignored. Returns the updated list.
+export function addSavedServer(url) {
+  const v = normalize(url);
+  if (!/^https?:\/\//i.test(v)) return savedServers();
+  const list = [v, ...savedServers().filter((s) => s !== v)].slice(0, 12);
+  try {
+    localStorage.setItem("relay_servers", JSON.stringify(list));
+  } catch {
+    /* ignore */
+  }
+  return list;
+}
+
+export function removeSavedServer(url) {
+  const v = normalize(url);
+  const list = savedServers().filter((s) => s !== v);
+  try {
+    localStorage.setItem("relay_servers", JSON.stringify(list));
+  } catch {
+    /* ignore */
+  }
+  return list;
+}
+
+// Whether a stored session exists for a server (its per-server access token is
+// present), so the picker can flag which instances you're already signed into.
+// The token bucket is keyed by origin, matching api.js.
+export function hasSession(url) {
+  try {
+    return !!localStorage.getItem(`chat_access:${normalize(url)}`);
+  } catch {
+    return false;
+  }
+}
+
 // Schemes we'll let reach an <a href> / <img src>. `javascript:` (and anything
 // else) is dropped, so a hostile server (any server, in the multi-server model)
 // can't hand back a URL that runs on click.

@@ -1428,6 +1428,104 @@ button.primary:disabled {
   flex-shrink: 0;
 }
 
+/* Server switcher: the sidebar footer button + the picker's saved list. */
+.server-switch {
+  margin: auto 8px 8px; /* auto-top pushes it to the sidebar bottom */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: pointer;
+  min-width: 0;
+}
+.server-switch:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.server-switch-icon {
+  flex-shrink: 0;
+}
+.server-switch-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.server-list {
+  list-style: none;
+  margin: 6px 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.server-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.server-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-3, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.server-main:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.server-main:disabled {
+  cursor: default;
+}
+.server-item.current .server-main {
+  border-color: var(--accent);
+}
+.server-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+.server-badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.server-badge.in {
+  color: var(--muted);
+}
+.server-remove {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.server-remove:hover {
+  color: var(--text);
+  background: var(--bg-3, rgba(255, 255, 255, 0.06));
+}
+
 /* Change-password form inside the profile modal. */
 .pw-form {
   display: flex;

@@ -30,10 +30,11 @@ shows an extra **invite code** field; you'll need a code from an admin to
 register. You land in `#whatsnew`, a read-only channel where release notes are
 posted; you can react to those but not reply.
 
-**Connecting to a different server.** The sign-in screen shows which server
-you're on, with a link to change it. Open Relay is self-hosted, so you can point
-the app (especially the desktop app) at any instance. Your login and encryption
-keys are per-server, so switching is a fresh session.
+**Connecting to a different server.** Both the sign-in screen and a switcher at
+the bottom of the sidebar let you point the app at any Open Relay instance. Add
+the instances you use and switch between them in a click; each keeps its own
+session, so switching to one you're already signed into is instant, and the
+rest just ask you to sign in. Your login and encryption keys are per-server.
 
 ## Channels and DMs
 

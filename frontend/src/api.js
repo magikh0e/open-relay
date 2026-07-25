@@ -1,10 +1,31 @@
 // Thin fetch wrapper. Stores tokens in localStorage and transparently
 // refreshes the access token on a 401 once before giving up.
 
-import { API_BASE } from "./config.js";
+import { API_BASE, SERVER } from "./config.js";
 
-const ACCESS = "chat_access";
-const REFRESH = "chat_refresh";
+// Tokens are namespaced per server, so switching between saved instances keeps
+// each one's session instead of logging you out. The bucket is the effective
+// origin (a configured server, else this page's origin), so the same instance
+// maps to the same bucket whether it's reached same-origin or via an override.
+const bucket =
+  SERVER || (typeof location !== "undefined" ? location.origin : "default");
+const ACCESS = `chat_access:${bucket}`;
+const REFRESH = `chat_refresh:${bucket}`;
+
+// One-time migration off the old un-namespaced keys into the current bucket, so
+// an existing session survives the update rather than getting signed out.
+try {
+  const oldA = localStorage.getItem("chat_access");
+  if (oldA && !localStorage.getItem(ACCESS)) {
+    localStorage.setItem(ACCESS, oldA);
+    const oldR = localStorage.getItem("chat_refresh");
+    if (oldR) localStorage.setItem(REFRESH, oldR);
+  }
+  localStorage.removeItem("chat_access");
+  localStorage.removeItem("chat_refresh");
+} catch {
+  /* localStorage unavailable; nothing to migrate */
+}
 
 export const tokens = {
   get access() {

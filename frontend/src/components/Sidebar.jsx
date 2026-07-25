@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { api } from "../api.js";
+import { serverLabel } from "../config.js";
 import { useAuth } from "../auth.jsx";
 import Avatar from "./Avatar.jsx";
+import ServerPicker from "./ServerPicker.jsx";
 
 export default function Sidebar({
   channels,
@@ -19,6 +21,7 @@ export default function Sidebar({
   const [creating, setCreating] = useState(false);
   const [dmSearch, setDmSearch] = useState(false);
   const [joinPw, setJoinPw] = useState(null); // channel awaiting a password to join
+  const [serverOpen, setServerOpen] = useState(false);
 
   const joined = channels.filter((c) => c.is_member);
   const discover = channels.filter((c) => !c.is_member);
@@ -136,6 +139,18 @@ export default function Sidebar({
         })}
       </div>
 
+      <button
+        className="server-switch"
+        onClick={() => setServerOpen(true)}
+        title="Switch server or add another instance"
+      >
+        <span className="server-switch-icon">⇄</span>
+        <span className="server-switch-label">
+          {serverLabel().replace(/^https?:\/\//, "")}
+        </span>
+      </button>
+
+      {serverOpen && <ServerPicker onClose={() => setServerOpen(false)} />}
       {creating && (
         <CreateChannel
           onClose={() => setCreating(false)}
