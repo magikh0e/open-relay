@@ -18,6 +18,13 @@
 	# Everything else: serve the SPA, falling back to index.html for routes.
 	handle {
 		root * /srv
+		# SEO: the app is served on both chat.openrelay.pl (legacy) and the
+		# canonical orc.openrelay.pl. Mark everything on the old hostname
+		# noindex so search engines only index orc (the page canonicals point
+		# there too). The desktop app uses chat solely for /api + /ws, handled
+		# above, so this header never reaches it.
+		@oldhost host chat.openrelay.pl
+		header @oldhost X-Robots-Tag "noindex"
 		# Don't cache the entry document or version file so new deploys are
 		# picked up immediately (hashed JS/CSS assets stay cacheable).
 		# sw.js is included deliberately: a cached service worker is slow to
