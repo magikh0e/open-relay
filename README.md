@@ -196,6 +196,19 @@ cd backend
 pytest -q          # ~75 tests
 ```
 
+Note that CI does not run the suite (it needs real Postgres and Redis), so a
+green check means the code builds, not that it passes. Run the tests locally.
+
+## Contributing
+
+Patches welcome. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers local setup, the
+migration gotchas, the branch model, and the few rules that are not negotiable
+(no telemetry, no third-party data sharing, and keeping the privacy claims
+honest).
+
+Found a security problem? Do not open a public issue: use **Report a
+vulnerability** on the repository's Security tab.
+
 ## License
 
 [GNU GPL-3.0](LICENSE). Free to use, modify and run yourself. These terms cover
