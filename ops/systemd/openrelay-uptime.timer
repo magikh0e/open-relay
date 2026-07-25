@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Open Relay uptime check every 2 minutes
+
+[Timer]
+# First run shortly after boot, then every 2 minutes while the machine is up.
+OnBootSec=1min
+OnUnitActiveSec=2min
+# A missed run just leaves a small gap the next run covers, so no Persistent.
+
+[Install]
+WantedBy=timers.target

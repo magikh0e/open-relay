@@ -1,0 +1,15 @@
+[Unit]
+Description=Open Relay uptime check (polls health, alerts on state change)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Host-specific values and the alert webhook live here, OFF the repo. Create it
+# with chmod 600 (see ops/UPTIME.md for the contents).
+EnvironmentFile=/etc/openrelay-uptime.env
+# EDIT this to where this repo's ops/ lives on the MONITORING host (not the VPS
+# being watched):
+ExecStart=/home/YOUR_USER/chat-app/ops/uptime-check.sh
+TimeoutStartSec=120
+Nice=10
