@@ -33,16 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.11.0",
-        "🛡️ v1.11.0: Privacy settings\n"
-        "• Open your profile and hit Privacy to control what you share\n"
-        "• Turn off typing indicators so nobody sees “is typing…”\n"
-        "• Appear offline while still using Open Relay normally\n"
-        "• Stop new people starting DMs with you, or hide yourself from "
-        "user search\n"
-        "• All four are enforced by the server, not just hidden in your app",
-    ),
-    (
         "1.12.0",
         "🟢 v1.12.0: Accurate online status\n"
         "• Fixed people showing as online long after they'd gone\n"
@@ -136,6 +126,16 @@ WHATSNEW_POSTS = [
         "'Show more' keeps things quick\n"
         "• Mentions read as pills, and reactions show more clearly when you've "
         "reacted",
+    ),
+    (
+        "1.20.0",
+        "🔗 v1.20.0: Incoming webhooks\n"
+        "• Pipe messages into a channel from outside: CI results, alerts, "
+        "home-automation events\n"
+        "• A channel owner or mod creates a webhook, which hands back a secret "
+        "URL to POST to\n"
+        "• Posts appear from a name you choose; set them up with the API for "
+        "now (see the developer guide)",
     ),
 ]
 

@@ -69,6 +69,7 @@ you own end to end.
 - Push notifications for DMs and mentions: payloads say *who* and *where*, never *what*
 - Optional Discord (and Google) SSO alongside username/password
 - A read-only `#whatsnew` announcements channel, seeded automatically
+- Incoming webhooks: post into a channel from CI, alerts, or home automation via a secret URL
 
 ### What it deliberately does **not** protect
 

@@ -500,6 +500,38 @@ POST origin/api/channels/&lt;id&gt;/messages {content}
         <li><strong>Re-implement the browser-only bits:</strong> image re-encode / EXIF strip (§5), E2EE via a native crypto lib (§4), and push via the platform service (APNs/FCM) rather than Web Push.</li>
       </ul>
 
+      <h2><span class="sec-ico">🔗</span>11. Webhooks</h2>
+      <p>
+        Incoming webhooks let an external system post messages into a channel
+        over a secret URL, with no user account. Handy for piping CI results,
+        alerts, or home-automation events into a channel.
+      </p>
+      <h3>Create and manage</h3>
+      <p>Authenticated, and gated to the channel's owner/mod (or a site admin):</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Method · Path</th><th>Body</th><th>Returns</th></tr>
+          <tr><td><code>POST /channels/{id}/webhooks</code></td><td><code>{name}</code></td><td><code>201</code> with a one-time <code>url</code> embedding the secret token. Store it; not shown again</td></tr>
+          <tr><td><code>GET /channels/{id}/webhooks</code></td><td>-</td><td><code>[{id, channel_id, name, created_at}]</code> (no tokens)</td></tr>
+          <tr><td><code>DELETE /channels/{id}/webhooks/{webhook_id}</code></td><td>-</td><td><code>204</code>, revokes it</td></tr>
+        </table>
+      </div>
+      <h3>Fire it</h3>
+      <p>Anything that can POST JSON posts a message. No auth header; the secret is the URL itself:</p>
+      <pre><code>curl -X POST https://&lt;origin&gt;/api/webhooks/&lt;id&gt;/&lt;token&gt; \
+  -H 'content-type: application/json' \
+  -d '{"text": "build #482 passed", "name": "CI"}'</code></pre>
+      <ul>
+        <li><code>text</code> (required): the message body, up to 4000 chars. <code>@mentions</code> resolve.</li>
+        <li><code>name</code> (optional): overrides the webhook's display name for this post.</li>
+      </ul>
+      <p>
+        The message appears from that display name with a null user sender
+        (MessageOut carries <code>author_name</code>, §7). Rate limited to
+        <strong>60 posts per minute</strong> per webhook; a missing or wrong
+        token returns a uniform <code>404</code>.
+      </p>
+
       <footer>
         Open Relay and this guide by <strong>magikh0e</strong>. Free software
         under the GNU GPL-3.0. This guide describes the API of <em>this</em>

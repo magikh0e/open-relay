@@ -460,3 +460,45 @@ variation on this loop: **change state with a REST call, learn about changes
 - **Re-implement the browser-only bits:** image re-encode/EXIF strip (§5),
   E2EE via a native crypto lib (§4), and push via the platform service (APNs/
   FCM) rather than Web Push.
+
+---
+
+## 11. Webhooks
+
+Incoming webhooks let an external system post messages into a channel over a
+secret URL, with no user account. Handy for piping CI results, alerts, or
+home-automation events into a channel.
+
+### Create and manage
+
+Authenticated, and gated to the channel's owner/mod (or a site admin):
+
+| Method · Path | Body | Returns |
+|---|---|---|
+| `POST /channels/{id}/webhooks` | `{name}` | `201` with a one-time `url` that embeds the secret token. Store it; it is not shown again |
+| `GET /channels/{id}/webhooks` | | `[{id, channel_id, name, created_at}]` (no tokens) |
+| `DELETE /channels/{id}/webhooks/{webhook_id}` | | `204`, revokes it |
+
+Create response:
+```
+{ "id": "...", "channel_id": "...", "name": "CI",
+  "created_at": "2026-...", "url": "https://<origin>/api/webhooks/<id>/<token>" }
+```
+
+### Fire it
+
+Anything that can POST JSON posts a message. No auth header; the secret is the
+URL itself:
+
+```bash
+curl -X POST https://<origin>/api/webhooks/<id>/<token> \
+  -H 'content-type: application/json' \
+  -d '{"text": "build #482 passed", "name": "CI"}'
+```
+
+- `text` (required): the message body, up to 4000 chars. `@mentions` resolve.
+- `name` (optional): overrides the webhook's display name for this post.
+
+The message appears from that display name with a null user sender (MessageOut
+carries `author_name`, §7). Rate limited to **60 posts per minute** per webhook;
+a missing or wrong token returns a uniform `404`.
