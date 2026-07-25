@@ -169,6 +169,15 @@ export default function Login() {
           <a className="policy-link" href="/terms.html" target="_blank" rel="noreferrer">
             Terms
           </a>
+          <span className="sep">·</span>
+          <a
+            className="policy-link"
+            href="https://github.com/magikh0e/open-relay"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub
+          </a>
         </div>
       </form>
     </div>

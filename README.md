@@ -11,6 +11,10 @@
 </p>
 
 <p align="center">
+  <a href="https://openrelay.pl"><strong>▶ Try the live instance at openrelay.pl</strong></a>
+</p>
+
+<p align="center">
   <em>No ads. No analytics. No trackers. Free software under the GNU GPL-3.0.</em>
 </p>
 
