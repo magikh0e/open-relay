@@ -41,6 +41,10 @@ posted; you can react to those but not reply.
 - **Close a DM** by hovering it and clicking `✕`, or typing `/close`. It only
   hides it for you; nothing is deleted, and it comes back if either of you
   writes again.
+- **Password-protected channels** show a 🔑. Anyone can see them in the
+  directory, but you need the password to join; enter it when prompted, or use
+  `/join #channel password`. A channel's owner sets, changes or removes the
+  password under **Channel settings**; members already in stay in.
 
 An **unread badge** shows on channels with new messages; if someone
 **@mentions** you, the badge is highlighted so you can tell it apart from
@@ -221,7 +225,12 @@ Type these in the message box. `/help` lists them in-app.
 | `/ignore <user>` | Hide a user's messages (local to you) |
 | `/op <user>` · `/deop <user>` | Grant or remove operator status |
 | `/kick <user>` · `/ban <user>` · `/unban <user>` | Moderation |
+| `/mode +o` · `+b` · `+k <key>` · `+i` | IRC-style: op, ban, set channel key, invite-only (use `-` to reverse) |
 | `/shrug` · `/slap <user>` | The classics |
 | `/version` | Show the app version |
+
+Coming from IRC? A few aliases work too: `/j` for `/join`, `/leave` for
+`/part`, `/msg` for `/query`, and the `/mode` flags above map onto `/op`,
+`/ban`, the channel password, and the private toggle.
 
 Moderation commands require you to be a channel operator or admin.

@@ -243,6 +243,7 @@ export default function ChatShell() {
                 name: data.name,
                 topic: data.topic,
                 kind: data.kind ?? c.kind,
+                has_password: data.has_password ?? c.has_password,
               }
             : c
         )
@@ -457,7 +458,7 @@ export default function ChatShell() {
         return {
           ok: true,
           message:
-            "/me · /nick <name> · /join <#chan> · /part · /close (hide a DM) · /invite <user> · /query <user> · /whois <user> · /names · /away [msg] · /back · /ignore <user> · /clear · /quit · /topic · /kick · /ban · /unban · /op · /deop · /dm · /slap · /shrug · /version",
+            "/me · /nick <name> · /join <#chan> · /part · /close (hide a DM) · /invite <user> · /query <user> · /whois <user> · /names · /away [msg] · /back · /ignore <user> · /clear · /quit · /topic · /kick · /ban · /unban · /op · /deop · /dm · /slap · /shrug · /version · /mode [+|-][o|b|k|i] (IRC-style: op, ban, key, invite-only)",
         };
       case "version":
       case "health": {
@@ -487,13 +488,17 @@ export default function ChatShell() {
         updateUser({ display_name: updated.display_name });
         return { ok: true, message: `Display name set to ${updated.display_name}` };
       }
-      case "join": {
+      case "join":
+      case "j": {
         const slug = (args[0] || "").replace(/^#/, "").toLowerCase();
-        if (!slug) throw new Error("Usage: /join <#channel>");
+        if (!slug) throw new Error("Usage: /join <#channel> [password]");
         const ch = channels.find((c) => (c.slug || "").toLowerCase() === slug);
         if (!ch) throw new Error(`No channel #${slug}`);
         if (!ch.is_member) {
-          await api(`/channels/${ch.id}/join`, { method: "POST" });
+          // Second arg is the channel key for password-protected channels.
+          const opts = { method: "POST" };
+          if (args[1]) opts.body = { password: args[1] };
+          await api(`/channels/${ch.id}/join`, opts);
           await refreshLists();
         }
         openChannel(ch.id);
@@ -626,13 +631,87 @@ export default function ChatShell() {
         await api("/users/away", { method: "POST", body: { message: "" } });
         return { ok: true, message: "Welcome back." };
       }
+      case "mode": {
+        // IRC-style channel modes, mapped onto the app's own actions. Acts on
+        // the open channel. Supported flags:
+        //   +o/-o <user>  operator (same as /op, /deop)
+        //   +b/-b <user>  ban / unban
+        //   +k <key> / -k channel password (set / clear)
+        //   +i/-i         invite-only (private) / public
+        if (!active || active.kind === "dm") {
+          throw new Error("/mode works in a channel.");
+        }
+        // Tolerate a leading "#channel" token (IRC habit); we always act on
+        // the channel that's open.
+        let rest = args[0]?.startsWith("#") ? args.slice(1) : args;
+        const m = /^([+-])([obki])$/.exec(rest[0] || "");
+        if (!m) {
+          const current =
+            [
+              active.kind === "private" ? "+i" : null,
+              active.has_password ? "+k" : null,
+            ]
+              .filter(Boolean)
+              .join(" ") || "(none)";
+          throw new Error(
+            `Usage: /mode [+|-][o|b|k|i] [arg]. Current: ${current}`
+          );
+        }
+        const on = m[1] === "+";
+        switch (m[2]) {
+          case "o": {
+            const u = await resolveUser(rest[1]);
+            await post("/role", { user_id: u.id, role: on ? "mod" : "member" });
+            return {
+              ok: true,
+              message: on
+                ? `${u.display_name} is now an operator.`
+                : `${u.display_name} is no longer an operator.`,
+            };
+          }
+          case "b": {
+            const u = await resolveUser(rest[1]);
+            if (on) {
+              await post("/ban", {
+                user_id: u.id,
+                reason: rest.slice(2).join(" "),
+              });
+              return { ok: true, message: `Banned ${u.display_name}.` };
+            }
+            await post("/unban", { user_id: u.id });
+            return { ok: true, message: `Unbanned ${u.display_name}.` };
+          }
+          case "k": {
+            if (on && !rest[1]) throw new Error("Usage: /mode +k <password>");
+            await updateChannel(active.id, { password: on ? rest[1] : "" });
+            return {
+              ok: true,
+              message: on
+                ? "Channel password set."
+                : "Channel password removed.",
+            };
+          }
+          default: {
+            // "i": invite-only (private) vs public.
+            await updateChannel(active.id, { is_private: on });
+            return {
+              ok: true,
+              message: on
+                ? "Channel is now invite-only (private)."
+                : "Channel is now public.",
+            };
+          }
+        }
+      }
       default:
         throw new Error(`Unknown command: /${cmd} — try /help`);
     }
   }
 
-  async function joinAndOpen(channel) {
-    await api(`/channels/${channel.id}/join`, { method: "POST" });
+  async function joinAndOpen(channel, password) {
+    const opts = { method: "POST" };
+    if (password) opts.body = { password };
+    await api(`/channels/${channel.id}/join`, opts);
     await refreshLists();
     openChannel(channel.id);
   }
@@ -769,7 +848,13 @@ export default function ChatShell() {
     setChannels((prev) =>
       prev.map((c) =>
         c.id === channelId
-          ? { ...c, name: updated.name, topic: updated.topic, kind: updated.kind }
+          ? {
+              ...c,
+              name: updated.name,
+              topic: updated.topic,
+              kind: updated.kind,
+              has_password: updated.has_password,
+            }
           : c
       )
     );

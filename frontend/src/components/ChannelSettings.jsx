@@ -22,6 +22,41 @@ export default function ChannelSettings({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Channel key (public channels only). channel.has_password is refreshed via
+  // props after onUpdate, so the section reflects the live state.
+  const [pw, setPw] = useState("");
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwMsg, setPwMsg] = useState("");
+  const canHavePassword = channel.kind === "public" && !channel.read_only;
+
+  async function setPassword() {
+    if (pw.length < 8) return;
+    setPwBusy(true);
+    setPwMsg("");
+    try {
+      await onUpdate({ password: pw });
+      setPw("");
+      setPwMsg("Password set. New members will need it to join.");
+    } catch (e) {
+      setPwMsg(e.message);
+    } finally {
+      setPwBusy(false);
+    }
+  }
+
+  async function removePassword() {
+    setPwBusy(true);
+    setPwMsg("");
+    try {
+      await onUpdate({ password: "" });
+      setPwMsg("Password removed. Anyone can join now.");
+    } catch (e) {
+      setPwMsg(e.message);
+    } finally {
+      setPwBusy(false);
+    }
+  }
+
   const dirty =
     name !== channel.name ||
     topic !== (channel.topic || "") ||
@@ -82,6 +117,55 @@ export default function ChannelSettings({
             {saving ? "Saving…" : "Save changes"}
           </button>
         </div>
+
+        {canHavePassword && (
+          <div className="settings-section">
+            <label>
+              Channel password{" "}
+              {channel.has_password ? (
+                <span className="role-tag">🔑 protected</span>
+              ) : (
+                <span className="muted small">open</span>
+              )}
+            </label>
+            <p className="muted small">
+              Anyone can see this public channel, but only people with the
+              password can join. Members already in stay in.
+            </p>
+            <input
+              className="edit-input"
+              type="password"
+              value={pw}
+              maxLength={128}
+              placeholder={
+                channel.has_password ? "New password" : "Set a password"
+              }
+              onChange={(e) => setPw(e.target.value)}
+            />
+            {pw.length > 0 && pw.length < 8 && (
+              <div className="muted small">At least 8 characters.</div>
+            )}
+            <div className="settings-member-actions">
+              <button
+                className="mini"
+                disabled={pw.length < 8 || pwBusy}
+                onClick={setPassword}
+              >
+                {channel.has_password ? "Change password" : "Set password"}
+              </button>
+              {channel.has_password && (
+                <button
+                  className="mini ghost"
+                  disabled={pwBusy}
+                  onClick={removePassword}
+                >
+                  Remove password
+                </button>
+              )}
+            </div>
+            {pwMsg && <div className="muted small">{pwMsg}</div>}
+          </div>
+        )}
 
         <div className="settings-section">
           <label>Members &amp; roles</label>

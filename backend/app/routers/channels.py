@@ -21,6 +21,7 @@ from ..models import (
 )
 from ..schemas import (
     ChannelCreate,
+    ChannelJoin,
     ChannelOut,
     ChannelUpdate,
     MemberOut,
@@ -28,6 +29,7 @@ from ..schemas import (
     RoleUpdate,
     UserPublic,
 )
+from ..security import hash_password, verify_password
 from ..ws_manager import manager
 from .messages import announce_action
 
@@ -129,6 +131,7 @@ def _to_out(
         created_by=ch.created_by,
         created_at=ch.created_at,
         read_only=ch.read_only,
+        has_password=bool(ch.password_hash),
         member_count=member_count,
         is_member=is_member,
         unread_count=unread,
@@ -215,6 +218,13 @@ async def create_channel(body: ChannelCreate, db: DB, user: CurrentUser) -> Chan
         name=body.name,
         topic=body.topic,
         created_by=user.id,
+        # A channel key only applies to public channels; a private channel is
+        # already invite-gated, so any password sent with one is ignored.
+        password_hash=(
+            hash_password(body.password)
+            if body.password and not body.is_private
+            else None
+        ),
     )
     db.add(ch)
     await db.flush()  # get ch.id
@@ -235,7 +245,9 @@ async def get_channel(channel_id: str, db: DB, user: CurrentUser) -> ChannelOut:
 
 
 @router.post("/{channel_id}/join", response_model=ChannelOut)
-async def join_channel(channel_id: str, db: DB, user: CurrentUser) -> ChannelOut:
+async def join_channel(
+    channel_id: str, db: DB, user: CurrentUser, body: ChannelJoin = ChannelJoin()
+) -> ChannelOut:
     ch = await db.get(Channel, channel_id)
     if ch is None or ch.archived:
         raise HTTPException(status_code=404, detail="Channel not found")
@@ -254,7 +266,19 @@ async def join_channel(channel_id: str, db: DB, user: CurrentUser) -> ChannelOut
         raise HTTPException(
             status_code=403, detail="You are banned from this channel"
         )
-    if not await _is_member(db, ch.id, user.id):
+    already_member = await _is_member(db, ch.id, user.id)
+    # Channel key check. Existing members re-affirming, and site admins, skip it;
+    # the owner is always already a member (auto-joined at creation).
+    if ch.password_hash and not already_member and not user.is_admin:
+        if not body.password:
+            raise HTTPException(
+                status_code=403, detail="This channel requires a password"
+            )
+        if not verify_password(body.password, ch.password_hash):
+            raise HTTPException(
+                status_code=403, detail="Incorrect channel password"
+            )
+    if not already_member:
         db.add(ChannelMember(channel_id=ch.id, user_id=user.id, role=ROLE_MEMBER))
         await db.commit()
     return _to_out(ch, await _member_count(db, ch.id), True)
@@ -314,6 +338,26 @@ async def update_channel(
         ch.topic = sanitize_text(body.topic, max_length=512)
     if body.is_private is not None and ch.kind != KIND_DM:
         ch.kind = KIND_PRIVATE if body.is_private else KIND_PUBLIC
+    # A private channel is invite-gated and never carries a channel key.
+    if ch.kind == KIND_PRIVATE:
+        ch.password_hash = None
+    # "password" absent = leave as-is; "" or null = remove; non-empty = set.
+    if "password" in body.model_fields_set:
+        pw = body.password
+        if pw:
+            if ch.kind != KIND_PUBLIC:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Password protection only applies to public channels",
+                )
+            if len(pw) < 8:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Channel password must be at least 8 characters",
+                )
+            ch.password_hash = hash_password(pw)
+        else:
+            ch.password_hash = None
     await db.commit()
     # Push the change to everyone viewing the channel.
     await manager.publish_room(
@@ -325,6 +369,7 @@ async def update_channel(
                 "name": ch.name,
                 "topic": ch.topic,
                 "kind": ch.kind,
+                "has_password": bool(ch.password_hash),
             },
         },
     )

@@ -140,6 +140,8 @@ class ChannelCreate(BaseModel):
     name: str = Field(min_length=1, max_length=64)
     topic: str = Field(default="", max_length=512)
     is_private: bool = False
+    # Optional channel key for a public channel (ignored when is_private).
+    password: str | None = Field(default=None, min_length=8, max_length=128)
 
 
 class ChannelOut(BaseModel):
@@ -152,6 +154,8 @@ class ChannelOut(BaseModel):
     created_by: str | None
     created_at: datetime
     read_only: bool = False
+    # Whether a channel key is set (the hash itself is never exposed).
+    has_password: bool = False
     member_count: int | None = None
     is_member: bool | None = None
     # Messages since the viewer's last_read_at, and how many of those mention
@@ -164,6 +168,16 @@ class ChannelUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=64)
     topic: str | None = Field(default=None, max_length=512)
     is_private: bool | None = None
+    # Channel key management. Absent = leave unchanged; "" or null (when
+    # explicitly sent) = remove; a non-empty string = set. The router checks
+    # `"password" in model_fields_set` to tell "absent" from "remove", and
+    # enforces the minimum length there so removal can pass an empty value.
+    password: str | None = Field(default=None, max_length=128)
+
+
+class ChannelJoin(BaseModel):
+    # Channel key, required only when the target channel is password protected.
+    password: str | None = None
 
 
 # --- Messages -------------------------------------------------------------

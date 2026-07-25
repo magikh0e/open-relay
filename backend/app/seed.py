@@ -33,18 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.13.0",
-        "🧰 v1.13.0: Unread badges, older messages, encrypted files\n"
-        "• Unread counts in the sidebar, with a highlighted badge when someone "
-        "mentions you\n"
-        "• Scroll up to load earlier messages; history is no longer capped at "
-        "the most recent 50\n"
-        "• Files sent in an encrypted DM are now encrypted too; the server "
-        "can't see the contents, the name or even the file type\n"
-        "• Changing your password now signs out your other devices\n"
-        "• Deleted messages and leftover files are cleared for real after 30 days",
-    ),
-    (
         "1.14.0",
         "👋 v1.14.0: An intro page, and a friendlier interface\n"
         "• New About page explaining what Open Relay is, what it protects and what "
@@ -135,6 +123,16 @@ WHATSNEW_POSTS = [
         "settings, no command line needed\n"
         "• Operators can switch the server to invite-only, so new accounts "
         "need a code from an admin",
+    ),
+    (
+        "1.22.0",
+        "🔑 v1.22.0: Password-protected channels\n"
+        "• A public channel can now carry a password: anyone can see it, but "
+        "only people with the key can join\n"
+        "• Set one when you create a channel, or anytime from Channel settings; "
+        "change or remove it there too\n"
+        "• Members already in stay in, and the owner and admins never need the "
+        "password",
     ),
 ]
 

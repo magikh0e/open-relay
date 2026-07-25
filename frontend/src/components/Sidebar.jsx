@@ -18,6 +18,7 @@ export default function Sidebar({
   const { user, logout } = useAuth();
   const [creating, setCreating] = useState(false);
   const [dmSearch, setDmSearch] = useState(false);
+  const [joinPw, setJoinPw] = useState(null); // channel awaiting a password to join
 
   const joined = channels.filter((c) => c.is_member);
   const discover = channels.filter((c) => !c.is_member);
@@ -56,7 +57,13 @@ export default function Sidebar({
             onClick={() => onOpen(c.id)}
           >
             <span className="hash">
-              {c.read_only ? "📣" : c.kind === "private" ? "🔒" : "#"}
+              {c.read_only
+                ? "📣"
+                : c.kind === "private"
+                ? "🔒"
+                : c.has_password
+                ? "🔑"
+                : "#"}
             </span>
             <span className="row-name">{c.name}</span>
             {(c.mention_count > 0 || c.unread_count > 0) && (
@@ -75,9 +82,12 @@ export default function Sidebar({
           </div>
           {discover.map((c) => (
             <div key={c.id} className="row discover">
-              <span className="hash">#</span>
+              <span className="hash">{c.has_password ? "🔑" : "#"}</span>
               <span className="row-name">{c.name}</span>
-              <button className="mini" onClick={() => onJoin(c)}>
+              <button
+                className="mini"
+                onClick={() => (c.has_password ? setJoinPw(c) : onJoin(c))}
+              >
                 Join
               </button>
             </div>
@@ -146,6 +156,16 @@ export default function Sidebar({
           }}
         />
       )}
+      {joinPw && (
+        <JoinPassword
+          channel={joinPw}
+          onClose={() => setJoinPw(null)}
+          onJoin={async (password) => {
+            await onJoin(joinPw, password);
+            setJoinPw(null);
+          }}
+        />
+      )}
     </aside>
   );
 }
@@ -153,6 +173,7 @@ export default function Sidebar({
 function CreateChannel({ onClose, onCreated }) {
   const [name, setName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const slug = name
@@ -160,13 +181,15 @@ function CreateChannel({ onClose, onCreated }) {
     .replace(/[^a-z0-9-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+  // A channel key only applies to public channels; too-short keys are blocked.
+  const pwTooShort = !isPrivate && password.length > 0 && password.length < 8;
+
   async function create() {
     setError("");
     try {
-      const ch = await api("/channels", {
-        method: "POST",
-        body: { slug, name, topic: "", is_private: isPrivate },
-      });
+      const body = { slug, name, topic: "", is_private: isPrivate };
+      if (!isPrivate && password) body.password = password;
+      const ch = await api("/channels", { method: "POST", body });
       onCreated(ch.id);
     } catch (e) {
       setError(e.message);
@@ -190,9 +213,66 @@ function CreateChannel({ onClose, onCreated }) {
         />
         Private (invite-only)
       </label>
+      {!isPrivate && (
+        <>
+          <input
+            type="password"
+            placeholder="Password (optional)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <div className="muted small">
+            {pwTooShort
+              ? "At least 8 characters."
+              : "Leave blank for an open channel; anyone needs this key to join."}
+          </div>
+        </>
+      )}
       {error && <div className="error">{error}</div>}
-      <button className="primary" disabled={slug.length < 2} onClick={create}>
+      <button
+        className="primary"
+        disabled={slug.length < 2 || pwTooShort}
+        onClick={create}
+      >
         Create
+      </button>
+    </Modal>
+  );
+}
+
+// Prompt for a channel key when joining a password-protected channel. Stays
+// open on a wrong key so the user can retry.
+function JoinPassword({ channel, onClose, onJoin }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (!password) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onJoin(password);
+    } catch (e) {
+      setError(e.message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`Join #${channel.name}`} onClose={onClose}>
+      <p className="muted small">This channel requires a password to join.</p>
+      <input
+        type="password"
+        placeholder="Channel password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && submit()}
+        autoFocus
+      />
+      {error && <div className="error">{error}</div>}
+      <button className="primary" disabled={!password || busy} onClick={submit}>
+        {busy ? "Joining…" : "Join"}
       </button>
     </Modal>
   );

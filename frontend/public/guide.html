@@ -185,6 +185,7 @@
         <li><strong>Create a channel</strong> with the <code>+</code> next to <em>Channels</em> (up to two if you're not an admin).</li>
         <li><strong>Direct messages</strong> are one-to-one. Start one from the <code>+</code> next to <em>Direct Messages</em>, or from someone's profile.</li>
         <li><strong>Close a DM</strong> by hovering it and clicking <code>✕</code>, or typing <code>/close</code>. It only hides it for you; nothing is deleted, and it comes back if either of you writes again.</li>
+        <li><strong>Password-protected channels</strong> show a 🔑. Anyone can see them in the directory, but you need the password to join; enter it when prompted, or use <code>/join #channel password</code>. A channel's owner sets, changes or removes the password under <strong>Channel settings</strong>; members already in stay in.</li>
       </ul>
       <p>
         An <strong>unread badge</strong> shows on channels with new messages; if
@@ -375,10 +376,11 @@ def hello():
         <tr><td><code>/ignore &lt;user&gt;</code></td><td>Hide a user's messages (local to you)</td></tr>
         <tr><td><code>/op &lt;user&gt;</code> · <code>/deop &lt;user&gt;</code></td><td>Grant or remove operator status</td></tr>
         <tr><td><code>/kick</code> · <code>/ban</code> · <code>/unban</code></td><td>Moderation</td></tr>
+        <tr><td><code>/mode +o</code> · <code>+b</code> · <code>+k &lt;key&gt;</code> · <code>+i</code></td><td>IRC-style: op, ban, set channel key, invite-only (use <code>-</code> to reverse)</td></tr>
         <tr><td><code>/shrug</code> · <code>/slap &lt;user&gt;</code></td><td>The classics</td></tr>
         <tr><td><code>/version</code></td><td>Show the app version</td></tr>
       </table>
-      <p class="lede">Moderation commands require you to be a channel operator or admin.</p>
+      <p class="lede">Moderation commands require you to be a channel operator or admin. Coming from IRC? A few aliases work too: <code>/j</code> for <code>/join</code>, <code>/leave</code> for <code>/part</code>, <code>/msg</code> for <code>/query</code>.</p>
 
       <footer>
         Open Relay and this guide by <strong>magikh0e</strong>. Free software

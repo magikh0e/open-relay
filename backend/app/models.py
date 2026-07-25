@@ -128,6 +128,10 @@ class Channel(Base):
     # Read-only (announcement) channels: only site admins may post; everyone
     # else can read and react but not send. Used by the seeded #whatsnew channel.
     read_only: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Optional channel key (argon2 hash), IRC "+k" style: a public channel that
+    # anyone can browse but only join with the password. NULL = no password.
+    # Only meaningful for public channels; private channels are invite-gated.
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     members: Mapped[list["ChannelMember"]] = relationship(
         back_populates="channel", cascade="all, delete-orphan"
