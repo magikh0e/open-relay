@@ -1,0 +1,6 @@
+# Open Relay app (orc.openrelay.pl)
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://orc.openrelay.pl/sitemap.xml
