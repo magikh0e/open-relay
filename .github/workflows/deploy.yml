@@ -11,6 +11,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Least privilege: this workflow only reads the checkout, never writes.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
