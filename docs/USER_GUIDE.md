@@ -46,6 +46,10 @@ posted; you can react to those but not reply.
   `/join #channel password`. A channel's owner sets, changes or removes the
   password under **Channel settings**; members already in stay in.
 
+![Joining a password-protected channel](screenshots/06-join-password.png)
+
+![Setting a channel password in Channel settings](screenshots/05-channel-password.png)
+
 An **unread badge** shows on channels with new messages; if someone
 **@mentions** you, the badge is highlighted so you can tell it apart from
 ordinary traffic.
