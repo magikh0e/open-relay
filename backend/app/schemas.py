@@ -301,6 +301,12 @@ class DMCreate(BaseModel):
     user_id: str
 
 
+class GroupCreate(BaseModel):
+    # The other people to include (the creator is added automatically).
+    user_ids: list[str] = Field(min_length=2, max_length=19)
+    name: str | None = Field(default=None, max_length=64)
+
+
 class AwayIn(BaseModel):
     message: str | None = None  # empty/absent clears away status
 

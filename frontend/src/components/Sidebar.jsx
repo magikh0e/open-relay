@@ -16,6 +16,8 @@ export default function Sidebar({
   onOpenProfile,
   onOpenSearch,
   onCloseDm,
+  onLeaveGroup,
+  onCreateGroup,
 }) {
   const { user, logout } = useAuth();
   const [creating, setCreating] = useState(false);
@@ -106,7 +108,9 @@ export default function Sidebar({
           </button>
         </div>
         {dms.map((c) => {
-          // DM "topic" carries the other user's username; name is display name.
+          // For a 1:1 DM, name is the other person's display name; a group
+          // carries its own name and gets a group glyph.
+          const isGroup = c.kind === "group";
           return (
             <div key={c.id} className="dm-row-wrap">
               <button
@@ -114,6 +118,7 @@ export default function Sidebar({
                 onClick={() => onOpen(c.id)}
               >
                 <span className="dot-name">
+                  {isGroup && <span className="hash">👥</span>}
                   <span className="row-name">{c.name}</span>
                 </span>
                 {(c.mention_count > 0 || c.unread_count > 0) && (
@@ -122,18 +127,33 @@ export default function Sidebar({
                 </span>
               )}
               </button>
-              {onCloseDm && (
-                <button
-                  className="dm-close"
-                  title="Close this conversation (hides it for you only)"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCloseDm(c);
-                  }}
-                 aria-label="Close this conversation (hides it for you only)">
-                  ✕
-                </button>
-              )}
+              {isGroup
+                ? onLeaveGroup && (
+                    <button
+                      className="dm-close"
+                      title="Leave this group"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onLeaveGroup(c);
+                      }}
+                      aria-label="Leave this group"
+                    >
+                      ✕
+                    </button>
+                  )
+                : onCloseDm && (
+                    <button
+                      className="dm-close"
+                      title="Close this conversation (hides it for you only)"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCloseDm(c);
+                      }}
+                      aria-label="Close this conversation (hides it for you only)"
+                    >
+                      ✕
+                    </button>
+                  )}
             </div>
           );
         })}
@@ -164,6 +184,7 @@ export default function Sidebar({
       {dmSearch && (
         <NewDM
           onClose={() => setDmSearch(false)}
+          onCreateGroup={onCreateGroup}
           onOpened={async (id) => {
             setDmSearch(false);
             await onRefresh();
@@ -293,23 +314,78 @@ function JoinPassword({ channel, onClose, onJoin }) {
   );
 }
 
-function NewDM({ onClose, onOpened }) {
+// Start a conversation: one person picked = a 1:1 DM, two or more = a group.
+function NewDM({ onClose, onOpened, onCreateGroup }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const selectedIds = new Set(selected.map((u) => u.id));
+  const isGroup = selected.length >= 2;
 
   async function search(value) {
     setQ(value);
     if (value.trim().length < 2) return setResults([]);
-    setResults(await api(`/users/search?q=${encodeURIComponent(value)}`));
+    try {
+      const rows = await api(`/users/search?q=${encodeURIComponent(value)}`);
+      setResults(rows.filter((u) => !selectedIds.has(u.id)));
+    } catch {
+      setResults([]);
+    }
   }
 
-  async function openDm(userId) {
-    const ch = await api("/dms", { method: "POST", body: { user_id: userId } });
-    onOpened(ch.id);
+  function toggle(u) {
+    setSelected((prev) =>
+      prev.some((x) => x.id === u.id)
+        ? prev.filter((x) => x.id !== u.id)
+        : [...prev, u]
+    );
+    setQ("");
+    setResults([]);
+  }
+
+  async function go() {
+    setBusy(true);
+    setError("");
+    try {
+      if (selected.length === 1) {
+        const ch = await api("/dms", {
+          method: "POST",
+          body: { user_id: selected[0].id },
+        });
+        onOpened(ch.id);
+      } else {
+        const g = await onCreateGroup(
+          selected.map((u) => u.id),
+          name.trim()
+        );
+        onOpened(g.id);
+      }
+    } catch (e) {
+      setError(e.message);
+      setBusy(false);
+    }
   }
 
   return (
-    <Modal title="New direct message" onClose={onClose}>
+    <Modal title="New conversation" onClose={onClose}>
+      {selected.length > 0 && (
+        <div className="chips">
+          {selected.map((u) => (
+            <button
+              key={u.id}
+              className="chip"
+              onClick={() => toggle(u)}
+              title="Remove"
+            >
+              {u.display_name} ✕
+            </button>
+          ))}
+        </div>
+      )}
       <input
         placeholder="Search people…"
         value={q}
@@ -318,7 +394,7 @@ function NewDM({ onClose, onOpened }) {
       />
       <div className="results">
         {results.map((u) => (
-          <button key={u.id} className="result" onClick={() => openDm(u.id)}>
+          <button key={u.id} className="result" onClick={() => toggle(u)}>
             <span className="avatar sm">{u.display_name[0]?.toUpperCase()}</span>
             <span>
               {u.display_name} <span className="muted">@{u.username}</span>
@@ -326,6 +402,24 @@ function NewDM({ onClose, onOpened }) {
           </button>
         ))}
       </div>
+      {isGroup && (
+        <input
+          placeholder="Group name (optional)"
+          value={name}
+          maxLength={64}
+          onChange={(e) => setName(e.target.value)}
+        />
+      )}
+      {error && <div className="error">{error}</div>}
+      {selected.length > 0 && (
+        <button className="primary" disabled={busy} onClick={go}>
+          {busy
+            ? "…"
+            : isGroup
+            ? `Create group (${selected.length})`
+            : `Message ${selected[0].display_name}`}
+        </button>
+      )}
     </Modal>
   );
 }

@@ -1526,6 +1526,37 @@ button.primary:disabled {
   background: var(--bg-3, rgba(255, 255, 255, 0.06));
 }
 
+/* New-conversation multi-select chips + group management. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.chip {
+  background: var(--bg-3, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 3px 10px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+.chip:hover {
+  border-color: var(--accent);
+}
+.group-name-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.group-name-row .edit-input {
+  flex: 1;
+}
+.group-add {
+  margin-bottom: 8px;
+}
+
 /* Change-password form inside the profile modal. */
 .pw-form {
   display: flex;

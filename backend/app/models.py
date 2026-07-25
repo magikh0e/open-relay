@@ -29,6 +29,7 @@ def _now() -> datetime:
 KIND_PUBLIC = "public"
 KIND_PRIVATE = "private"
 KIND_DM = "dm"
+KIND_GROUP = "group"  # a private multi-person DM (channel with a member set)
 
 # Member roles
 ROLE_OWNER = "owner"

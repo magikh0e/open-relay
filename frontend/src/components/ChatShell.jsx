@@ -8,6 +8,7 @@ import MessagePane from "./MessagePane.jsx";
 import MemberList from "./MemberList.jsx";
 import Profile from "./Profile.jsx";
 import ChannelSettings from "./ChannelSettings.jsx";
+import GroupInfo from "./GroupInfo.jsx";
 import ThreadPane from "./ThreadPane.jsx";
 import SearchModal from "./SearchModal.jsx";
 import E2EESetup from "./E2EESetup.jsx";
@@ -425,6 +426,47 @@ export default function ChatShell() {
     }
   }
 
+  async function createGroup(userIds, name) {
+    // Returns the new group; the caller (the New-conversation modal) refreshes
+    // the sidebar and opens it.
+    return api("/dms/group", {
+      method: "POST",
+      body: { user_ids: userIds, name: name || undefined },
+    });
+  }
+
+  async function addGroupMember(channelId, userId) {
+    await api(`/dms/${channelId}/members`, {
+      method: "POST",
+      body: { user_id: userId },
+    });
+    const rows = await api(`/channels/${channelId}/members`);
+    setMembersByChannel((prev) => ({ ...prev, [channelId]: rows }));
+  }
+
+  async function removeGroupMember(channelId, userId) {
+    await api(`/dms/${channelId}/members/${userId}`, { method: "DELETE" });
+    const rows = await api(`/channels/${channelId}/members`);
+    setMembersByChannel((prev) => ({ ...prev, [channelId]: rows }));
+  }
+
+  async function leaveGroup(channel) {
+    const ok = await ask({
+      title: `Leave ${channel.name}?`,
+      body: "You'll stop receiving its messages and need to be added back to rejoin.",
+      confirmLabel: "Leave group",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api(`/channels/${channel.id}/leave`, { method: "POST" });
+      setActiveId((prev) => (prev === channel.id ? null : prev));
+      await refreshLists();
+    } catch (e) {
+      notify(e.message, "Couldn't leave that group");
+    }
+  }
+
   // IRC-style slash commands. Returns {ok, message} for feedback, or throws
   // Error (message surfaced to the user). Permission is enforced server-side.
   async function runCommand(raw) {
@@ -645,7 +687,7 @@ export default function ChatShell() {
         //   +b/-b <user>  ban / unban
         //   +k <key> / -k channel password (set / clear)
         //   +i/-i         invite-only (private) / public
-        if (!active || active.kind === "dm") {
+        if (!active || active.kind === "dm" || active.kind === "group") {
           throw new Error("/mode works in a channel.");
         }
         // Tolerate a leading "#channel" token (IRC habit); we always act on
@@ -764,6 +806,7 @@ export default function ChatShell() {
   const canPost = !!active && (!active.read_only || user.is_admin);
 
   const isDmChannel = !!active && active.kind === "dm";
+  const isGroup = !!active && active.kind === "group";
   const dmKey = isDmChannel ? sharedKeys[active.id] : null;
 
   // Derive the shared secret for the open DM from the peer's public key. Fails
@@ -904,6 +947,8 @@ export default function ChatShell() {
         onOpenProfile={setProfileUserId}
         onOpenSearch={() => setSearchOpen(true)}
         onCloseDm={closeDM}
+        onLeaveGroup={leaveGroup}
+        onCreateGroup={createGroup}
       />
       <div className="main-area">
         {active ? (
@@ -938,9 +983,9 @@ export default function ChatShell() {
               send({ type: "typing", channel_id: active.id });
             }}
             onOpenProfile={setProfileUserId}
-            canDelete={canDelete}
+            canDelete={!isGroup && canDelete}
             onDeleteChannel={() => deleteChannel(active)}
-            canManage={canDelete}
+            canManage={isGroup || canDelete}
             onSetTopic={(topic) => updateChannel(active.id, { topic })}
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenThread={openThread}
@@ -999,8 +1044,8 @@ export default function ChatShell() {
             online={online}
             awayMap={awayMap}
             onOpenProfile={setProfileUserId}
-            canModerate={canModerate}
-            canManageRoles={canManageRoles}
+            canModerate={!isGroup && canModerate}
+            canManageRoles={!isGroup && canManageRoles}
             myId={user.id}
             onKick={(m) => moderate("kick", active.id, m)}
             onBan={(m) => moderate("ban", active.id, m)}
@@ -1050,7 +1095,7 @@ export default function ChatShell() {
         />
       )}
 
-      {settingsOpen && active && active.kind !== "dm" && (
+      {settingsOpen && active && active.kind !== "dm" && !isGroup && (
         <ChannelSettings
           onConfirm={ask}
           channel={active}
@@ -1063,6 +1108,24 @@ export default function ChatShell() {
           onDelete={() => {
             setSettingsOpen(false);
             deleteChannel(active);
+          }}
+          onOpenProfile={setProfileUserId}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+      {settingsOpen && isGroup && (
+        <GroupInfo
+          group={active}
+          members={activeMembers}
+          myId={user.id}
+          isOwner={isOwner}
+          online={online}
+          onRename={(name) => updateChannel(active.id, { name })}
+          onAddMember={(userId) => addGroupMember(active.id, userId)}
+          onRemoveMember={(userId) => removeGroupMember(active.id, userId)}
+          onLeave={() => {
+            setSettingsOpen(false);
+            leaveGroup(active);
           }}
           onOpenProfile={setProfileUserId}
           onClose={() => setSettingsOpen(false)}

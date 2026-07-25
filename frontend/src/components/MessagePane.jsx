@@ -485,10 +485,17 @@ export default function MessagePane({
             </button>
           )}
           <span className="pane-title">
-            {isDm ? "" : channel.kind === "private" ? "🔒 " : "# "}
+            {isDm
+              ? ""
+              : channel.kind === "private"
+              ? "🔒 "
+              : channel.kind === "group"
+              ? "👥 "
+              : "# "}
             {channel.name}
           </span>
           {!isDm &&
+            channel.kind !== "group" &&
             (editingTopic ? (
               <span className="topic-edit">
                 <input

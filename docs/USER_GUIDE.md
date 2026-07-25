@@ -44,6 +44,10 @@ rest just ask you to sign in. Your login and encryption keys are per-server.
   an admin).
 - **Direct messages** are one-to-one. Start one from the `+` next to *Direct
   Messages*, or from someone's profile.
+- **Group DMs**: pick more than one person from that same `+` to start a group
+  (name it if you like). Groups are private to their members; the owner can
+  rename them and add or remove people, and anyone can leave. Unlike encrypted
+  1:1 DMs, group messages are readable by whoever runs the server.
 - **Close a DM** by hovering it and clicking `✕`, or typing `/close`. It only
   hides it for you; nothing is deleted, and it comes back if either of you
   writes again.

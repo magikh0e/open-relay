@@ -7,6 +7,7 @@ from ..deps import DB, CurrentUser, require_membership
 from ..sanitize import sanitize_text
 from ..models import (
     KIND_DM,
+    KIND_GROUP,
     KIND_PRIVATE,
     KIND_PUBLIC,
     ROLE_MEMBER,
@@ -239,7 +240,7 @@ async def get_channel(channel_id: str, db: DB, user: CurrentUser) -> ChannelOut:
     if ch is None or ch.archived:
         raise HTTPException(status_code=404, detail="Channel not found")
     is_member = await _is_member(db, ch.id, user.id)
-    if ch.kind in (KIND_PRIVATE, KIND_DM) and not is_member:
+    if ch.kind in (KIND_PRIVATE, KIND_DM, KIND_GROUP) and not is_member:
         raise HTTPException(status_code=403, detail="Not a member")
     return _to_out(ch, await _member_count(db, ch.id), is_member)
 
@@ -295,11 +296,12 @@ async def leave_channel(channel_id: str, db: DB, user: CurrentUser) -> None:
             detail="You can't leave the announcements channel.",
         )
     await db.delete(member)
-    # IRC-style part notice for public channels (private membership is managed
-    # via invite/kick, which announce separately). announce_action commits the
-    # membership removal together with the notice.
-    if ch is not None and ch.kind == KIND_PUBLIC:
-        await announce_action(db, channel_id, user, "left the channel")
+    # Part notice for public channels and group DMs (private-channel membership
+    # is managed via invite/kick, which announce separately). announce_action
+    # commits the membership removal together with the notice.
+    if ch is not None and ch.kind in (KIND_PUBLIC, KIND_GROUP):
+        where = "the group" if ch.kind == KIND_GROUP else "the channel"
+        await announce_action(db, channel_id, user, f"left {where}")
     else:
         await db.commit()
 
