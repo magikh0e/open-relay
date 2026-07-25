@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the Open Relay backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+# Spread load and avoid a thundering herd if several boxes share a schedule.
+RandomizedDelaySec=15min
+# Run a missed backup after the machine was off at the scheduled time.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=Open Relay encrypted backup (Postgres + uploads, offsite copy)
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+# Host-specific values and secrets live here, OFF the repo. Create it on the
+# VPS with chmod 600 (see ops/BACKUP.md for the contents).
+EnvironmentFile=/etc/openrelay-backup.env
+# EDIT this to your deploy directory (the one holding docker-compose.prod.yml):
+ExecStart=/home/YOUR_USER/chat-app/ops/backup.sh
+TimeoutStartSec=3600
+Nice=10
+IOSchedulingClass=idle

@@ -51,6 +51,42 @@ Daily at 03:30, as root:
 30 3 * * *  cd /path/to/chat-app && BACKUP_PASSPHRASE_FILE=/root/.openrelay-backup-pass OFFSITE_HOST=your-offsite-host OFFSITE_USER=backup-user OFFSITE_PORT=22 OFFSITE_PATH=openrelay-backups ops/backup.sh >> /var/log/openrelay-backup.log 2>&1
 ```
 
+Use an absolute deploy path (not `~`): a root cron's `~` is `/root`.
+
+## Automate it (systemd timer)
+
+Sturdier than cron: it catches up a missed run after downtime and logs to the
+journal. Unit files are in `ops/systemd/`; the config lives in a separate env
+file so no host details or secrets end up in the repo.
+
+1. Create `/etc/openrelay-backup.env` (root-only), with your values:
+   ```
+   BACKUP_PASSPHRASE_FILE=/root/.openrelay-backup-pass
+   OFFSITE_HOST=your-offsite-host
+   OFFSITE_USER=backup-user
+   OFFSITE_PORT=22
+   OFFSITE_PATH=openrelay-backups
+   OFFSITE_KEY=/root/.ssh/id_backup
+   ```
+   ```bash
+   sudo chmod 600 /etc/openrelay-backup.env
+   ```
+
+2. Install the units, pointing `ExecStart` at your deploy directory:
+   ```bash
+   sudo cp ops/systemd/openrelay-backup.service ops/systemd/openrelay-backup.timer /etc/systemd/system/
+   sudo sed -i "s#/home/YOUR_USER/chat-app#$PWD#" /etc/systemd/system/openrelay-backup.service
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now openrelay-backup.timer
+   ```
+
+3. Check and test:
+   ```bash
+   systemctl list-timers openrelay-backup.timer   # next run time
+   sudo systemctl start openrelay-backup.service   # run once now
+   journalctl -u openrelay-backup.service -n 40     # see the output
+   ```
+
 ## Restore
 
 Restoring is **destructive**: it drops and recreates the database and replaces
