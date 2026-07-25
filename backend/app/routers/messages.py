@@ -157,6 +157,7 @@ def _msg_out(
         created_at=m.created_at,
         edited_at=m.edited_at,
         sender=UserPublic.model_validate(m.sender) if m.sender else None,
+        author_name=m.author_name,
         reactions=reactions or [],
         reply_to=reply_to,
         mentions=mentions or [],

@@ -22,6 +22,7 @@ from .routers import (
     search,
     uploads,
     users,
+    webhooks,
     ws,
 )
 from .ws_manager import manager
@@ -72,6 +73,7 @@ app.include_router(push.router)
 app.include_router(giphy.router)
 app.include_router(search.router)
 app.include_router(moderation.router)
+app.include_router(webhooks.router)
 app.include_router(ws.router)
 
 

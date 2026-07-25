@@ -207,6 +207,8 @@ class Message(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Display name for messages posted by a webhook (sender_id is NULL then).
+    author_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     sender: Mapped[User | None] = relationship()
 
@@ -394,3 +396,27 @@ class PushSubscription(Base):
     p256dh: Mapped[str] = mapped_column(String(255))
     auth: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Webhook(Base):
+    """An incoming webhook. An external system POSTs to a secret URL to post a
+    message into a channel. Created by a channel owner/mod (or a site admin);
+    posts appear with a null sender and the webhook's display name.
+    """
+
+    __tablename__ = "webhooks"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, default=_uuid
+    )
+    channel_id: Mapped[str] = mapped_column(
+        ForeignKey("channels.id", ondelete="CASCADE"), index=True
+    )
+    created_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now
+    )

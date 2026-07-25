@@ -194,6 +194,29 @@ class MessageEdit(BaseModel):
     content: str = Field(min_length=1, max_length=4000)
 
 
+# --- Webhooks -------------------------------------------------------------
+
+class WebhookCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=64)  # default display name for posts
+
+
+class WebhookOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    channel_id: str
+    name: str
+    created_at: datetime
+
+
+class WebhookCreated(WebhookOut):
+    url: str  # full invoke URL with secret token; shown once at creation
+
+
+class WebhookMessageIn(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
+    name: str | None = Field(default=None, max_length=64)  # override display name
+
+
 class ReplyPreview(BaseModel):
     id: str
     sender_name: str
@@ -222,6 +245,7 @@ class MessageOut(BaseModel):
     created_at: datetime
     edited_at: datetime | None
     sender: UserPublic | None = None
+    author_name: str | None = None  # display name for webhook posts (sender is null)
     reactions: list[ReactionSummary] = []
     reply_to: ReplyPreview | None = None
     mentions: list[MentionOut] = []

@@ -612,9 +612,10 @@ export default function MessagePane({
           const mine = m.sender_id === user.id;
           const editing = editingId === m.id;
           const mentionsMe = (m.mentions || []).some((x) => x.id === user.id);
-          // Seeded announcements have no sender; show them as from the app.
+          // No sender: a webhook post (author_name), else a seeded announcement.
           const authorName =
             m.sender?.display_name ||
+            m.author_name ||
             (channel.read_only ? "Open Relay" : "Unknown");
           return (
             <div
