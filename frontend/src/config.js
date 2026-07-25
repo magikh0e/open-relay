@@ -23,17 +23,29 @@ function normalize(base) {
   return base ? base.replace(/\/+$/, "") : "";
 }
 
+// Only ever accept an http(s) origin as the server. The value can come from
+// localStorage or an injected global, so this keeps a hostile value (a
+// "javascript:" URL, say) from ever reaching API_BASE and a navigation sink.
+function httpOrigin(v) {
+  const n = normalize(v);
+  return /^https?:\/\//i.test(n) ? n : "";
+}
+
 function resolveServer() {
-  if (typeof window !== "undefined" && window.__RELAY_SERVER__)
-    return normalize(window.__RELAY_SERVER__);
+  if (typeof window !== "undefined" && window.__RELAY_SERVER__) {
+    const v = httpOrigin(window.__RELAY_SERVER__);
+    if (v) return v;
+  }
   try {
-    const stored = localStorage.getItem("relay_server");
-    if (stored) return normalize(stored);
+    const v = httpOrigin(localStorage.getItem("relay_server"));
+    if (v) return v;
   } catch {
     /* localStorage may be unavailable in some shells; fall through */
   }
-  if (import.meta.env && import.meta.env.VITE_API_BASE)
-    return normalize(import.meta.env.VITE_API_BASE);
+  if (import.meta.env && import.meta.env.VITE_API_BASE) {
+    const v = httpOrigin(import.meta.env.VITE_API_BASE);
+    if (v) return v;
+  }
   return "";
 }
 
@@ -87,10 +99,15 @@ export function setServer(url) {
 
 // Resolve a possibly-relative URL handed back by the server (e.g. an attachment
 // path "/api/uploads/<id>") against the configured origin, so it loads from any
-// client. Absolute, data: and blob: URLs are returned untouched.
+// client. Only safe-to-load schemes are allowed through: a hostile server (any
+// server, in the multi-server model) could otherwise hand back a
+// "javascript:..." URL that would run when used as an <a href>. Anything that
+// isn't an http(s)/blob/data URL or a server-relative path is dropped.
 export function resolveUrl(u) {
   if (!u) return u;
-  if (/^(https?:|data:|blob:)/.test(u)) return u;
-  if (SERVER && u.startsWith("/")) return `${SERVER}${u}`;
-  return u;
+  // Protocol-relative ("//host/…") can point anywhere; don't trust it.
+  if (u.startsWith("//")) return "";
+  if (/^(https?:|blob:|data:)/i.test(u)) return u;
+  if (u.startsWith("/")) return SERVER ? `${SERVER}${u}` : u;
+  return "";
 }

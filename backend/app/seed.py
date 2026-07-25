@@ -33,16 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.16.0",
-        "📲 v1.16.0: Install it like an app\n"
-        "• Open Relay can now be added to your home screen or desktop and "
-        "opens in its own window, without browser chrome\n"
-        "• On Android and desktop Chrome look for 'Install'; on iPhone use "
-        "Share → Add to Home Screen\n"
-        "• The app shell loads offline, though you'll still need a connection "
-        "to send or receive anything",
-    ),
-    (
         "1.17.0",
         "📜 v1.17.0: Terms of service\n"
         "• A plain-English terms page now sits alongside the privacy policy, "
@@ -132,6 +122,14 @@ WHATSNEW_POSTS = [
         "• Public channels now show when someone joins or leaves, IRC-style\n"
         "• Setting, changing or removing a channel password posts a notice too, "
         "so members know it happened; the password itself is never shown",
+    ),
+    (
+        "1.23.2",
+        "🔒 v1.23.2: Security hardening\n"
+        "• The app now strictly validates the URLs it links to and loads, so a "
+        "server can't hand the client a booby-trapped link\n"
+        "• Extra defence-in-depth around connecting to other instances; nothing "
+        "you do changes",
     ),
 ]
 

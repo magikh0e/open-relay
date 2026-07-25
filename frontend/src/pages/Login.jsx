@@ -150,7 +150,12 @@ export default function Login() {
                 type="button"
                 className={`oauth-btn oauth-${p}`}
                 onClick={() => {
-                  window.location.href = `${API_BASE}/auth/oauth/${p}/start`;
+                  // API_BASE is validated to an http(s) origin in config.js;
+                  // encode the provider id so a hostile provider list can't
+                  // break out of the path.
+                  window.location.href = `${API_BASE}/auth/oauth/${encodeURIComponent(
+                    p
+                  )}/start`;
                 }}
               >
                 {PROVIDER_LABELS[p] || `Continue with ${p}`}

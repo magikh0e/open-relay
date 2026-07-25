@@ -32,6 +32,10 @@ export default function ServerPicker({ onClose }) {
       setMsg("That doesn't look like a valid address.");
       return;
     }
+    if (!/^https?:\/\//i.test(target)) {
+      setMsg("Enter an http(s) address.");
+      return;
+    }
     setBusy(true);
     setMsg("");
     // Best-effort reachability probe. Cross-origin CORS can block it even when
