@@ -91,7 +91,7 @@ docker compose up -d                 # Postgres + Redis
 # 2. backend
 cd backend
 py -3.13 -m venv .venv && . .venv/Scripts/activate   # Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-dev.txt   # runtime + test deps
 cp .env.example .env                 # dev defaults are fine
 alembic upgrade head                 # create the schema
 uvicorn app.main:app --reload --port 8000
@@ -127,9 +127,13 @@ Two things to know:
    If you added one, run `alembic upgrade head` before the suite or every test
    will fail on a missing column.
 
-**Continuous integration does not run the tests.** It byte-compiles the backend,
-builds the frontend, and builds both Docker images. A green check means your code
-imports and builds, not that it works. Run the suite locally.
+**CI runs this suite on every push and pull request**, against Postgres and Redis
+service containers, with the schema applied by Alembic rather than `create_all`.
+So a broken migration fails the build too. A second job byte-compiles the
+backend, builds the frontend and builds both Docker images.
+
+Run the suite locally before pushing anyway: it takes about eight seconds, and
+it is a much shorter feedback loop than waiting on CI.
 
 New behaviour should come with a test. Bug fixes should come with the test that
 would have caught the bug.

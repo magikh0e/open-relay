@@ -1,14 +1,14 @@
 name: CI
 
-# Build & sanity-check on every push and PR. Deployment is not done from
-# GitHub — the VPS uses a git push-to-deploy hook (`git push vps main`), so
+# Test and build on every push and PR to main and dev. Deployment is not done
+# from GitHub — the VPS uses a git push-to-deploy hook (`git push vps main`), so
 # there's no SSH deploy job here.
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
 # Least privilege: this workflow only reads the checkout, never writes.
@@ -16,7 +16,76 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    name: Backend tests
+    runs-on: ubuntu-latest
+
+    # The suite runs against a real Postgres and Redis rather than mocks: the
+    # things worth testing here (advisory locks, cascade deletes, rate limiting,
+    # token revocation, encrypted-upload opacity) only behave realistically
+    # against the real thing. Images match docker-compose.yml so CI and local
+    # development agree.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: chat
+          POSTGRES_PASSWORD: chat
+          POSTGRES_DB: chat
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U chat -d chat"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://chat:chat@localhost:5432/chat
+      REDIS_URL: redis://localhost:6379/0
+      # Not a secret: this database is destroyed when the job ends.
+      JWT_SECRET: ci-only-not-a-real-secret
+      # Alembic owns the schema here, exactly as it does in production, so a
+      # missing or broken migration fails the build instead of being papered
+      # over by create_all.
+      AUTO_CREATE_TABLES: "0"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Apply migrations
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Run tests
+        working-directory: backend
+        run: pytest -q
+
   build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

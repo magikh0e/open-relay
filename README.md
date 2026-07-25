@@ -193,11 +193,13 @@ opacity) only behave realistically against the real thing.
 
 ```bash
 cd backend
-pytest -q          # ~75 tests
+pip install -r requirements-dev.txt   # pytest, once
+pytest -q                             # ~75 tests
 ```
 
-Note that CI does not run the suite (it needs real Postgres and Redis), so a
-green check means the code builds, not that it passes. Run the tests locally.
+CI runs this same suite on every push and pull request, against Postgres and
+Redis service containers, with the schema applied by Alembic exactly as in
+production.
 
 ## Contributing
 

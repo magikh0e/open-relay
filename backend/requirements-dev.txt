@@ -1,0 +1,12 @@
+# Test toolchain. Runtime dependencies live in requirements.txt; these are only
+# needed to run the suite (locally or in CI).
+#
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   pytest -q
+#
+# The suite talks to a real Postgres and Redis, so bring those up first:
+# `docker compose up -d`, then `alembic upgrade head`.
+-r requirements.txt
+
+pytest==9.1.1
+pytest-asyncio==1.4.0
