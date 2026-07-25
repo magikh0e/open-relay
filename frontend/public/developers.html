@@ -124,6 +124,12 @@
         every flow described here.
       </p>
 
+      <p class="lede">
+        <strong>Covers Open Relay v1.24.0.</strong> This tracks the API surface
+        below; if a server's <code>GET /api/health</code> reports a newer
+        version, this page may be behind.
+      </p>
+
       <h2><span class="sec-ico">🔌</span>1. The client–server contract</h2>
       <p>
         A client needs exactly one piece of configuration: the
@@ -337,12 +343,12 @@ encrypted (bool),
 attachment: AttachmentOut | null</code></pre>
       <p><code>content</code> may be empty when an attachment carries the payload.</p>
       <p><strong>ChannelOut</strong>:</p>
-      <pre><code>id, kind ("public"|"private"|"dm"), slug (str|null; null for DMs),
+      <pre><code>id, kind ("public"|"private"|"dm"|"group"), slug (str|null; null for DMs/groups),
 name, topic, created_by (str|null), created_at, read_only (bool),
 has_password (bool; true if a channel key is set, the hash is never sent),
 member_count (int|null), is_member (bool|null),
 unread_count (int), mention_count (int)</code></pre>
-      <p>For a DM, <code>name</code> is the other person's display name and <code>topic</code> their username.</p>
+      <p>For a 1:1 DM, <code>name</code> is the other person's display name and <code>topic</code> their username. For a group (<code>kind: "group"</code>), <code>name</code> is the group's own name and <code>member_count</code> its real size; groups are plaintext, so E2EE never applies.</p>
       <ul>
         <li><strong>AttachmentOut</strong>: <code>{id, name, content_type, size, is_image, url, encrypted, enc_meta}</code></li>
         <li><strong>UserPublic</strong>: <code>{id, username, display_name, avatar_url, is_admin}</code></li>
@@ -417,9 +423,12 @@ unread_count (int), mention_count (int)</code></pre>
       <div class="table-wrap">
         <table>
           <tr><th>Method · Path</th><th>Body</th><th>Returns</th></tr>
-          <tr><td><code>GET /dms</code></td><td>-</td><td><code>[ChannelOut]</code> your DMs</td></tr>
+          <tr><td><code>GET /dms</code></td><td>-</td><td><code>[ChannelOut]</code> your DMs and groups (<code>kind</code> <code>"dm"</code> or <code>"group"</code>)</td></tr>
           <tr><td><code>POST /dms</code></td><td><code>{user_id}</code></td><td><code>201</code> ChannelOut (one per pair; 403 if peer disallows DMs)</td></tr>
-          <tr><td><code>DELETE /dms/{id}</code></td><td>-</td><td><code>204</code>: hides from your sidebar only</td></tr>
+          <tr><td><code>DELETE /dms/{id}</code></td><td>-</td><td><code>204</code>: hides from your sidebar only (1:1 DMs)</td></tr>
+          <tr><td><code>POST /dms/group</code></td><td><code>{user_ids[2..19], name?}</code></td><td><code>201</code> ChannelOut (<code>kind: "group"</code>). Creator added automatically; max 20 total; 403 if any invitee disallows DMs</td></tr>
+          <tr><td><code>POST /dms/{id}/members</code></td><td><code>{user_id}</code></td><td><code>204</code>, owner-only; idempotent; 400 if full. Leave via <code>POST /channels/{id}/leave</code></td></tr>
+          <tr><td><code>DELETE /dms/{id}/members/{user_id}</code></td><td>-</td><td><code>204</code>, owner-only; removes a member</td></tr>
           <tr><td><code>GET /keys/me</code></td><td>-</td><td><code>{public_key, wrapped_private_key, salt, iv}</code> (404 if none)</td></tr>
           <tr><td><code>PUT /keys/me</code></td><td>same four fields</td><td>echoes bundle; broadcasts <code>keys_published</code></td></tr>
           <tr><td><code>GET /keys/{user_id}</code></td><td>-</td><td><code>{user_id, public_key}</code> (404 if peer has no keys)</td></tr>

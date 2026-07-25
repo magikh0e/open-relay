@@ -11,6 +11,9 @@ canonical example of every flow described here.
 
 _Open Relay and this guide by **magikh0e**. Free software under the GNU GPL-3.0._
 
+**Covers Open Relay v1.24.0.** This line tracks the API surface below; if the
+server's `GET /api/health` reports a newer version, the guide may be behind.
+
 ---
 
 ## 1. The client–server contract
@@ -286,13 +289,15 @@ attachment: AttachmentOut | null
 
 **ChannelOut**:
 ```
-id, kind ("public"|"private"|"dm"), slug (str|null; null for DMs),
+id, kind ("public"|"private"|"dm"|"group"), slug (str|null; null for DMs/groups),
 name, topic, created_by (str|null), created_at, read_only (bool),
 has_password (bool; true if a channel key is set, the hash is never sent),
 member_count (int|null), is_member (bool|null),
 unread_count (int), mention_count (int)
 ```
-For a DM, `name` is the other person's display name and `topic` their username.
+For a 1:1 DM, `name` is the other person's display name and `topic` their
+username. For a group (`kind: "group"`), `name` is the group's own name and
+`member_count` its real size; groups are plaintext, so E2EE never applies.
 
 **AttachmentOut**: `{id, name, content_type, size, is_image, url, encrypted, enc_meta}`.
 **UserPublic**: `{id, username, display_name, avatar_url, is_admin}`.
@@ -360,9 +365,12 @@ Email is exposed **only** via `GET /users/me/export`.
 
 | Method · Path | Body | Returns |
 |---|---|---|
-| `GET /dms` | - | `[ChannelOut]` your DMs |
+| `GET /dms` | - | `[ChannelOut]` your DMs and groups (`kind` `"dm"` or `"group"`) |
 | `POST /dms` | `{user_id}` | `201` ChannelOut (one per pair; 403 if peer disallows DMs) |
-| `DELETE /dms/{id}` | - | `204`, hides it from your sidebar only |
+| `DELETE /dms/{id}` | - | `204`, hides it from your sidebar only (1:1 DMs) |
+| `POST /dms/group` | `{user_ids[2..19], name?}` | `201` ChannelOut (`kind: "group"`). Creator is added automatically; max 20 people total. 403 if any invitee disallows DMs |
+| `POST /dms/{id}/members` | `{user_id}` | `204`, owner-only; idempotent; 400 if full. Leave a group via `POST /channels/{id}/leave` |
+| `DELETE /dms/{id}/members/{user_id}` | - | `204`, owner-only; removes a member |
 
 ### Keys: `/keys` (see §4)
 
