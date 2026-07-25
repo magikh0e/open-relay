@@ -1,14 +1,17 @@
-name: CI / Deploy
+name: CI
+
+# Build & sanity-check on every push and PR. Deployment is not done from
+# GitHub — the VPS uses a git push-to-deploy hook (`git push vps main`), so
+# there's no SSH deploy job here.
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch: # allows manual "Run workflow" from the Actions tab
+  workflow_dispatch:
 
 jobs:
-  # --- Build & sanity-check on every push and PR ---------------------------
   build:
     runs-on: ubuntu-latest
     steps:
@@ -43,23 +46,3 @@ jobs:
         run: |
           docker build -t chat-backend ./backend
           docker build -t chat-web ./frontend
-
-  # --- Deploy to the VPS (only on push to main, after build passes) --------
-  deploy:
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_SSH_PORT || 22 }}
-          script: |
-            set -e
-            cd ~/chat-app
-            git pull --ff-only
-            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-            docker image prune -f
