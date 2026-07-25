@@ -8,13 +8,14 @@ also carries lightweight ephemeral signals like typing indicators.
 """
 import json
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from ..database import SessionLocal
 from ..deps import resolve_token_user
-from ..models import ChannelMember
+from ..models import ChannelMember, User
 from ..redis_client import (
     mark_offline,
     mark_online,
@@ -39,6 +40,18 @@ async def _member_channel_ids(user_id: str) -> list[str]:
         return list(rows)
 
 
+async def _touch_last_active(user_id: str) -> None:
+    """Stamp the user as just-seen. Recorded regardless of their privacy
+    settings (share_last_active only gates who can read it back)."""
+    async with SessionLocal() as db:
+        await db.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(last_active_at=datetime.now(timezone.utc))
+        )
+        await db.commit()
+
+
 async def _broadcast_presence(channel_ids: list[str], user_id: str, online: bool) -> None:
     payload = {
         "type": "presence",
@@ -58,6 +71,7 @@ async def ws_endpoint(ws: WebSocket, token: str = "") -> None:
 
     await ws.accept()
     channel_ids = await _member_channel_ids(user.id)
+    await _touch_last_active(user.id)
     # Identifies this specific socket so presence is per-connection rather than
     # a shared counter that can drift.
     conn_id = uuid.uuid4().hex
@@ -89,6 +103,7 @@ async def ws_endpoint(ws: WebSocket, token: str = "") -> None:
         pass
     finally:
         await manager.unregister(ws)
+        await _touch_last_active(user.id)
         # Mirror the connect path: if we never marked them online, don't
         # decrement the counter (it would drift negative).
         if user.share_presence:

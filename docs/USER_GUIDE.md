@@ -30,6 +30,11 @@ shows an extra **invite code** field; you'll need a code from an admin to
 register. You land in `#whatsnew`, a read-only channel where release notes are
 posted; you can react to those but not reply.
 
+**Connecting to a different server.** The sign-in screen shows which server
+you're on, with a link to change it. Open Relay is self-hosted, so you can point
+the app (especially the desktop app) at any instance. Your login and encryption
+keys are per-server, so switching is a fresh session.
+
 ## Channels and DMs
 
 - **Channels** live in the left sidebar. Public ones anyone can open and join;
@@ -160,6 +165,12 @@ turning one off actually stops the signal; it isn't just hidden on your screen:
 - **Show when I'm online**: turn off to always appear offline.
 - **Allow new direct messages**: existing conversations keep working.
 - **Let people find me in search**: you stay visible in channels you're in.
+- **Show when I was last active**: turn off to hide your last-active time from
+  others. You and admins still see it, and the server still records it; the
+  switch only controls who it's shown to.
+
+Profiles also note **how someone joined** (an invite, naming who invited them,
+or open sign-up) and, unless hidden, **when they were last active**.
 
 ## Your account and data
 

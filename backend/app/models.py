@@ -76,7 +76,17 @@ class User(Base):
     discoverable: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default="true"
     )
+    # Show "last active" on your profile to others. When false, only you and
+    # admins see it; the timestamp itself is still recorded (see last_active_at).
+    share_last_active: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="true"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    # Last time the user was seen on a live socket. Updated on WS connect and
+    # disconnect regardless of any privacy toggle; visibility is gated at read.
+    last_active_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     memberships: Mapped[list["ChannelMember"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"

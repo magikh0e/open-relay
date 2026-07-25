@@ -296,8 +296,8 @@ For a DM, `name` is the other person's display name and `topic` their username.
 
 **AttachmentOut**: `{id, name, content_type, size, is_image, url, encrypted, enc_meta}`.
 **UserPublic**: `{id, username, display_name, avatar_url, is_admin}`.
-**ProfileOut**: `{id, username, display_name, bio, pronouns, is_admin, created_at}` (no email).
-**UserOut** (self): adds `has_password, share_typing, share_presence, allow_dms, discoverable`.
+**ProfileOut**: `{id, username, display_name, bio, pronouns, is_admin, created_at, registered_via_invite, invited_by_username, last_active_at}` (no email). `invited_by_username` names the admin whose invite the account redeemed (null if none/deleted); `last_active_at` is null when the target hid it (unless you're them or an admin).
+**UserOut** (self): adds `has_password, share_typing, share_presence, allow_dms, discoverable, share_last_active`.
 Email is exposed **only** via `GET /users/me/export`.
 
 ### Auth: `/auth`
@@ -319,7 +319,7 @@ Email is exposed **only** via `GET /users/me/export`.
 |---|---|---|
 | `GET /users/me` | - | UserOut |
 | `PATCH /users/me` | `{display_name?, bio?≤500, pronouns?≤40}` | ProfileOut |
-| `GET /users/me/settings` · `PATCH /users/me/settings` | `{share_typing?, share_presence?, allow_dms?, discoverable?}` | PrivacySettings |
+| `GET /users/me/settings` · `PATCH /users/me/settings` | `{share_typing?, share_presence?, allow_dms?, discoverable?, share_last_active?}` | PrivacySettings |
 | `POST /users/me/password` | `{current_password?, new_password(8–128)}` | **new** TokenPair (bumps `tv`). 429 (5/5min) |
 | `GET /users/search` | `?q=` (≥2) | `[UserPublic]` (≤20; respects `discoverable`) |
 | `GET /users/online` | - | `[user_id]` |

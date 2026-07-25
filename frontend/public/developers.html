@@ -346,8 +346,8 @@ unread_count (int), mention_count (int)</code></pre>
       <ul>
         <li><strong>AttachmentOut</strong>: <code>{id, name, content_type, size, is_image, url, encrypted, enc_meta}</code></li>
         <li><strong>UserPublic</strong>: <code>{id, username, display_name, avatar_url, is_admin}</code></li>
-        <li><strong>ProfileOut</strong>: <code>{id, username, display_name, bio, pronouns, is_admin, created_at}</code> (no email)</li>
-        <li><strong>UserOut</strong> (self): adds <code>has_password, share_typing, share_presence, allow_dms, discoverable</code>. Email is exposed only via <code>GET /users/me/export</code>.</li>
+        <li><strong>ProfileOut</strong>: <code>{id, username, display_name, bio, pronouns, is_admin, created_at, registered_via_invite, invited_by_username, last_active_at}</code> (no email). <code>invited_by_username</code> names the admin whose invite the account redeemed (null if none/deleted); <code>last_active_at</code> is null when the target hid it (unless you're them or an admin).</li>
+        <li><strong>UserOut</strong> (self): adds <code>has_password, share_typing, share_presence, allow_dms, discoverable, share_last_active</code>. Email is exposed only via <code>GET /users/me/export</code>.</li>
       </ul>
 
       <h3>Auth: <code>/auth</code></h3>
@@ -370,7 +370,7 @@ unread_count (int), mention_count (int)</code></pre>
           <tr><th>Method · Path</th><th>Body / Query</th><th>Returns</th></tr>
           <tr><td><code>GET /users/me</code></td><td>-</td><td>UserOut</td></tr>
           <tr><td><code>PATCH /users/me</code></td><td><code>{display_name?, bio?≤500, pronouns?≤40}</code></td><td>ProfileOut</td></tr>
-          <tr><td><code>GET · PATCH /users/me/settings</code></td><td><code>{share_typing?, share_presence?, allow_dms?, discoverable?}</code></td><td>PrivacySettings</td></tr>
+          <tr><td><code>GET · PATCH /users/me/settings</code></td><td><code>{share_typing?, share_presence?, allow_dms?, discoverable?, share_last_active?}</code></td><td>PrivacySettings</td></tr>
           <tr><td><code>POST /users/me/password</code></td><td><code>{current_password?, new_password(8–128)}</code></td><td><strong>new</strong> TokenPair (bumps <code>tv</code>). 429 (5/5min)</td></tr>
           <tr><td><code>GET /users/search</code></td><td><code>?q=</code> (≥2)</td><td><code>[UserPublic]</code> (≤20; respects <code>discoverable</code>)</td></tr>
           <tr><td><code>GET /users/online</code></td><td>-</td><td><code>[user_id]</code></td></tr>

@@ -33,17 +33,6 @@ SEED_LOCK_KEY = 8_274_100_119
 # Oldest first so the newest release lands at the bottom of the channel.
 WHATSNEW_POSTS = [
     (
-        "1.14.0",
-        "👋 v1.14.0: An intro page, and a friendlier interface\n"
-        "• New About page explaining what Open Relay is, what it protects and what "
-        "it doesn't, linked from the sign-in screen\n"
-        "• Confirmations now appear in-app instead of as browser popups\n"
-        "• Dialogs close with Escape and keep keyboard focus inside them\n"
-        "• Icon buttons are properly labelled for screen readers\n"
-        "• On phones you now land on your channel list instead of being "
-        "dropped into a conversation",
-    ),
-    (
         "1.15.0",
         "✨ v1.15.0: We're now Open Relay\n"
         "• New name and logo across the app, sign-in screen and About page\n"
@@ -133,6 +122,17 @@ WHATSNEW_POSTS = [
         "change or remove it there too\n"
         "• Members already in stay in, and the owner and admins never need the "
         "password",
+    ),
+    (
+        "1.23.0",
+        "🌐 v1.23.0: Multiple servers, invite management, richer profiles\n"
+        "• Point the app at any Open Relay instance from the sign-in screen\n"
+        "• Admins can generate, copy and revoke invite codes right in their "
+        "profile, and see who created each one and who used it\n"
+        "• Profiles now show how someone joined (an invite, or open sign-up) "
+        "and when they were last active\n"
+        "• New privacy switch to hide your last-active from others; it's still "
+        "recorded, just not shown",
     ),
 ]
 

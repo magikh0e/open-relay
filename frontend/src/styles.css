@@ -1373,6 +1373,61 @@ button.primary:disabled {
   font-size: 14px;
 }
 
+/* Admin invite-code manager inside the profile modal. */
+.invites-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.invites-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.invite-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 9px;
+  background: var(--bg-3, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.invite-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.invite-meta {
+  font-size: 11.5px;
+}
+.invite-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  word-break: break-all;
+}
+.invite-status {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.invite-status.used {
+  color: var(--muted);
+}
+.invite-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 /* Change-password form inside the profile modal. */
 .pw-form {
   display: flex;

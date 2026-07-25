@@ -176,6 +176,13 @@
         channel where release notes are posted; you can react to those but not
         reply.
       </p>
+      <p>
+        <strong>Connecting to a different server.</strong> The sign-in screen
+        shows which server you're on, with a link to change it. Open Relay is
+        self-hosted, so you can point the app (especially the desktop app) at any
+        instance. Your login and encryption keys are per-server, so switching is
+        a fresh session.
+      </p>
       <img class="shot card" src="/guide-login.png"
            alt="The Open Relay sign-in screen" />
 
@@ -311,7 +318,13 @@ def hello():
         <li><strong>Show when I'm online</strong>: turn off to always appear offline.</li>
         <li><strong>Allow new direct messages</strong>: existing conversations keep working.</li>
         <li><strong>Let people find me in search</strong>: you stay visible in channels you're in.</li>
+        <li><strong>Show when I was last active</strong>: turn off to hide your last-active time from others. You and admins still see it, and the server still records it; the switch only controls who it's shown to.</li>
       </ul>
+      <p>
+        Profiles also note <strong>how someone joined</strong> (an invite,
+        naming who invited them, or open sign-up) and, unless hidden,
+        <strong>when they were last active</strong>.
+      </p>
 
       <h2 id="account"><span class="sec-ico">📦</span>Your account and data</h2>
       <p>From your profile:</p>

@@ -7,9 +7,10 @@ import secrets
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.orm import aliased
 
 from ..deps import CurrentUser, DB
-from ..models import Invite
+from ..models import Invite, User
 from ..schemas import InviteOut
 from .moderation import require_admin
 
@@ -23,17 +24,43 @@ async def create_invite(db: DB, user: CurrentUser):
     inv = Invite(code=secrets.token_urlsafe(9), created_by=user.id)
     db.add(inv)
     await db.flush()
-    out = InviteOut(id=inv.id, code=inv.code, created_at=inv.created_at, used_at=None)
+    out = InviteOut(
+        id=inv.id,
+        code=inv.code,
+        created_at=inv.created_at,
+        used_at=None,
+        created_by_username=user.username,
+        used_by_username=None,
+    )
     await db.commit()
     return out
 
 
 @router.get("", response_model=list[InviteOut])
 async def list_invites(db: DB):
+    # Resolve both FKs to usernames for the audit view. Outer joins so a code
+    # whose creator or redeemer was since deleted (FK SET NULL) still lists.
+    creator = aliased(User)
+    redeemer = aliased(User)
     rows = (
-        await db.execute(select(Invite).order_by(Invite.created_at.desc()))
-    ).scalars().all()
-    return [InviteOut.model_validate(r) for r in rows]
+        await db.execute(
+            select(Invite, creator.username, redeemer.username)
+            .outerjoin(creator, Invite.created_by == creator.id)
+            .outerjoin(redeemer, Invite.used_by == redeemer.id)
+            .order_by(Invite.created_at.desc())
+        )
+    ).all()
+    return [
+        InviteOut(
+            id=inv.id,
+            code=inv.code,
+            created_at=inv.created_at,
+            used_at=inv.used_at,
+            created_by_username=created_by_username,
+            used_by_username=used_by_username,
+        )
+        for inv, created_by_username, used_by_username in rows
+    ]
 
 
 @router.delete("/{invite_id}", status_code=204)

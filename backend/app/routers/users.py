@@ -2,9 +2,10 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import or_, select
+from sqlalchemy.orm import aliased
 
 from ..deps import DB, CurrentUser
-from ..models import Channel, ChannelMember, Message, User
+from ..models import Channel, ChannelMember, Invite, Message, User
 from ..redis_client import (
     away_map,
     clear_away,
@@ -197,11 +198,40 @@ async def set_away_status(body: AwayIn, db: DB, user: CurrentUser) -> None:
 # NOTE: declared last so the fixed paths above (/me, /search, /online) are not
 # shadowed by the {user_id} path parameter.
 @router.get("/{user_id}", response_model=ProfileOut)
-async def profile(user_id: str, db: DB, viewer: CurrentUser) -> User:
+async def profile(user_id: str, db: DB, viewer: CurrentUser) -> ProfileOut:
     target = await db.get(User, user_id)
     if target is None or not target.is_active:
         raise HTTPException(status_code=404, detail="User not found")
-    return target
+
+    # Invite provenance: find the code this account redeemed (if any) and who
+    # minted it. Outer join so a code whose creator was deleted still resolves.
+    creator = aliased(User)
+    row = (
+        await db.execute(
+            select(Invite.id, creator.username)
+            .outerjoin(creator, Invite.created_by == creator.id)
+            .where(Invite.used_by == target.id)
+        )
+    ).first()
+
+    # Last-active is always recorded, but only shown to the user themselves,
+    # site admins, or everyone when the target opted to share it.
+    can_see_active = (
+        viewer.id == target.id or viewer.is_admin or target.share_last_active
+    )
+
+    return ProfileOut(
+        id=target.id,
+        username=target.username,
+        display_name=target.display_name,
+        bio=target.bio,
+        pronouns=target.pronouns,
+        is_admin=target.is_admin,
+        created_at=target.created_at,
+        registered_via_invite=row is not None,
+        invited_by_username=row[1] if row else None,
+        last_active_at=target.last_active_at if can_see_active else None,
+    )
 
 
 @router.get("/me/export")

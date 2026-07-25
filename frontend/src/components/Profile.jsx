@@ -5,6 +5,20 @@ import { useDialog } from "../useDialog.js";
 import { useAuth } from "../auth.jsx";
 import Avatar from "./Avatar.jsx";
 
+// Compact relative time for "last active" ("just now", "4m ago", a date once
+// it's older than a month).
+function timeAgo(iso) {
+  const secs = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (secs < 60) return "just now";
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
 // View a user's profile; if it's you, edit it. All fields render as text
 // (React-escaped) — never innerHTML.
 export default function Profile({ userId, onClose, onMessage }) {
@@ -17,6 +31,7 @@ export default function Profile({ userId, onClose, onMessage }) {
   const [pwOpen, setPwOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [invitesOpen, setInvitesOpen] = useState(false);
 
   const isMe = user?.id === userId;
   const dialogRef = useDialog(onClose);
@@ -28,6 +43,7 @@ export default function Profile({ userId, onClose, onMessage }) {
     setPwOpen(false);
     setPrivacyOpen(false);
     setAccountOpen(false);
+    setInvitesOpen(false);
     setError("");
     api(`/users/${userId}`)
       .then((p) => {
@@ -145,6 +161,29 @@ export default function Profile({ userId, onClose, onMessage }) {
               </div>
             </div>
 
+            {profile.last_active_at && (
+              <div className="profile-field">
+                <label>Last active</label>
+                <div className="profile-value muted">
+                  {timeAgo(profile.last_active_at)}
+                </div>
+              </div>
+            )}
+
+            <div className="profile-field">
+              <label>Registration</label>
+              <div className="profile-value muted">
+                {profile.registered_via_invite ? (
+                  <>
+                    Invited by @
+                    {profile.invited_by_username || "a former admin"}
+                  </>
+                ) : (
+                  "Open registration"
+                )}
+              </div>
+            </div>
+
             {isMe && (
               <div className="profile-actions">
                 {editing ? (
@@ -195,6 +234,14 @@ export default function Profile({ userId, onClose, onMessage }) {
                     >
                       Your data
                     </button>
+                    {user?.is_admin && (
+                      <button
+                        className="mini"
+                        onClick={() => setInvitesOpen((o) => !o)}
+                      >
+                        Invites
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -202,6 +249,7 @@ export default function Profile({ userId, onClose, onMessage }) {
 
             {isMe && pwOpen && <PasswordForm hasPassword={user?.has_password !== false} />}
             {isMe && accountOpen && <AccountData onClose={onClose} />}
+            {isMe && user?.is_admin && invitesOpen && <InvitesAdmin />}
             {isMe && privacyOpen && (
               <>
                 <PrivacyForm />
@@ -342,6 +390,11 @@ const PRIVACY_OPTIONS = [
     key: "discoverable",
     label: "Let people find me in search",
     hint: "You stay visible in channels you're already in.",
+  },
+  {
+    key: "share_last_active",
+    label: "Show when I was last active",
+    hint: "Off hides it from others; you and admins still see it, and it's still recorded.",
   },
 ];
 
@@ -530,6 +583,112 @@ function AccountData({ onClose }) {
         </button>
       </div>
       {error && <div className="error">{error}</div>}
+    </div>
+  );
+}
+
+// Admin-only: mint, copy and revoke single-use invite codes. Only shown to
+// site admins on their own profile. The endpoints are require_admin-gated
+// server-side, so a non-admin can't reach these even if the UI leaked.
+function InvitesAdmin() {
+  const [invites, setInvites] = useState(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    api("/invites")
+      .then((rows) => alive && setInvites(rows))
+      .catch((e) => alive && setError(e.message));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  function copy(code) {
+    navigator.clipboard?.writeText(code);
+    setCopied(code);
+    setTimeout(() => setCopied((c) => (c === code ? null : c)), 1500);
+  }
+
+  async function generate() {
+    setBusy(true);
+    setError("");
+    try {
+      const inv = await api("/invites", { method: "POST" });
+      setInvites((prev) => [inv, ...(prev || [])]);
+      copy(inv.code); // hand the fresh code straight to the clipboard
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function revoke(id) {
+    setError("");
+    try {
+      await api(`/invites/${id}`, { method: "DELETE" });
+      setInvites((prev) => prev.filter((i) => i.id !== id));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  return (
+    <div className="privacy-form invites-admin">
+      <div className="invites-head">
+        <div className="privacy-label">Invite codes</div>
+        <button className="mini" disabled={busy} onClick={generate}>
+          {busy ? "Generating…" : "Generate code"}
+        </button>
+      </div>
+      <div className="muted small">
+        When the server is invite-only, new accounts need one of these. Each
+        code works once; revoke any you haven't handed out.
+      </div>
+      {error && <div className="error">{error}</div>}
+      {invites === null ? (
+        <div className="muted small">Loading…</div>
+      ) : invites.length === 0 ? (
+        <div className="muted small">No codes yet.</div>
+      ) : (
+        <ul className="invites-list">
+          {invites.map((inv) => (
+            <li key={inv.id} className="invite-row">
+              <div className="invite-main">
+                <code className="invite-code">{inv.code}</code>
+                <span className={`invite-status${inv.used_at ? " used" : ""}`}>
+                  {inv.used_at ? "used" : "unused"}
+                </span>
+                {!inv.used_at && (
+                  <span className="invite-actions">
+                    <button className="mini" onClick={() => copy(inv.code)}>
+                      {copied === inv.code ? "Copied" : "Copy"}
+                    </button>
+                    <button
+                      className="mini ghost"
+                      onClick={() => revoke(inv.id)}
+                    >
+                      Revoke
+                    </button>
+                  </span>
+                )}
+              </div>
+              <div className="invite-meta muted small">
+                Created by @{inv.created_by_username || "deleted user"}
+                {inv.used_at && (
+                  <>
+                    {" · used by @"}
+                    {inv.used_by_username || "deleted user"}
+                  </>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

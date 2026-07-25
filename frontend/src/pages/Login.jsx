@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { API_BASE } from "../config.js";
+import { API_BASE, serverLabel } from "../config.js";
 import { useAuth } from "../auth.jsx";
 import { APP_NAME, APP_VERSION } from "../version.js";
+import ServerPicker from "../components/ServerPicker.jsx";
 
 const PROVIDER_LABELS = {
   google: "Continue with Google",
@@ -14,6 +15,7 @@ export default function Login() {
   const [mode, setMode] = useState("login");
   const [providers, setProviders] = useState([]);
   const [inviteRequired, setInviteRequired] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     api("/auth/oauth/providers", { auth: false })
@@ -158,6 +160,17 @@ export default function Login() {
         )}
 
         <div className="app-version">
+          Server:{" "}
+          <button
+            type="button"
+            className="policy-link"
+            onClick={() => setPickerOpen(true)}
+            title="Connect to a different Open Relay instance"
+          >
+            {serverLabel()}
+          </button>
+        </div>
+        <div className="app-version">
           {APP_NAME} v{APP_VERSION}
           <span className="sep">·</span>
           by magikh0e
@@ -193,6 +206,7 @@ export default function Login() {
           </a>
         </div>
       </form>
+      {pickerOpen && <ServerPicker onClose={() => setPickerOpen(false)} />}
     </div>
   );
 }

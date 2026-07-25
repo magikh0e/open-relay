@@ -61,6 +61,7 @@ class UserOut(BaseModel):
     share_presence: bool = True
     allow_dms: bool = True
     discoverable: bool = True
+    share_last_active: bool = True
 
 
 class PrivacySettings(BaseModel):
@@ -71,6 +72,7 @@ class PrivacySettings(BaseModel):
     share_presence: bool | None = None
     allow_dms: bool | None = None
     discoverable: bool | None = None
+    share_last_active: bool | None = None
 
 
 class PasswordChange(BaseModel):
@@ -117,6 +119,14 @@ class ProfileOut(BaseModel):
     pronouns: str
     is_admin: bool = False
     created_at: datetime
+    # Invite provenance. registered_via_invite is False for accounts made on an
+    # open server (or via OAuth); invited_by_username names the admin whose code
+    # they redeemed (null if that admin's account was since deleted).
+    registered_via_invite: bool = False
+    invited_by_username: str | None = None
+    # Last time seen online. Null when hidden by the target's privacy setting
+    # (unless the viewer is the user themselves or an admin) or never recorded.
+    last_active_at: datetime | None = None
 
 
 class ProfileUpdate(BaseModel):
@@ -240,6 +250,10 @@ class InviteOut(BaseModel):
     code: str
     created_at: datetime
     used_at: datetime | None = None  # non-null once an account has used it
+    # Audit trail: who minted the code, and which account redeemed it. Either
+    # may be null if that user's account was later deleted (FK SET NULL).
+    created_by_username: str | None = None
+    used_by_username: str | None = None
 
 
 class ReplyPreview(BaseModel):

@@ -52,6 +52,39 @@ export function wsBase() {
   return `${proto}://${location.host}`;
 }
 
+// --- In-app server picker helpers -----------------------------------------
+// The picker writes localStorage and reloads; SERVER above is read once at load,
+// so these never mutate live state, they just stage the next load.
+
+// The override the picker has stored ("" when none, i.e. the build default).
+export function storedServer() {
+  try {
+    return normalize(localStorage.getItem("relay_server") || "");
+  } catch {
+    return "";
+  }
+}
+
+// A human label for the server currently in effect, for the picker UI.
+export function serverLabel() {
+  return SERVER || (typeof location !== "undefined" ? location.origin : "");
+}
+
+// Stage a different server for the next load. Pass "" to clear the override and
+// fall back to the build default (same origin on web, DEFAULT_SERVER on
+// desktop). The caller must reload; tokens and cached keys are per-server, so a
+// switch is effectively a fresh session.
+export function setServer(url) {
+  const v = normalize((url || "").trim());
+  try {
+    if (v) localStorage.setItem("relay_server", v);
+    else localStorage.removeItem("relay_server");
+  } catch {
+    /* localStorage may be unavailable; nothing to persist */
+  }
+  return v;
+}
+
 // Resolve a possibly-relative URL handed back by the server (e.g. an attachment
 // path "/api/uploads/<id>") against the configured origin, so it loads from any
 // client. Absolute, data: and blob: URLs are returned untouched.
