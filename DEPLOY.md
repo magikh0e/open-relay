@@ -65,7 +65,7 @@ Set these:
 | `HTTP_PORT` / `HTTPS_PORT` | leave `80` / `443` |
 
 > **HTTPS is automatic** when `SITE_ADDRESS` is a domain that resolves to this
-> VPS — Caddy handles Let's Encrypt for you. Just make sure ports 80 and 443
+> VPS; Caddy handles Let's Encrypt for you. Just make sure ports 80 and 443
 > are open and the DNS `A` record is live *before* starting.
 
 ## 4. Open the firewall
@@ -117,7 +117,7 @@ docker compose -f docker-compose.prod.yml down
 docker compose -f docker-compose.prod.yml down -v
 ```
 
-## SSO / OAuth (Google & Discord) — optional
+## SSO / OAuth (Google & Discord): optional
 
 Sign-in with Google/Discord is built in and **auto-enables per provider** once
 you set its credentials (buttons only show for configured providers).
@@ -142,14 +142,14 @@ DISCORD_CLIENT_ID=...
 DISCORD_CLIENT_SECRET=...
 ```
 
-`PUBLIC_BASE_URL` must match your real origin — it's used to build the redirect
+`PUBLIC_BASE_URL` must match your real origin; it's used to build the redirect
 URIs and to hand tokens back to the browser. Redeploy and the SSO buttons
 appear on the login screen.
 
 **How it works / safety:** on callback the backend verifies a Redis-stored CSRF
 `state`, exchanges the code, and finds-or-creates a passwordless user. It only
 **links to an existing account on a verified-email match** (never on an
-unverified address — that would be an account-takeover vector), and tokens are
+unverified address; that would be an account-takeover vector), and tokens are
 returned to the SPA via the URL fragment (not query string, so they don't hit
 logs).
 

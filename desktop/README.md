@@ -1,4 +1,4 @@
-# Open Relay — desktop client (Tauri)
+# Open Relay: desktop client (Tauri)
 
 A thin Tauri shell that runs the existing web UI (`../frontend`) in a native
 webview, pointed at a remote Open Relay server. Because it's a webview, the
@@ -6,17 +6,17 @@ browser features already work unchanged: WebCrypto E2EE, canvas EXIF-strip,
 WebSocket, fetch.
 
 It lives in its own top-level workspace (**not** inside `frontend/`) so the
-Tauri toolchain never touches the web build — the production web image's
+Tauri toolchain never touches the web build; the production web image's
 `npm ci` stays lean and unaffected.
 
-This is the **v1 scaffold** — it opens the app against a server and nothing
+This is the **v1 scaffold**: it opens the app against a server and nothing
 more yet. See `../docs/DESKTOP_CLIENT_PLAN.md` for the full roadmap (server
 picker, keychain tokens, native notifications, tray, auto-update, OAuth).
 
 ## Prerequisites
 
 - **Node** (already required for the web build).
-- **Rust toolchain** — install from <https://rustup.rs>.
+- **Rust toolchain**: install from <https://rustup.rs>.
 - **Windows only:** the **MSVC C++ build tools** (Visual Studio Build Tools →
   "Desktop development with C++"). WebView2 ships with Windows 11.
 - **Linux:** `webkit2gtk` + `libsoup` dev packages (see the Tauri prerequisites
@@ -33,7 +33,7 @@ npm run tauri:dev    # starts the frontend's Vite, compiles the Rust shell, open
 
 `tauri:dev` runs the frontend dev server for you (`npm --prefix ../frontend run
 dev`) and waits for Vite on **http://localhost:5173** (the `devUrl` in
-`src-tauri/tauri.conf.json`) — make sure no other Vite instance is holding that
+`src-tauri/tauri.conf.json`); make sure no other Vite instance is holding that
 port, or update `devUrl` to match.
 
 Production bundle (installers per OS):
@@ -55,11 +55,11 @@ npx tauri icon ../frontend/public/icon-512.png
 
 Resolution order (handled by `../frontend/src/config.js`):
 
-1. `window.__RELAY_SERVER__` — injected by this shell before the page loads
+1. `window.__RELAY_SERVER__`: injected by this shell before the page loads
    (see `src-tauri/src/lib.rs`). Seeded from the in-app stored value, else the
    default.
-2. `localStorage "relay_server"` — the in-app server picker (roadmap Phase 2).
-3. Same-origin — not useful in a desktop webview, hence the injection.
+2. `localStorage "relay_server"`: the in-app server picker (roadmap Phase 2).
+3. Same-origin: not useful in a desktop webview, hence the injection.
 
 The default server is `DEFAULT_SERVER` in `src-tauri/src/lib.rs`
 (`https://chat.openrelay.pl`). Override at launch with the `RELAY_SERVER` env var,
@@ -77,7 +77,7 @@ The app makes cross-origin calls to the server, so the server's `CORS_ORIGINS`
 | `tauri:build` on macOS/Linux | `tauri://localhost` |
 | **`tauri:dev`** (any OS) | `http://localhost:5173` (the Vite dev server) |
 
-So allow all three on the VPS `.env.prod` — the last one only matters while
+So allow all three on the VPS `.env.prod`; the last one only matters while
 developing against a remote server, and can be dropped afterwards:
 
 ```

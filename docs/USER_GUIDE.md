@@ -1,4 +1,4 @@
-# Open Relay — user guide
+# Open Relay: user guide
 
 Everything you need to get comfortable. If you just want to chat, the first two
 sections are enough; the rest is here when you need it.
@@ -24,7 +24,7 @@ _Open Relay and this guide by **magikh0e**. Free software under the GNU GPL-3.0.
 
 Register with a username, email and password, or use **Continue with Discord**
 if the server has it enabled. You land in `#whatsnew`, a read-only channel where
-release notes are posted — you can react to those but not reply.
+release notes are posted; you can react to those but not reply.
 
 ## Channels and DMs
 
@@ -35,7 +35,7 @@ release notes are posted — you can react to those but not reply.
 - **Direct messages** are one-to-one. Start one from the `+` next to *Direct
   Messages*, or from someone's profile.
 - **Close a DM** by hovering it and clicking `✕`, or typing `/close`. It only
-  hides it for you — nothing is deleted, and it comes back if either of you
+  hides it for you; nothing is deleted, and it comes back if either of you
   writes again.
 
 An **unread badge** shows on channels with new messages; if someone
@@ -45,7 +45,7 @@ ordinary traffic.
 ## Writing messages
 
 - **Enter** sends. **Shift+Enter** starts a new line.
-- **Reply** to a message from its hover menu — your reply shows the original
+- **Reply** to a message from its hover menu; your reply shows the original
   quoted above it.
 - **Start a thread** to branch a side conversation without cluttering the
   channel.
@@ -54,7 +54,7 @@ ordinary traffic.
 - **Edit or delete** your own messages from their hover menu (on mobile, tap a
   message to reveal its actions).
 
-Half-written messages are saved **per channel** — switch away and come back and
+Half-written messages are saved **per channel**; switch away and come back and
 your draft is still there.
 
 ## Formatting
@@ -76,7 +76,7 @@ line breaks):
         return "world"
     ```
 
-Anything inside backticks stays literal — so pasted code with `*asterisks*` or
+Anything inside backticks stays literal, so pasted code with `*asterisks*` or
 `@names` won't be turned into formatting or mentions.
 
 ## Files and images
@@ -85,7 +85,7 @@ Drag a file anywhere onto the conversation, or use the 📎 button. Images previ
 inline; other files arrive as a download card.
 
 **Photos are re-encoded in your browser before upload**, which shrinks them and
-strips embedded location (EXIF/GPS) data — the original with your coordinates
+strips embedded location (EXIF/GPS) data; the original with your coordinates
 never leaves your device.
 
 > Files shared in an ordinary channel sit behind an unguessable but
@@ -97,7 +97,7 @@ never leaves your device.
 Search from the box at the top of the sidebar. Results **jump straight to the
 message** and highlight it in its channel, so you see it in context.
 
-Encrypted DMs are excluded from search — the server can't read them to index
+Encrypted DMs are excluded from search; the server can't read them to index
 them.
 
 ## Encrypted direct messages
@@ -116,18 +116,18 @@ key the server never sees, so it stores scrambled text it has no way to read.
    badge appears at the top of the conversation.
 
 **Verify it's really private.** Click the 🔒 badge to reveal a **safety
-number**. Read it aloud to the other person — in a call or in person. If your
+number**. Read it aloud to the other person, in a call or in person. If your
 numbers match, nobody is intercepting the conversation. This is worth doing once
 per contact.
 
 **Important:**
 
 - If you **forget your passphrase**, those messages are gone for everyone,
-  permanently. There is no reset — not even the server admin can recover them,
+  permanently. There is no reset; not even the server admin can recover them,
   because the key they store is locked with your passphrase.
 - Encryption hides *what* you said, not *that* you said it: the server still
   records who you message and when.
-- Files you send in an encrypted DM are encrypted too — the server never learns
+- Files you send in an encrypted DM are encrypted too; the server never learns
   their contents, name or type.
 
 ## Notifications
@@ -135,31 +135,31 @@ per contact.
 Open your profile → **Privacy** → *Notify me on this device* to get browser
 notifications for DMs and mentions, even with the app closed.
 
-Notifications tell you **who** messaged you and **where** — never the message
+Notifications tell you **who** messaged you and **where**, never the message
 text. That keeps message contents off the notification and out of the push
 service entirely.
 
 ## Presence and privacy
 
 Open your profile → **Privacy**. Each toggle is enforced by the server, so
-turning one off actually stops the signal — it isn't just hidden on your screen:
+turning one off actually stops the signal; it isn't just hidden on your screen:
 
-- **Show when I'm typing** — the "is typing…" indicator.
-- **Show when I'm online** — turn off to always appear offline.
-- **Allow new direct messages** — existing conversations keep working.
-- **Let people find me in search** — you stay visible in channels you're in.
+- **Show when I'm typing**: the "is typing…" indicator.
+- **Show when I'm online**: turn off to always appear offline.
+- **Allow new direct messages**: existing conversations keep working.
+- **Let people find me in search**: you stay visible in channels you're in.
 
 ## Your account and data
 
 From your profile:
 
-- **Change password** — you'll confirm the current one. Changing it **signs out
+- **Change password**: you'll confirm the current one. Changing it **signs out
   every other device**, which is what to do if you think someone else has
   access.
-- **Your data → Download my data** — everything the server holds about you, as a
+- **Your data → Download my data**: everything the server holds about you, as a
   JSON file. Encrypted messages come out as the scrambled text the server
   stores.
-- **Your data → Delete my account** — permanent and immediate. Your account,
+- **Your data → Delete my account**: permanent and immediate. Your account,
   keys and settings are erased; messages you sent stay in other people's
   conversations but stop being attributed to you.
 
@@ -167,9 +167,9 @@ From your profile:
 
 Open Relay can be installed like a native app and opens in its own window:
 
-- **Android / desktop Chrome** — use the **Install** option in the address bar or
+- **Android / desktop Chrome**: use the **Install** option in the address bar or
   menu.
-- **iPhone / iPad** — **Share → Add to Home Screen**.
+- **iPhone / iPad**: **Share → Add to Home Screen**.
 
 The app shell loads offline, though you still need a connection to send or
 receive messages.

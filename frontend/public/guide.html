@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>User Guide — Open Relay</title>
+    <title>User Guide: Open Relay</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <style>
       :root {
@@ -110,7 +110,7 @@
         border-radius: 10px;
         border: 1px solid var(--line);
       }
-      /* The login card is a tight portrait crop — don't stretch it. */
+      /* The login card is a tight portrait crop; don't stretch it. */
       .shot.card { max-width: 340px; }
       /* Full-app landscape shots break out wider than the text column so the
          detail is actually legible. */
@@ -169,7 +169,7 @@
         Register with a username, email and password, or use
         <strong>Continue with Discord</strong> if the server has it enabled. You
         land in <code>#whatsnew</code>, a read-only channel where release notes
-        are posted — you can react to those but not reply.
+        are posted; you can react to those but not reply.
       </p>
       <img class="shot card" src="/guide-login.png"
            alt="The Open Relay sign-in screen" />
@@ -179,7 +179,7 @@
         <li><strong>Channels</strong> live in the left sidebar. Public ones anyone can open and join; private ones you have to be invited to.</li>
         <li><strong>Create a channel</strong> with the <code>+</code> next to <em>Channels</em> (up to two if you're not an admin).</li>
         <li><strong>Direct messages</strong> are one-to-one. Start one from the <code>+</code> next to <em>Direct Messages</em>, or from someone's profile.</li>
-        <li><strong>Close a DM</strong> by hovering it and clicking <code>✕</code>, or typing <code>/close</code>. It only hides it for you — nothing is deleted, and it comes back if either of you writes again.</li>
+        <li><strong>Close a DM</strong> by hovering it and clicking <code>✕</code>, or typing <code>/close</code>. It only hides it for you; nothing is deleted, and it comes back if either of you writes again.</li>
       </ul>
       <p>
         An <strong>unread badge</strong> shows on channels with new messages; if
@@ -190,14 +190,14 @@
       <h2 id="writing"><span class="sec-ico">✏️</span>Writing messages</h2>
       <ul>
         <li><kbd>Enter</kbd> sends. <kbd>Shift</kbd>+<kbd>Enter</kbd> starts a new line.</li>
-        <li><strong>Reply</strong> from a message's hover menu — your reply shows the original quoted above it.</li>
+        <li><strong>Reply</strong> from a message's hover menu; your reply shows the original quoted above it.</li>
         <li><strong>Start a thread</strong> to branch a side conversation without cluttering the channel.</li>
         <li><strong>React</strong> with emoji from the same hover menu.</li>
         <li><strong>@mention</strong> someone by typing <code>@</code> and picking from the list.</li>
         <li><strong>Edit or delete</strong> your own messages from their hover menu (on mobile, tap a message to reveal its actions).</li>
       </ul>
       <p>
-        Half-written messages are saved <strong>per channel</strong> — switch
+        Half-written messages are saved <strong>per channel</strong>; switch
         away and come back and your draft is still there.
       </p>
 
@@ -219,7 +219,7 @@ def hello():
     return "world"
 ```</code></pre>
       <p>
-        Anything inside backticks stays literal — so pasted code with
+        Anything inside backticks stays literal, so pasted code with
         <code>*asterisks*</code> or <code>@names</code> won't be turned into
         formatting or mentions.
       </p>
@@ -231,7 +231,7 @@ def hello():
       </p>
       <p>
         <strong>Photos are re-encoded in your browser before upload</strong>,
-        which shrinks them and strips embedded location (EXIF/GPS) data — the
+        which shrinks them and strips embedded location (EXIF/GPS) data; the
         original with your coordinates never leaves your device.
       </p>
       <blockquote>
@@ -244,7 +244,7 @@ def hello():
       <p>
         Search from the box at the top of the sidebar. Results
         <strong>jump straight to the message</strong> and highlight it in its
-        channel, so you see it in context. Encrypted DMs are excluded — the
+        channel, so you see it in context. Encrypted DMs are excluded; the
         server can't read them to index them.
       </p>
 
@@ -264,20 +264,20 @@ def hello():
       </ol>
       <p>
         <strong>Verify it's really private.</strong> Click the 🔒 badge to reveal
-        a <strong>safety number</strong>. Read it aloud to the other person — in
+        a <strong>safety number</strong>. Read it aloud to the other person, in
         a call or in person. If your numbers match, nobody is intercepting the
         conversation. Worth doing once per contact.
       </p>
       <blockquote>
         If you <strong>forget your passphrase</strong>, those messages are gone
-        for everyone, permanently. There is no reset — not even the server admin
+        for everyone, permanently. There is no reset; not even the server admin
         can recover them, because the key they store is locked with your
         passphrase.
       </blockquote>
       <p>
         Encryption hides <em>what</em> you said, not <em>that</em> you said it:
         the server still records who you message and when. Files you send in an
-        encrypted DM are encrypted too — the server never learns their contents,
+        encrypted DM are encrypted too; the server never learns their contents,
         name or type.
       </p>
 
@@ -286,36 +286,36 @@ def hello():
         Open your profile → <strong>Privacy</strong> → <em>Notify me on this
         device</em> to get browser notifications for DMs and mentions, even with
         the app closed. Notifications tell you <strong>who</strong> messaged you
-        and <strong>where</strong> — never the message text. That keeps message
+        and <strong>where</strong>, never the message text. That keeps message
         contents off the notification and out of the push service entirely.
       </p>
 
       <h2 id="privacy"><span class="sec-ico">🎛️</span>Presence and privacy</h2>
       <p>
         Open your profile → <strong>Privacy</strong>. Each toggle is enforced by
-        the server, so turning one off actually stops the signal — it isn't just
+        the server, so turning one off actually stops the signal; it isn't just
         hidden on your screen:
       </p>
       <ul>
-        <li><strong>Show when I'm typing</strong> — the "is typing…" indicator.</li>
-        <li><strong>Show when I'm online</strong> — turn off to always appear offline.</li>
-        <li><strong>Allow new direct messages</strong> — existing conversations keep working.</li>
-        <li><strong>Let people find me in search</strong> — you stay visible in channels you're in.</li>
+        <li><strong>Show when I'm typing</strong>: the "is typing…" indicator.</li>
+        <li><strong>Show when I'm online</strong>: turn off to always appear offline.</li>
+        <li><strong>Allow new direct messages</strong>: existing conversations keep working.</li>
+        <li><strong>Let people find me in search</strong>: you stay visible in channels you're in.</li>
       </ul>
 
       <h2 id="account"><span class="sec-ico">📦</span>Your account and data</h2>
       <p>From your profile:</p>
       <ul>
-        <li><strong>Change password</strong> — you'll confirm the current one. Changing it <strong>signs out every other device</strong>, which is what to do if you think someone else has access.</li>
-        <li><strong>Your data → Download my data</strong> — everything the server holds about you, as a JSON file. Encrypted messages come out as the scrambled text the server stores.</li>
-        <li><strong>Your data → Delete my account</strong> — permanent and immediate. Your account, keys and settings are erased; messages you sent stay in other people's conversations but stop being attributed to you.</li>
+        <li><strong>Change password</strong>: you'll confirm the current one. Changing it <strong>signs out every other device</strong>, which is what to do if you think someone else has access.</li>
+        <li><strong>Your data → Download my data</strong>: everything the server holds about you, as a JSON file. Encrypted messages come out as the scrambled text the server stores.</li>
+        <li><strong>Your data → Delete my account</strong>: permanent and immediate. Your account, keys and settings are erased; messages you sent stay in other people's conversations but stop being attributed to you.</li>
       </ul>
 
       <h2 id="install"><span class="sec-ico">📲</span>Install it as an app</h2>
       <p>Open Relay can be installed like a native app and opens in its own window:</p>
       <ul>
-        <li><strong>Android / desktop Chrome</strong> — use the <strong>Install</strong> option in the address bar or menu.</li>
-        <li><strong>iPhone / iPad</strong> — <strong>Share → Add to Home Screen</strong>.</li>
+        <li><strong>Android / desktop Chrome</strong>: use the <strong>Install</strong> option in the address bar or menu.</li>
+        <li><strong>iPhone / iPad</strong>: <strong>Share → Add to Home Screen</strong>.</li>
       </ul>
       <p>The app shell loads offline, though you still need a connection to send or receive messages.</p>
 

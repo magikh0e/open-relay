@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>Privacy Policy — Open Relay</title>
+    <title>Privacy Policy: Open Relay</title>
     <style>
       :root {
         --bg: #1a1c22;
@@ -96,41 +96,41 @@
         This is a private instance of Open Relay, run on a server controlled by its
         operator. Your data lives on that server. If you have questions about
         your data, or want your account or content removed, contact the person
-        who runs this instance — the site administrator.
+        who runs this instance, the site administrator.
       </p>
 
       <h2>What is stored</h2>
       <ul>
         <li>
-          <strong>Account details</strong> — your username, email address,
+          <strong>Account details</strong>: your username, email address,
           display name, and optional bio and pronouns. Your password is stored
           only as an Argon2 hash; the plain password is never saved.
         </li>
         <li>
-          <strong>Discord sign-in</strong> — if you sign in with Discord, your
+          <strong>Discord sign-in</strong>: if you sign in with Discord, your
           Discord account's email address and username are received from
           Discord to create and identify your account. Nothing is posted to
           your Discord account, and no other sign-in provider is used.
         </li>
         <li>
-          <strong>Messages</strong> — what you post in channels, along with
+          <strong>Messages</strong>: what you post in channels, along with
           timestamps, sender, reactions, mentions, edits, and thread
           relationships. Direct messages are stored too, but if you have turned
           on encryption they are stored only as scrambled text the server cannot
-          read (see below). The surrounding details — who you messaged and when
-          — are recorded either way.
+          read (see below). The surrounding details, who you messaged and when,
+          are recorded either way.
         </li>
         <li>
-          <strong>Files you upload</strong> — attachments and images, stored on
+          <strong>Files you upload</strong>: attachments and images, stored on
           the server's disk.
         </li>
         <li>
-          <strong>Presence</strong> — whether you are online, when you are
+          <strong>Presence</strong>: whether you are online, when you are
           typing, and any "away" status. This is shown live to other users and
           is not kept as long-term history.
         </li>
         <li>
-          <strong>Moderation records</strong> — when an administrator or channel
+          <strong>Moderation records</strong>: when an administrator or channel
           operator performs a privileged action (kick, ban, granting operator
           status, deleting a channel), the action, who did it, who it affected,
           and a short note are recorded for accountability.
@@ -143,7 +143,7 @@
           <strong>Channel messages are readable by the operator.</strong>
           Traffic is encrypted with HTTPS in transit, but anything posted in a
           channel is stored in the database as ordinary text. The operator of
-          this server — and anyone with access to the database or its backups —
+          this server, and anyone with access to the database or its backups,
           can read it. Do not post anything in a channel that would be harmful
           if read by the administrator.
         </p>
@@ -187,7 +187,7 @@
           <code>/api/uploads/&lt;random-id&gt;</code>). Anyone who has that link
           can open the file without logging in, whether or not they belong to
           the channel it was shared in. The link is not published or guessable,
-          but it is the only thing protecting the file — so treat anything you
+          but it is the only thing protecting the file, so treat anything you
           upload to a channel as shareable.
         </p>
       </div>
@@ -195,7 +195,7 @@
         <strong>Files sent in an encrypted DM are the exception.</strong> They
         are encrypted in your browser before they are uploaded, so the link
         leads only to scrambled bytes. The server stores no filename and no file
-        type for them either — just an anonymous blob — and only the two of you
+        type for them either, just an anonymous blob, and only the two of you
         can turn it back into a file.
       </p>
       <p>Other details about uploads:</p>
@@ -210,8 +210,8 @@
         </li>
         <li>
           <strong>GIFs and documents are uploaded exactly as they are.</strong>
-          They are not modified, so any metadata inside them — author names,
-          location, editing history — is uploaded and served along with the
+          They are not modified, so any metadata inside them (author names,
+          location, editing history) is uploaded and served along with the
           file. Strip these yourself first if that matters to you.
         </li>
         <li>
@@ -233,9 +233,9 @@
       <p>
         If you turn on notifications, your browser registers a push endpoint
         with your browser's push service (Google's for Chrome, Mozilla's for
-        Firefox — unrelated to signing in) so the server can
+        Firefox, unrelated to signing in) so the server can
         wake it. Those notifications deliberately contain only who messaged you
-        and where — never the message itself. Sending the text would hand it to
+        and where, never the message itself. Sending the text would hand it to
         a third party, which for an encrypted conversation would defeat the
         encryption entirely. You can turn this off in your profile at any time.
       </p>
@@ -247,10 +247,10 @@
         than just hiding it on your screen.
       </p>
       <ul>
-        <li><strong>Typing indicators</strong> — stop others seeing when you're writing.</li>
-        <li><strong>Online status</strong> — appear offline while still using Open Relay.</li>
-        <li><strong>Direct messages</strong> — stop people starting new conversations with you.</li>
-        <li><strong>Search visibility</strong> — hide yourself from user search. You stay visible in channels you're already in.</li>
+        <li><strong>Typing indicators</strong>: stop others seeing when you're writing.</li>
+        <li><strong>Online status</strong>: appear offline while still using Open Relay.</li>
+        <li><strong>Direct messages</strong>: stop people starting new conversations with you.</li>
+        <li><strong>Search visibility</strong>: hide yourself from user search. You stay visible in channels you're already in.</li>
       </ul>
       <p>
         You can also change your password there. Doing so signs out every other
@@ -261,19 +261,19 @@
       <h2>Third parties</h2>
       <ul>
         <li>
-          <strong>GIF search</strong> — searches are relayed through this server
+          <strong>GIF search</strong>: searches are relayed through this server
           rather than sent from your browser, so Giphy does not receive your IP
           address when you search.
         </li>
         <li>
-          <strong>Images hosted elsewhere</strong> — when a message contains a
+          <strong>Images hosted elsewhere</strong>: when a message contains a
           Giphy or Imgur image, your browser loads that image directly from
           those services in order to display it. This reveals your IP address
           and browser details to them, exactly as visiting any web page
           containing their images would.
         </li>
         <li>
-          <strong>Discord</strong> — only if you choose to sign in with
+          <strong>Discord</strong>: only if you choose to sign in with
           Discord, and only to identify you at sign-in.
         </li>
       </ul>
@@ -324,7 +324,7 @@
         served with headers that stop the browser from treating them as code,
         and every message is escaped when displayed so it cannot run scripts.
         No system is perfectly secure, and this one is maintained by a small
-        operator — please keep that in mind when deciding what to share.
+        operator; please keep that in mind when deciding what to share.
       </p>
 
       <h2>Changes</h2>

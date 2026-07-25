@@ -5,7 +5,7 @@
 <h1 align="center">Open Relay</h1>
 
 <p align="center">
-  A small, self-hosted chat service. Channels, threads and direct messages —
+  A small, self-hosted chat service. Channels, threads and direct messages,
   with end-to-end encryption where it counts, and a plain account of what it
   does and doesn't protect.
 </p>
@@ -20,19 +20,19 @@
 
 ---
 
-Open Relay is a chat server you run yourself. It's built for small groups —
-friends, a team, a community — where the person running the server is someone
+Open Relay is a chat server you run yourself. It's built for small groups
+(friends, a team, a community) where the person running the server is someone
 you know, rather than a company monetising your messages. It looks and feels
 like a modern chat app, but the whole thing is a single Docker Compose stack
 you own end to end.
 
 ## Screenshots
 
-**A channel** — colour-coded avatars, formatting, code blocks, replies, mentions and reactions:
+**A channel**: colour-coded avatars, formatting, code blocks, replies, mentions and reactions:
 
 ![Channel](docs/screenshots/02-chat.png)
 
-**An encrypted DM** — a lock badge, and a safety number both people can compare to rule out interception:
+**An encrypted DM**: a lock badge, and a safety number both people can compare to rule out interception:
 
 ![Encrypted DM](docs/screenshots/03-encrypted-dm.png)
 
@@ -48,15 +48,15 @@ you own end to end.
 - Threads, inline replies with a quoted preview, and @mentions
 - Unread counts per channel, with a distinct badge when you're mentioned
 - Emoji reactions, and GIF search (proxied, so your IP isn't handed to the GIF provider)
-- File and image uploads — drag-and-drop, images compressed client-side
+- File and image uploads: drag-and-drop, images compressed client-side
 - Message formatting: **bold**, *italic*, ~~strikethrough~~, `inline code` and fenced code blocks
 - Full-text search that jumps straight to the message, and infinite scroll-back
 - Live presence, typing indicators and away status
 - The IRC slash commands you'd expect (`/me`, `/nick`, `/join`, `/topic`, `/op`, …)
 
 **Privacy & security**
-- **End-to-end encrypted direct messages** — keys generated in your browser (ECDH P-256 + AES-256-GCM via the Web Crypto API), so the server stores ciphertext it can't read
-- **Encrypted attachments** in encrypted DMs — the server never learns the file's contents, name or type
+- **End-to-end encrypted direct messages**: keys generated in your browser (ECDH P-256 + AES-256-GCM via the Web Crypto API), so the server stores ciphertext it can't read
+- **Encrypted attachments** in encrypted DMs: the server never learns the file's contents, name or type
 - **Safety numbers** to verify a conversation isn't being intercepted
 - Photos are re-encoded in the browser before upload, stripping EXIF/GPS
 - Privacy toggles (typing, presence, DMs, discoverability) that are **enforced server-side**, not just hidden
@@ -66,7 +66,7 @@ you own end to end.
 
 **Platform**
 - Installable PWA (add to home screen / desktop); the app shell works offline
-- Push notifications for DMs and mentions — payloads say *who* and *where*, never *what*
+- Push notifications for DMs and mentions: payloads say *who* and *where*, never *what*
 - Optional Discord (and Google) SSO alongside username/password
 - A read-only `#whatsnew` announcements channel, seeded automatically
 
@@ -74,10 +74,10 @@ you own end to end.
 
 Being honest about this is the point:
 
-- **Channel messages are readable by whoever runs the server** — only DMs can be end-to-end encrypted.
-- Encryption hides message *contents*, not *metadata* — who talks to whom, and when, is recorded.
+- **Channel messages are readable by whoever runs the server**; only DMs can be end-to-end encrypted.
+- Encryption hides message *contents*, not *metadata*; who talks to whom, and when, is recorded.
 - Files shared in ordinary channels sit behind an unguessable but **publicly accessible** link.
-- Forget your encryption passphrase and those messages are unrecoverable — there is no reset.
+- Forget your encryption passphrase and those messages are unrecoverable; there is no reset.
 
 The full details are in the in-app [privacy policy](frontend/public/privacy.html).
 
@@ -93,9 +93,9 @@ FastAPI workers  ── persist ──▶  PostgreSQL
  Redis  ◀── fan-out ──▶  every worker forwards to its own local sockets
 ```
 
-- **Backend** — FastAPI, async SQLAlchemy 2.0 (asyncpg), Alembic migrations, PostgreSQL, Redis (pub/sub fan-out, presence leases, rate limiting). WebSockets for realtime; messages posted over REST.
-- **Frontend** — React + Vite, no UI framework. The end-to-end crypto is vanilla Web Crypto with no dependencies.
-- **Serving** — Caddy reverse proxy (automatic HTTPS) serves the built SPA and proxies `/api` and `/ws` to gunicorn/uvicorn.
+- **Backend**: FastAPI, async SQLAlchemy 2.0 (asyncpg), Alembic migrations, PostgreSQL, Redis (pub/sub fan-out, presence leases, rate limiting). WebSockets for realtime; messages posted over REST.
+- **Frontend**: React + Vite, no UI framework. The end-to-end crypto is vanilla Web Crypto with no dependencies.
+- **Serving**: Caddy reverse proxy (automatic HTTPS) serves the built SPA and proxies `/api` and `/ws` to gunicorn/uvicorn.
 
 ## Run it locally
 
@@ -124,8 +124,8 @@ app and you're in.
 
 ## Deploy it
 
-Production is a four-service Compose stack — Caddy + backend + Postgres + Redis
-— in `docker-compose.prod.yml`. Caddy serves the built frontend and terminates
+Production is a four-service Compose stack (Caddy + backend + Postgres + Redis)
+in `docker-compose.prod.yml`. Caddy serves the built frontend and terminates
 HTTPS automatically.
 
 ```bash
@@ -145,12 +145,12 @@ Everything is environment variables (`backend/.env.example` is the reference):
 | Variable | Purpose |
 |---|---|
 | `DATABASE_URL`, `REDIS_URL` | Datastore connections |
-| `JWT_SECRET` | **Change this** — signs auth tokens |
+| `JWT_SECRET` | **Change this**: signs auth tokens |
 | `PUBLIC_BASE_URL` | Public origin, used to build OAuth redirects |
 | `CORS_ORIGINS` | Allowed browser origins |
 | `GOOGLE_*` / `DISCORD_*` | Optional SSO credentials |
 | `GIPHY_API_KEY` | Optional; enables GIF search |
-| VAPID keys | Auto-generated and stored in the DB on first boot — push works with no config |
+| VAPID keys | Auto-generated and stored in the DB on first boot; push works with no config |
 
 ## Using it
 
@@ -159,8 +159,8 @@ the slash commands, notifications, and managing your data.
 
 ## Desktop app
 
-Native desktop builds — a thin [Tauri](https://tauri.app) shell around the same
-web UI — are on the [**releases page**](https://github.com/magikh0e/open-relay/releases)
+Native desktop builds, a thin [Tauri](https://tauri.app) shell around the same
+web UI, are on the [**releases page**](https://github.com/magikh0e/open-relay/releases)
 for macOS (universal), Linux (`.AppImage`/`.deb`/`.rpm`) and Windows
 (`.msi`/`.exe`). They're ~4 MB and open the app in its own window pointed at a
 server of your choice. Source is in [`desktop/`](desktop/README.md); building
@@ -173,9 +173,9 @@ any client at a server.
 ## Tests
 
 The backend has a pytest suite that runs against **real** Postgres and Redis
-(the same containers dev uses), because the things worth testing — advisory
+(the same containers dev uses), because the things worth testing (advisory
 locks, cascade deletes, rate limiting, token revocation, encrypted-upload
-opacity — only behave realistically against the real thing.
+opacity) only behave realistically against the real thing.
 
 ```bash
 cd backend
@@ -189,4 +189,4 @@ the software; each running instance sets its own terms of use.
 
 ---
 
-<sub>Screenshots are generated reproducibly by <code>frontend/capture-screenshots.mjs</code> (Playwright, dev-only — not a project dependency).</sub>
+<sub>Screenshots are generated reproducibly by <code>frontend/capture-screenshots.mjs</code> (Playwright, dev-only, not a project dependency).</sub>

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>Developer Guide — Open Relay</title>
+    <title>Developer Guide: Open Relay</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <style>
       :root {
@@ -113,12 +113,12 @@
       </div>
 
       <h1>Developer Guide</h1>
-      <p class="updated">Everything needed to build a client — desktop, mobile, CLI, or bot.</p>
+      <p class="updated">Everything needed to build a client: desktop, mobile, CLI, or bot.</p>
 
       <p class="lede">
         Open Relay is a self-hosted chat backend: FastAPI + PostgreSQL + Redis,
         a JSON REST API for state changes, and a single WebSocket for live
-        events. There is no proprietary transport and no SDK required — anything
+        events. There is no proprietary transport and no SDK required; anything
         that speaks HTTP and WebSocket can be a client. This guide is written
         against the reference web client, which is the canonical example of
         every flow described here.
@@ -146,7 +146,7 @@
           prefix</em>. So the public paths are <code>/api/...</code> and
           <code>/ws</code>, and that is what a client targets. If you point a
           client straight at a raw <code>uvicorn</code> process (no proxy), the
-          backend exposes <em>bare</em> paths — <code>/auth/login</code>, not
+          backend exposes <em>bare</em> paths: <code>/auth/login</code>, not
           <code>/api/auth/login</code>. Build against the public origin, which is
           what this guide assumes.
         </p>
@@ -183,14 +183,14 @@ import.meta.env.VITE_API_BASE    →  baked in at build time
       <ul>
         <li>Algorithm <strong>HS256</strong>, signed with the server's <code>JWT_SECRET</code>. Clients treat tokens as opaque and never verify the signature.</li>
         <li>Claims: <code>sub</code> (user id), <code>type</code> (<code>"access"</code> / <code>"refresh"</code>), <code>tv</code> (token-version integer), <code>iat</code>, <code>exp</code>. No <code>iss</code>/<code>aud</code>.</li>
-        <li><strong>Revocation.</strong> Changing your password increments the user's token-version; any token whose <code>tv</code> no longer matches is rejected on next use. That kills <em>every</em> outstanding access and refresh token — the "log out everywhere" mechanism. There is no <code>/auth/logout</code> endpoint; ordinary logout is just discarding the tokens.</li>
-        <li>Store both tokens in secure storage — the web client uses <code>localStorage</code>; a desktop client should prefer the OS keychain.</li>
+        <li><strong>Revocation.</strong> Changing your password increments the user's token-version; any token whose <code>tv</code> no longer matches is rejected on next use. That kills <em>every</em> outstanding access and refresh token, the "log out everywhere" mechanism. There is no <code>/auth/logout</code> endpoint; ordinary logout is just discarding the tokens.</li>
+        <li>Store both tokens in secure storage: the web client uses <code>localStorage</code>; a desktop client should prefer the OS keychain.</li>
       </ul>
       <h3>The refresh flow</h3>
       <p>
         On any <code>401</code>, POST the refresh token to
         <code>/api/auth/refresh</code> to get a fresh pair, then retry the
-        original request once. If the refresh itself fails, the session is dead —
+        original request once. If the refresh itself fails, the session is dead;
         clear tokens and return to sign-in. <strong>Refresh before opening the
         WebSocket</strong>: the socket is long-lived but its handshake token is
         not, so start it with a fresh access token.
@@ -203,7 +203,7 @@ import.meta.env.VITE_API_BASE    →  baked in at build time
         go through REST.
       </p>
       <ul>
-        <li><strong>Connect:</strong> <code>wss://&lt;origin&gt;/ws?token=&lt;access_token&gt;</code> — the token rides in the query string (handshakes can't set an <code>Authorization</code> header). A failed token closes the socket with code <strong>1008</strong>. On success you're subscribed to your channels plus a personal topic, and the first frame is <code>{"type":"ready","data":{"user_id":"…"}}</code>.</li>
+        <li><strong>Connect:</strong> <code>wss://&lt;origin&gt;/ws?token=&lt;access_token&gt;</code>; the token rides in the query string (handshakes can't set an <code>Authorization</code> header). A failed token closes the socket with code <strong>1008</strong>. On success you're subscribed to your channels plus a personal topic, and the first frame is <code>{"type":"ready","data":{"user_id":"…"}}</code>.</li>
         <li><strong>Keepalive:</strong> send <code>{"type":"ping"}</code> every <strong>25 s</strong>; the server replies <code>pong</code>. Presence is a lease with a <strong>75 s</strong> TTL that each ping renews (≈2 missed pings tolerated). Stop pinging and you drop offline.</li>
         <li><strong>Reconnect:</strong> on close, reconnect with exponential backoff (reference caps at 15 s), refreshing the access token before each attempt.</li>
       </ul>
@@ -218,14 +218,14 @@ import.meta.env.VITE_API_BASE    →  baked in at build time
         </table>
       </div>
       <p>
-        You <strong>post messages over REST, not the socket</strong> — your own
+        You <strong>post messages over REST, not the socket</strong>; your own
         message echoes back as a <code>message</code> event via the server's
         Redis bridge, the same way everyone else's arrives.
       </p>
 
       <h2><span class="sec-ico">🔒</span>4. End-to-end encryption (direct messages)</h2>
       <p>
-        E2EE is optional and client-side — the server only ever stores opaque
+        E2EE is optional and client-side; the server only ever stores opaque
         blobs. A non-JS client interoperates by reproducing this scheme exactly
         (reference: <code>frontend/src/e2ee.js</code>, WebCrypto only). Any
         library with ECDH P-256, AES-GCM, and PBKDF2 can match it.
@@ -250,12 +250,12 @@ import.meta.env.VITE_API_BASE    →  baked in at build time
       <p>
         For a 1:1 DM both parties derive the <strong>same</strong> AES key via
         ECDH (A's private + B's public ≡ B's private + A's public), so one
-        ciphertext serves both — no per-recipient copies.
+        ciphertext serves both, no per-recipient copies.
       </p>
       <ol>
         <li><code>sharedKey = ECDH(myPrivate, theirPublic)</code> → AES-256-GCM key.</li>
         <li>Encrypt with a random 12-byte IV.</li>
-        <li>Wire format: <strong><code>base64(iv ‖ ciphertext)</code></strong> — the 12-byte IV prepended to the GCM ciphertext (which includes its auth tag), all base64. This exact string is the message <code>content</code> with <code>encrypted:true</code>.</li>
+        <li>Wire format: <strong><code>base64(iv ‖ ciphertext)</code></strong>: the 12-byte IV prepended to the GCM ciphertext (which includes its auth tag), all base64. This exact string is the message <code>content</code> with <code>encrypted:true</code>.</li>
       </ol>
       <p>Decrypt reverses it: base64-decode, split the first 12 bytes as the IV, AES-GCM-decrypt the rest.</p>
       <h3>Encrypted attachments</h3>
@@ -284,8 +284,8 @@ group into twelve 5-digit blocks → "12345 67890 …"</code></pre>
       <ul>
         <li><strong>Request:</strong> <code>POST /api/uploads</code>, <code>multipart/form-data</code> (auth required): <code>file</code> (the bytes), <code>encrypted</code> (bool, default false), <code>enc_meta</code> (string, default empty).</li>
         <li><strong>Limits:</strong> <strong>10 MB</strong> per file (over → <code>413</code>), <strong>5/minute</strong> (→ <code>429</code>). Plaintext uploads restricted to images (<code>png jpg jpeg gif webp</code>) and common documents (<code>pdf txt csv md json zip doc(x) xls(x) ppt(x)</code>); anything else → <code>415</code>. SVG is rejected.</li>
-        <li><strong>Response</strong> is an <code>AttachmentOut</code> (§7) whose <code>url</code> is <code>/api/uploads/&lt;id&gt;</code> — resolve against the origin before fetching.</li>
-        <li><strong>Serving:</strong> <code>GET /api/uploads/&lt;id&gt;</code> returns the file with <code>X-Content-Type-Options: nosniff</code> and a long immutable cache. These URLs are <strong>unauthenticated</strong> capability links — anyone with the (unguessable) URL can fetch the file. Treat channel uploads as shareable.</li>
+        <li><strong>Response</strong> is an <code>AttachmentOut</code> (§7) whose <code>url</code> is <code>/api/uploads/&lt;id&gt;</code>; resolve against the origin before fetching.</li>
+        <li><strong>Serving:</strong> <code>GET /api/uploads/&lt;id&gt;</code> returns the file with <code>X-Content-Type-Options: nosniff</code> and a long immutable cache. These URLs are <strong>unauthenticated</strong> capability links; anyone with the (unguessable) URL can fetch the file. Treat channel uploads as shareable.</li>
         <li><strong>Images are re-encoded client-side</strong> to strip EXIF/GPS before upload; if that fails the reference client refuses the upload rather than send the original. GIFs and documents are sent as-is.</li>
         <li><strong>Encrypted uploads</strong> skip type checks (bytes are ciphertext); the server stores an <code>application/octet-stream</code> blob with no real name/type, which travel in <code>enc_meta</code>.</li>
       </ul>
@@ -295,8 +295,8 @@ group into twelve 5-digit blocks → "12345 67890 …"</code></pre>
       <div class="table-wrap">
         <table>
           <tr><th><code>type</code></th><th><code>data</code></th></tr>
-          <tr><td><code>ready</code></td><td><code>{user_id}</code> — first frame after connect</td></tr>
-          <tr><td><code>pong</code></td><td><em>(none)</em> — reply to your <code>ping</code></td></tr>
+          <tr><td><code>ready</code></td><td><code>{user_id}</code>: first frame after connect</td></tr>
+          <tr><td><code>pong</code></td><td><em>(none)</em>: reply to your <code>ping</code></td></tr>
           <tr><td><code>presence</code></td><td><code>{user_id, online}</code></td></tr>
           <tr><td><code>typing</code></td><td><code>{channel_id, user_id}</code></td></tr>
           <tr><td><code>away</code></td><td><code>{user_id, away, message}</code></td></tr>
@@ -306,27 +306,27 @@ group into twelve 5-digit blocks → "12345 67890 …"</code></pre>
           <tr><td><code>reaction</code></td><td><code>{message_id, channel_id, emoji, count, user_id, added}</code></td></tr>
           <tr><td><code>channel_updated</code></td><td><code>{channel_id, name, topic, kind}</code></td></tr>
           <tr><td><code>channel_deleted</code></td><td><code>{channel_id}</code></td></tr>
-          <tr><td><code>channel_added</code></td><td><code>{channel_id}</code> — you were added (personal topic)</td></tr>
-          <tr><td><code>channel_kicked</code></td><td><code>{channel_id, banned}</code> — you were kicked/banned (personal topic)</td></tr>
+          <tr><td><code>channel_added</code></td><td><code>{channel_id}</code>: you were added (personal topic)</td></tr>
+          <tr><td><code>channel_kicked</code></td><td><code>{channel_id, banned}</code>: you were kicked/banned (personal topic)</td></tr>
           <tr><td><code>member_removed</code></td><td><code>{channel_id, user_id}</code></td></tr>
           <tr><td><code>member_updated</code></td><td><code>{channel_id, user_id, role}</code></td></tr>
-          <tr><td><code>dm_opened</code></td><td><code>{channel_id}</code> — a DM with you was opened (personal topic)</td></tr>
-          <tr><td><code>keys_published</code></td><td><code>{channel_id, user_id}</code> — a DM peer (re)published their key</td></tr>
+          <tr><td><code>dm_opened</code></td><td><code>{channel_id}</code>: a DM with you was opened (personal topic)</td></tr>
+          <tr><td><code>keys_published</code></td><td><code>{channel_id, user_id}</code>: a DM peer (re)published their key</td></tr>
         </table>
       </div>
 
       <h2><span class="sec-ico">🗂️</span>7. REST endpoint reference</h2>
       <p>
-        All paths are the <strong>public</strong> paths — prepend the origin and
+        All paths are the <strong>public</strong> paths; prepend the origin and
         <code>/api</code> (§1). Bodies are JSON except uploads. Auth is required
         on everything except <code>/auth/*</code>, <code>/health</code>, and
         <code>GET /uploads/&lt;id&gt;</code>.
       </p>
       <h3>Core object shapes</h3>
       <p>Timestamps are ISO 8601 strings; ids are UUID strings.</p>
-      <p><strong>MessageOut</strong> — canonical message, returned by history and carried by the <code>message</code> event:</p>
+      <p><strong>MessageOut</strong>: canonical message, returned by history and carried by the <code>message</code> event:</p>
       <pre><code>id, channel_id, sender_id (str|null),
-content,                         # base64 ciphertext when encrypted==true — relay byte-for-byte
+content,                         # base64 ciphertext when encrypted==true, relay byte-for-byte
 created_at, edited_at (null|ISO),
 sender: {id, username, display_name, avatar_url, is_admin} | null,
 reactions: [{emoji, count, me}],
@@ -349,66 +349,66 @@ unread_count (int), mention_count (int)</code></pre>
         <li><strong>UserOut</strong> (self): adds <code>has_password, share_typing, share_presence, allow_dms, discoverable</code>. Email is exposed only via <code>GET /users/me/export</code>.</li>
       </ul>
 
-      <h3>Auth — <code>/auth</code></h3>
+      <h3>Auth: <code>/auth</code></h3>
       <div class="table-wrap">
         <table>
           <tr><th>Method · Path</th><th>Body</th><th>Returns</th></tr>
           <tr><td><code>POST /auth/register</code></td><td><code>{username(3–32), email, password(8–128), display_name?}</code></td><td><code>201</code> TokenPair; auto-joins <code>#whatsnew</code>. 409 dup, 429 (5/hr/IP)</td></tr>
           <tr><td><code>POST /auth/login</code></td><td><code>{username_or_email, password}</code></td><td>TokenPair. 401 bad creds, 403 disabled, 429</td></tr>
           <tr><td><code>POST /auth/refresh</code></td><td><code>{refresh_token}</code></td><td>a <strong>new</strong> TokenPair. 401 if invalid / <code>tv</code> mismatch</td></tr>
-          <tr><td><code>GET /auth/oauth/providers</code></td><td>—</td><td><code>["discord", …]</code> (enabled only)</td></tr>
-          <tr><td><code>GET /auth/oauth/{provider}/start</code></td><td>—</td><td><code>302</code> to provider</td></tr>
+          <tr><td><code>GET /auth/oauth/providers</code></td><td>-</td><td><code>["discord", …]</code> (enabled only)</td></tr>
+          <tr><td><code>GET /auth/oauth/{provider}/start</code></td><td>-</td><td><code>302</code> to provider</td></tr>
           <tr><td><code>GET /auth/oauth/{provider}/callback</code></td><td><code>?code&amp;state</code></td><td><code>302</code> to <code>PUBLIC_BASE_URL/#access=…&amp;refresh=…</code> (tokens in URL fragment)</td></tr>
         </table>
       </div>
       <p><code>TokenPair</code> = <code>{access_token, refresh_token, token_type:"bearer"}</code>.</p>
 
-      <h3>Users — <code>/users</code></h3>
+      <h3>Users: <code>/users</code></h3>
       <div class="table-wrap">
         <table>
           <tr><th>Method · Path</th><th>Body / Query</th><th>Returns</th></tr>
-          <tr><td><code>GET /users/me</code></td><td>—</td><td>UserOut</td></tr>
+          <tr><td><code>GET /users/me</code></td><td>-</td><td>UserOut</td></tr>
           <tr><td><code>PATCH /users/me</code></td><td><code>{display_name?, bio?≤500, pronouns?≤40}</code></td><td>ProfileOut</td></tr>
           <tr><td><code>GET · PATCH /users/me/settings</code></td><td><code>{share_typing?, share_presence?, allow_dms?, discoverable?}</code></td><td>PrivacySettings</td></tr>
           <tr><td><code>POST /users/me/password</code></td><td><code>{current_password?, new_password(8–128)}</code></td><td><strong>new</strong> TokenPair (bumps <code>tv</code>). 429 (5/5min)</td></tr>
           <tr><td><code>GET /users/search</code></td><td><code>?q=</code> (≥2)</td><td><code>[UserPublic]</code> (≤20; respects <code>discoverable</code>)</td></tr>
-          <tr><td><code>GET /users/online</code></td><td>—</td><td><code>[user_id]</code></td></tr>
-          <tr><td><code>GET /users/away</code></td><td>—</td><td><code>{user_id: message}</code></td></tr>
+          <tr><td><code>GET /users/online</code></td><td>-</td><td><code>[user_id]</code></td></tr>
+          <tr><td><code>GET /users/away</code></td><td>-</td><td><code>{user_id: message}</code></td></tr>
           <tr><td><code>POST /users/away</code></td><td><code>{message?}</code> (empty clears)</td><td><code>204</code></td></tr>
-          <tr><td><code>GET /users/{user_id}</code></td><td>—</td><td>ProfileOut</td></tr>
-          <tr><td><code>GET /users/me/export</code></td><td>—</td><td>full JSON dump (incl. email + messages)</td></tr>
-          <tr><td><code>POST /users/me/delete</code></td><td><code>{password?}</code></td><td><code>204</code> — permanent</td></tr>
+          <tr><td><code>GET /users/{user_id}</code></td><td>-</td><td>ProfileOut</td></tr>
+          <tr><td><code>GET /users/me/export</code></td><td>-</td><td>full JSON dump (incl. email + messages)</td></tr>
+          <tr><td><code>POST /users/me/delete</code></td><td><code>{password?}</code></td><td><code>204</code>: permanent</td></tr>
         </table>
       </div>
 
-      <h3>Channels — <code>/channels</code></h3>
+      <h3>Channels: <code>/channels</code></h3>
       <div class="table-wrap">
         <table>
           <tr><th>Method · Path</th><th>Body</th><th>Returns</th></tr>
-          <tr><td><code>GET /channels</code></td><td>—</td><td><code>[ChannelOut]</code> (public directory + your privates; DMs excluded)</td></tr>
+          <tr><td><code>GET /channels</code></td><td>-</td><td><code>[ChannelOut]</code> (public directory + your privates; DMs excluded)</td></tr>
           <tr><td><code>POST /channels</code></td><td><code>{slug(2–48,^[a-z0-9-]+$), name(1–64), topic?≤512, is_private}</code></td><td><code>201</code> ChannelOut (non-admins capped at 2). 409 dup slug</td></tr>
-          <tr><td><code>GET /channels/{id}</code></td><td>—</td><td>ChannelOut (403 if private/DM &amp; not a member)</td></tr>
-          <tr><td><code>POST /channels/{id}/join</code></td><td>—</td><td>ChannelOut (public only; 403 if banned)</td></tr>
-          <tr><td><code>POST /channels/{id}/leave</code></td><td>—</td><td><code>204</code></td></tr>
-          <tr><td><code>GET /channels/{id}/members</code></td><td>—</td><td><code>[{id, username, display_name, avatar_url, is_admin, role}]</code></td></tr>
+          <tr><td><code>GET /channels/{id}</code></td><td>-</td><td>ChannelOut (403 if private/DM &amp; not a member)</td></tr>
+          <tr><td><code>POST /channels/{id}/join</code></td><td>-</td><td>ChannelOut (public only; 403 if banned)</td></tr>
+          <tr><td><code>POST /channels/{id}/leave</code></td><td>-</td><td><code>204</code></td></tr>
+          <tr><td><code>GET /channels/{id}/members</code></td><td>-</td><td><code>[{id, username, display_name, avatar_url, is_admin, role}]</code></td></tr>
           <tr><td><code>PATCH /channels/{id}</code></td><td><code>{name?, topic?, is_private?}</code></td><td>ChannelOut (owner/admin)</td></tr>
-          <tr><td><code>DELETE /channels/{id}</code></td><td>—</td><td><code>204</code> (owner/admin)</td></tr>
-          <tr><td><code>POST /channels/{id}/read</code></td><td>—</td><td><code>204</code> — mark read up to now</td></tr>
+          <tr><td><code>DELETE /channels/{id}</code></td><td>-</td><td><code>204</code> (owner/admin)</td></tr>
+          <tr><td><code>POST /channels/{id}/read</code></td><td>-</td><td><code>204</code>: mark read up to now</td></tr>
           <tr><td><code>POST /channels/{id}/{kick,ban,unban,invite}</code></td><td><code>{user_id, reason?}</code></td><td><code>204</code></td></tr>
           <tr><td><code>POST /channels/{id}/role</code></td><td><code>{user_id, role}</code></td><td><code>204</code></td></tr>
         </table>
       </div>
 
-      <h3>Messages — <code>/channels/{channel_id}/messages</code></h3>
+      <h3>Messages: <code>/channels/{channel_id}/messages</code></h3>
       <div class="table-wrap">
         <table>
           <tr><th>Method · Path</th><th>Body / Query</th><th>Returns</th></tr>
           <tr><td><code>GET ""</code></td><td><code>?before=&lt;ISO&gt;</code> (older than), <code>?around=&lt;msg_id&gt;</code> (jump window), <code>?limit=</code> (50, ≤100)</td><td><code>[MessageOut]</code> chronological, top-level only. Paginate with the oldest loaded <code>created_at</code> as <code>before</code></td></tr>
-          <tr><td><code>GET "/{root_id}/thread"</code></td><td>—</td><td><code>[MessageOut]</code> root + replies</td></tr>
+          <tr><td><code>GET "/{root_id}/thread"</code></td><td>-</td><td><code>[MessageOut]</code> root + replies</td></tr>
           <tr><td><code>POST ""</code></td><td><code>{content(≤12000), reply_to_id?, thread_root_id?, upload_id?, encrypted}</code></td><td><code>201</code> MessageOut. <code>encrypted:true</code> DMs only (else 400). 429 (10/10s)</td></tr>
           <tr><td><code>PATCH "/{id}"</code></td><td><code>{content(1–4000)}</code></td><td>MessageOut (own only; not encrypted msgs)</td></tr>
-          <tr><td><code>DELETE "/{id}"</code></td><td>—</td><td><code>204</code> (own or admin; soft delete)</td></tr>
-          <tr><td><code>POST "/{id}/reactions"</code></td><td><code>{emoji(1–32)}</code></td><td><code>{emoji, count, me}</code> — toggles</td></tr>
+          <tr><td><code>DELETE "/{id}"</code></td><td>-</td><td><code>204</code> (own or admin; soft delete)</td></tr>
+          <tr><td><code>POST "/{id}/reactions"</code></td><td><code>{emoji(1–32)}</code></td><td><code>{emoji, count, me}</code>: toggles</td></tr>
         </table>
       </div>
 
@@ -416,13 +416,13 @@ unread_count (int), mention_count (int)</code></pre>
       <div class="table-wrap">
         <table>
           <tr><th>Method · Path</th><th>Body</th><th>Returns</th></tr>
-          <tr><td><code>GET /dms</code></td><td>—</td><td><code>[ChannelOut]</code> your DMs</td></tr>
+          <tr><td><code>GET /dms</code></td><td>-</td><td><code>[ChannelOut]</code> your DMs</td></tr>
           <tr><td><code>POST /dms</code></td><td><code>{user_id}</code></td><td><code>201</code> ChannelOut (one per pair; 403 if peer disallows DMs)</td></tr>
-          <tr><td><code>DELETE /dms/{id}</code></td><td>—</td><td><code>204</code> — hides from your sidebar only</td></tr>
-          <tr><td><code>GET /keys/me</code></td><td>—</td><td><code>{public_key, wrapped_private_key, salt, iv}</code> (404 if none)</td></tr>
+          <tr><td><code>DELETE /dms/{id}</code></td><td>-</td><td><code>204</code>: hides from your sidebar only</td></tr>
+          <tr><td><code>GET /keys/me</code></td><td>-</td><td><code>{public_key, wrapped_private_key, salt, iv}</code> (404 if none)</td></tr>
           <tr><td><code>PUT /keys/me</code></td><td>same four fields</td><td>echoes bundle; broadcasts <code>keys_published</code></td></tr>
-          <tr><td><code>GET /keys/{user_id}</code></td><td>—</td><td><code>{user_id, public_key}</code> (404 if peer has no keys)</td></tr>
-          <tr><td><code>GET /push/key</code></td><td>—</td><td><code>{public_key}</code> (VAPID)</td></tr>
+          <tr><td><code>GET /keys/{user_id}</code></td><td>-</td><td><code>{user_id, public_key}</code> (404 if peer has no keys)</td></tr>
+          <tr><td><code>GET /push/key</code></td><td>-</td><td><code>{public_key}</code> (VAPID)</td></tr>
           <tr><td><code>POST /push/{subscribe,unsubscribe}</code></td><td><code>{endpoint, p256dh, auth}</code></td><td><code>204</code></td></tr>
         </table>
       </div>
@@ -486,7 +486,7 @@ POST origin/api/channels/&lt;id&gt;/messages {content}
 # 5. On any 401: refresh once and retry
 {access, refresh} = POST origin/api/auth/refresh {refresh_token: refresh}</code></pre>
       <p>
-        Everything else — reactions, edits, DMs, presence, typing, encryption —
+        Everything else (reactions, edits, DMs, presence, typing, encryption)
         is a variation on this loop: <strong>change state with a REST call,
         learn about changes from the socket.</strong>
       </p>
