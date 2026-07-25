@@ -211,8 +211,6 @@ cost 200 round trips. _channel_stats now does it in four grouped queries
 regardless of channel count.
 ```
 
-Do not add `Co-Authored-By` or "generated with" trailers for AI tooling.
-
 **Pull requests** should say what changed, why, and how you tested it. If it is
 user-visible, include a screenshot. If it touches the security boundary, say so
 explicitly (see ground rule 2).
