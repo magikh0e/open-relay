@@ -1,14 +1,55 @@
 # Uptime monitoring
 
+Whatever you use, the rule that matters is: **it has to run somewhere other than
+the machine it watches.** A monitor living on the VPS cannot tell you the VPS is
+down, which is the outage you most need to hear about.
+
+There are two sensible ways to do this. Pick one.
+
+---
+
+## Option 1: a hosted monitor (recommended)
+
+For most people this is the right answer, and it is what
+`orc.openrelay.pl` uses. A third-party service polls your health endpoint from
+outside your infrastructure, so it survives your server, your network and your
+hosting provider all failing at once. Free tiers cover this comfortably and
+there is nothing to install, patch or monitor in turn.
+
+Services that do HTTP checks on a free tier include
+[UptimeRobot](https://uptimerobot.com) and
+[Better Stack](https://betterstack.com/uptime). Prefer to keep it self-hosted?
+[Uptime Kuma](https://github.com/louislam/uptime-kuma) is one Docker container
+and gives you a status page too, but it still needs to live on a *different*
+box.
+
+Configure the monitor with:
+
+| Setting | Value |
+|---|---|
+| URL | `https://your-domain/api/health` (add one per hostname you serve) |
+| Method | `GET` |
+| Expect | HTTP `200`, body contains `ok` |
+| Interval | 1 to 5 minutes |
+| Alert | email, or a Discord/Slack webhook |
+
+That is the whole setup. The rest of this document is only needed if you would
+rather not involve a third party.
+
+---
+
+## Option 2: self-hosted, with `ops/uptime-check.sh`
+
 `ops/uptime-check.sh` polls the app's health endpoint(s) and alerts you the
 moment a target goes down (and again when it recovers). It only fires on a
 **state change**, so you get one "down" message and one "recovered" message,
 not a page every two minutes.
 
-> **Run it on a different box than the one it watches.** A monitor living on the
-> VPS can't tell you when the VPS is down. The Hostinger box that already holds
-> your offsite backups is a natural home; any always-on machine with `bash` and
-> `curl` works.
+> Same rule as above: **run it on a different box than the one it watches.** An
+> off-site machine that already holds your backups is a natural home; any
+> always-on machine with `bash` and `curl` works. The systemd units in
+> `ops/systemd/` ship with a placeholder `ExecStart` path deliberately, because
+> only you know where this repo lives on that machine.
 
 ## What it checks
 
@@ -86,7 +127,7 @@ Make the script executable once: `chmod +x ops/uptime-check.sh`.
 
 ## Want a dashboard too?
 
-This script is deliberately tiny and alert-only. If you'd like a status page and
-history, run [Uptime Kuma](https://github.com/louislam/uptime-kuma) (one Docker
-container) on the same off-site box and point a monitor at
-`https://orc.openrelay.pl/api/health`. The two aren't mutually exclusive.
+This script is deliberately tiny and alert-only: it tells you when something
+changed, and keeps no history. If you want a status page and uptime figures,
+that is what the hosted services in Option 1 give you, and running both is
+fine. They are not mutually exclusive.
