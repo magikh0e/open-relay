@@ -47,8 +47,8 @@ jobs:
           gh release create "$tag" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "Open Relay $tag (web app)" \
+            --title "Open Relay $tag (server + web app)" \
             --prerelease \
             --latest=false \
-            --notes "Informational marker for the live web app version ($version), deployed at chat.openrelay.pl via git push. The web app is not distributed through GitHub releases (the desktop client is); this is a pre-release so it never takes the \"latest\" badge from the desktop updater. See CHANGELOG.txt for the full history."
+            --notes "Version marker for the full self-hosted Open Relay stack ($version): the FastAPI backend, the React frontend, and the browser client together. Deployed at chat.openrelay.pl via git push, not distributed through GitHub releases (only the desktop client is), so this is a pre-release and never takes the \"latest\" badge from the desktop updater. See CHANGELOG.txt for the full history."
           echo "Created pre-release $tag."
