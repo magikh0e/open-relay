@@ -1,7 +1,7 @@
 {
   "name": "openrelay-desktop",
   "private": true,
-  "version": "0.1.6",
+  "version": "0.1.7",
   "type": "module",
   "description": "Open Relay desktop client (Tauri shell around the web UI)",
   "scripts": {
