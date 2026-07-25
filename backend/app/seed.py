@@ -131,6 +131,21 @@ WHATSNEW_POSTS = [
         "• Extra defence-in-depth around connecting to other instances; nothing "
         "you do changes",
     ),
+    (
+        "1.24.0",
+        "👥 v1.24.0: Group DMs and saved servers\n"
+        "• Message several people at once: pick more than one person from the "
+        "+ next to Direct Messages, and name the group if you like. The owner "
+        "can add or remove people later. Like channels, group messages are "
+        "readable by whoever runs the server; 1:1 DMs stay end-to-end "
+        "encrypted\n"
+        "• Keep a list of the servers you use and switch between them in a "
+        "click; each keeps its own sign-in, so hopping back is instant\n"
+        "• /version now reports the desktop app and the server separately\n"
+        "• A round of accessibility and consistency polish: dialogs close on "
+        "Escape and keep keyboard focus, clearer button labels, and steadier "
+        "wording throughout",
+    ),
 ]
 
 
