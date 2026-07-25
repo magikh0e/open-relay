@@ -32,7 +32,7 @@ you own end to end.
 
 ![Channel](docs/screenshots/02-chat.png)
 
-**An encrypted DM**: a lock badge, and a safety number both people can compare to rule out interception:
+**An encrypted DM**: a lock badge, and a safety number both people can compare to rule out interception. The number is a hash of both participants' public keys; if a server or attacker swapped in its own key to sit in the middle, the two sides would derive different numbers. Comparing them over a separate channel (out loud, in person) confirms nobody did:
 
 ![Encrypted DM](docs/screenshots/03-encrypted-dm.png)
 
