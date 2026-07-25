@@ -9,9 +9,28 @@ It lives in its own top-level workspace (**not** inside `frontend/`) so the
 Tauri toolchain never touches the web build; the production web image's
 `npm ci` stays lean and unaffected.
 
-This is the **v1 scaffold**: it opens the app against a server and nothing
-more yet. See `../docs/DESKTOP_CLIENT_PLAN.md` for the full roadmap (server
-picker, keychain tokens, native notifications, tray, auto-update, OAuth).
+It points at a remote server (origin injected before the page loads) and
+**self-updates**: on launch and once a day it checks GitHub for a newer signed
+build and prompts before installing. See `../docs/DESKTOP_CLIENT_PLAN.md` for
+the roadmap (in-app server picker, keychain tokens, native notifications, tray,
+OAuth).
+
+## Install (end users)
+
+Pre-built installers for the latest release are on the
+[releases page](https://github.com/magikh0e/open-relay/releases/latest):
+
+| OS | File | First launch |
+|---|---|---|
+| **Windows** | `..._x64-setup.exe` (or `.msi`) | SmartScreen warns "unknown publisher" &rarr; **More info → Run anyway**. |
+| **macOS** | `..._universal.dmg` (Intel + Apple Silicon) | Blocked as an unverified developer &rarr; **right-click the app → Open → Open**, or clear quarantine: `xattr -dr com.apple.quarantine "/Applications/Open Relay.app"`. |
+| **Linux** | `.AppImage` / `.deb` / `.rpm` | AppImage: `chmod +x` then run. Debian/Ubuntu: `sudo apt install ./*.deb`. Fedora/RHEL: `sudo dnf install ./*.rpm`. |
+
+The builds are **not** signed with a paid Apple or Microsoft certificate, so the
+OS shows a one-time "unknown developer" warning on first launch; the steps above
+clear it. That is separate from the updater's own minisign signature, which is
+always verified. After this first manual install, the built-in updater takes
+over and future releases install with a prompt.
 
 ## Prerequisites
 
