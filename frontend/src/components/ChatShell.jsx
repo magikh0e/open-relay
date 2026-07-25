@@ -469,9 +469,16 @@ export default function ChatShell() {
         } catch {
           server = "unreachable";
         }
+        // The desktop shell injects its own version; show it (distinct from the
+        // bundled web version) so desktop users see the number they update.
+        const desktop =
+          typeof window !== "undefined" && window.__RELAY_DESKTOP_VERSION__;
+        const client = desktop
+          ? `desktop v${desktop} · web v${APP_VERSION}`
+          : `client v${APP_VERSION}`;
         return {
           ok: true,
-          message: `Open Relay — client v${APP_VERSION} · server v${server}`,
+          message: `Open Relay: ${client} · server v${server}`,
         };
       }
       case "me": {

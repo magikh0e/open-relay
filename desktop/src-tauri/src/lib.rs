@@ -26,10 +26,14 @@ pub fn run() {
                 std::env::var("RELAY_SERVER").unwrap_or_else(|_| DEFAULT_SERVER.to_string());
 
             // Runs in the page context before any app JS. serde_json::to_string
-            // safely quotes the value so it can't break out of the string.
+            // safely quotes the values so they can't break out of the string.
+            // Also expose the desktop app's own version so /version can show it
+            // (distinct from the bundled web version).
             let init = format!(
-                "window.__RELAY_SERVER__ = localStorage.getItem('relay_server') || {};",
-                serde_json::to_string(&default_server).unwrap()
+                "window.__RELAY_SERVER__ = localStorage.getItem('relay_server') || {}; \
+                 window.__RELAY_DESKTOP_VERSION__ = {};",
+                serde_json::to_string(&default_server).unwrap(),
+                serde_json::to_string(env!("CARGO_PKG_VERSION")).unwrap()
             );
 
             WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
