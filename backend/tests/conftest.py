@@ -19,6 +19,22 @@ from app.main import app  # noqa: E402
 from app.redis_client import redis_client  # noqa: E402
 
 
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def _seed_whatsnew():
+    """Seed the #whatsnew channel the way application startup does.
+
+    The suite drives the ASGI app through ASGITransport, which does not run
+    lifespan events, so the `ensure_whatsnew()` call in `app.main` never fires.
+    On a database that has only had migrations applied (CI, or a fresh clone)
+    the channel is therefore missing and its tests fail. This passed for a long
+    time only because a dev server had already seeded the shared development
+    database, which made the suite quietly dependent on a hand-run side effect.
+    """
+    from app.seed import ensure_whatsnew
+
+    await ensure_whatsnew()
+
+
 @pytest_asyncio.fixture
 async def client():
     """ASGI client that exercises the real app, without a network listener."""
