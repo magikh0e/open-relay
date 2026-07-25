@@ -62,7 +62,7 @@ Resolution order (handled by `../frontend/src/config.js`):
 3. Same-origin — not useful in a desktop webview, hence the injection.
 
 The default server is `DEFAULT_SERVER` in `src-tauri/src/lib.rs`
-(`https://openrelay.pl`). Override at launch with the `RELAY_SERVER` env var,
+(`https://chat.openrelay.pl`). Override at launch with the `RELAY_SERVER` env var,
 or repoint the constant.
 
 ## Server-side requirement (CORS)
@@ -81,7 +81,7 @@ So allow all three on the VPS `.env.prod` — the last one only matters while
 developing against a remote server, and can be dropped afterwards:
 
 ```
-CORS_ORIGINS=https://openrelay.pl,tauri://localhost,http://tauri.localhost,http://localhost:5173
+CORS_ORIGINS=https://chat.openrelay.pl,tauri://localhost,http://tauri.localhost,http://localhost:5173
 ```
 
 The WebSocket (`/ws`) is not CORS-gated, so it needs no change.

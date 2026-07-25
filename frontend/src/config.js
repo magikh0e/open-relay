@@ -12,7 +12,7 @@
 //   3. import.meta.env.VITE_API_BASE — baked in at build time
 //   4. ""                            — same origin (the web deployment)
 //
-// A resolved value is an absolute origin like "https://openrelay.pl":
+// A resolved value is an absolute origin like "https://chat.openrelay.pl":
 // no trailing slash, no /api suffix. The public paths (/api, /ws) are fixed by
 // the reverse proxy and are the same from every client — only the origin moves.
 //

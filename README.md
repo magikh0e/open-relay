@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://openrelay.pl"><strong>▶ Try the live instance at openrelay.pl</strong></a>
+  <a href="https://chat.openrelay.pl"><strong>▶ Try the live instance at chat.openrelay.pl</strong></a>
 </p>
 
 <p align="center">

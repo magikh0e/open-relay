@@ -34,5 +34,5 @@
 # to the canonical site below. Left at the localhost default it binds a
 # throwaway HTTP-only site (no ACME attempts), so local :80 testing stays quiet.
 {$REDIRECT_FROM:http://localhost:8099} {
-	redir https://openrelay.pl{uri} permanent
+	redir https://chat.openrelay.pl{uri} permanent
 }

@@ -16,7 +16,7 @@ _Open Relay and this guide by **magikh0e**. Free software under the GNU GPL-3.0.
 ## 1. The client–server contract
 
 A client needs exactly one piece of configuration: the **server origin**, e.g.
-`https://openrelay.pl`. Everything hangs off it.
+`https://chat.openrelay.pl`. Everything hangs off it.
 
 | Purpose | URL |
 |---|---|

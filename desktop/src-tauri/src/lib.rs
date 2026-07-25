@@ -11,7 +11,7 @@ use tauri::{WebviewUrl, WebviewWindowBuilder};
 //
 // Repoint the default build by changing this constant (or set RELAY_SERVER in
 // the environment at launch to override it).
-const DEFAULT_SERVER: &str = "https://openrelay.pl";
+const DEFAULT_SERVER: &str = "https://chat.openrelay.pl";
 
 pub fn run() {
     tauri::Builder::default()
