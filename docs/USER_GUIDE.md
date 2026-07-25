@@ -39,6 +39,8 @@ the servers you use and switch between them in a click; each keeps its own
 session, so switching to one you're already signed into is instant, and the
 rest just ask you to sign in. Your login and encryption keys are per-server.
 
+![The server picker](screenshots/08-servers.png)
+
 ## Channels and DMs
 
 - **Channels** live in the left sidebar. Public ones anyone can open and join;
@@ -51,6 +53,8 @@ rest just ask you to sign in. Your login and encryption keys are per-server.
   (name it if you like). Groups are private to their members; the owner can
   rename them and add or remove people, and anyone can leave. Unlike encrypted
   1:1 DMs, group messages are readable by whoever runs the server.
+
+![A group DM](screenshots/07-group-dm.png)
 - **Close a DM** by hovering it and clicking `✕`, or typing `/close`. It only
   hides it for you; nothing is deleted, and it comes back if either of you
   writes again.

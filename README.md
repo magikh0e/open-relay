@@ -32,6 +32,14 @@ you own end to end.
 
 ![Channel](docs/screenshots/02-chat.png)
 
+**A group DM**: message several people at once, with the same channels, files and mentions. Groups are plaintext (readable by whoever runs the server), so they're kept separate from the end-to-end encrypted one-to-one DMs:
+
+![Group DM](docs/screenshots/07-group-dm.png)
+
+**Any server, one app**: point the client at any Open Relay server and switch between the ones you use in a click; each keeps its own sign-in:
+
+![Server picker](docs/screenshots/08-servers.png)
+
 **An encrypted DM**: a lock badge, and a safety number both people can compare to rule out interception. The number is a hash of both participants' public keys; if a server or attacker swapped in its own key to sit in the middle, the two sides would derive different numbers. Comparing them over a separate channel (out loud, in person) confirms nobody did:
 
 ![Encrypted DM](docs/screenshots/03-encrypted-dm.png)

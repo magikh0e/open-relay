@@ -49,7 +49,10 @@ const CRYPTO_SETUP = async (page, apiBase) => {
       body: JSON.stringify({ public_key: bob.public_key, wrapped_private_key: bob.wrapped_private_key, salt: bob.salt, iv: bob.iv }) });
 
     // Alice publishes and caches her unlocked key exactly as the app would.
-    const aliceTok = localStorage.getItem("chat_access");
+    // (Log in via the API rather than reading localStorage: the app migrates
+    // the global chat_access token to a per-origin key on load, so the plain
+    // key is gone by the time this runs.)
+    const aliceTok = await tok("alice");
     const al = await bundle("alices passphrase");
     await fetch(API + "/keys/me", { method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${aliceTok}` },
@@ -158,6 +161,35 @@ const run = async () => {
   await p3.waitForTimeout(200);
   await p3.screenshot({ path: join(OUT, "04-mobile.png") });
   await ctx3.close();
+
+  // 5) Group DM ("Harvest Planning", seeded by demo_setup / seed_group).
+  const ctx4 = await browser.newContext({ viewport: { width: 1360, height: 850 }, deviceScaleFactor: 2 });
+  const p4 = await ctx4.newPage();
+  await authInject(p4);
+  await p4.reload({ waitUntil: "networkidle" });
+  await p4.waitForTimeout(1000);
+  await openChannelNamed(p4, "Harvest Planning");
+  await p4.mouse.move(0, 0);
+  await p4.waitForTimeout(400);
+  await p4.screenshot({ path: join(OUT, "07-group-dm.png") });
+
+  // 6) Saved-servers picker. Stage a realistic saved list (cosmetic only: the
+  // API base is fixed at load, so this just populates the picker's list) and
+  // open it. The active server shows as "current"; one saved server as
+  // "signed in".
+  await p4.evaluate(() => {
+    localStorage.setItem(
+      "relay_servers",
+      JSON.stringify(["https://chat.openrelay.pl", "https://orc.openrelay.pl"])
+    );
+    localStorage.setItem("chat_access:https://chat.openrelay.pl", "docs-demo");
+  });
+  await p4.click(".server-switch");
+  await p4.waitForSelector(".modal", { timeout: 4000 });
+  await p4.mouse.move(0, 0);
+  await p4.waitForTimeout(400);
+  await p4.screenshot({ path: join(OUT, "08-servers.png") });
+  await ctx4.close();
 
   await browser.close();
   console.log("screenshots written to", OUT);

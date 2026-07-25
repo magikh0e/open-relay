@@ -52,8 +52,10 @@ def react(tok, cid, mid, emoji):
 
 if __name__ == "__main__":
     clear_limits()
-    alice = login("alice")
-    bob = login("bob")
+    # register() falls back to login when the account already exists, so this
+    # seeds a clean database and is safe to re-run against a populated one.
+    alice = register("alice", "alice@example.com", "Alice")
+    bob = register("bob", "bob@example.com", "Bob")
     mia = register("mchen", "mchen@example.com", "Mia Chen")
     devon = register("dpark", "dpark@example.com", "Devon Park")
 
@@ -103,5 +105,33 @@ if __name__ == "__main__":
     bob_id = me(bob)
     httpx.post(f"{B}/dms", headers=h(alice), json={"user_id": bob_id})
 
-    print("CHANNEL_ID", cid)
+    # A second public channel so the sidebar reads like an established space.
+    clear_limits()
+    gen = httpx.post(f"{B}/channels", headers=h(alice), json={
+        "slug": "general", "name": "general",
+        "topic": "Anything and everything", "is_private": False,
+    }).json()
+    if "id" in gen:
+        for tok in (bob, mia, devon):
+            httpx.post(f"{B}/channels/{gen['id']}/join", headers=h(tok))
+
+    # --- a group DM, for the group-chat screenshot ----------------------------
+    grp = httpx.post(f"{B}/dms/group", headers=h(alice), json={
+        "user_ids": [me(bob), me(mia), me(devon)],
+        "name": "Harvest Planning",
+    }).json()
+    gid = grp["id"]
+
+    def gpost(tok, text):
+        clear_limits()
+        httpx.post(f"{B}/channels/{gid}/messages", headers=h(tok),
+                   json={"content": text})
+
+    gpost(alice, "made a group so we're not clogging #garden with logistics")
+    gpost(mia, "perfect. who's got curing space this round?")
+    gpost(devon, "i can take a few jars, got a spare closet 🙌")
+    gpost(bob, "i'll bring the boveda packs")
+    gpost(alice, "🙏 sending the schedule tonight")
+
+    print("CHANNEL_ID", cid, "GROUP_ID", gid)
     print("done")
