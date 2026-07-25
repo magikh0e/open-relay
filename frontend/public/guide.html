@@ -160,16 +160,21 @@
         <a href="#notifications"><span class="ti">🔔</span>Notifications</a>
         <a href="#privacy"><span class="ti">🎛️</span>Presence &amp; privacy</a>
         <a href="#account"><span class="ti">📦</span>Your account &amp; data</a>
+        <a href="#webhooks"><span class="ti">🔗</span>Channel webhooks</a>
         <a href="#install"><span class="ti">📲</span>Install as an app</a>
+        <a href="#desktop"><span class="ti">🖥️</span>Desktop app</a>
         <a href="#commands"><span class="ti">⌨️</span>Slash commands</a>
       </nav>
 
       <h2 id="signing-in"><span class="sec-ico">🔑</span>Signing in</h2>
       <p>
         Register with a username, email and password, or use
-        <strong>Continue with Discord</strong> if the server has it enabled. You
-        land in <code>#whatsnew</code>, a read-only channel where release notes
-        are posted; you can react to those but not reply.
+        <strong>Continue with Discord</strong> if the server has it enabled. If
+        the server is <strong>invite-only</strong>, the sign-up form shows an
+        extra <strong>invite code</strong> field; you'll need a code from an
+        admin to register. You land in <code>#whatsnew</code>, a read-only
+        channel where release notes are posted; you can react to those but not
+        reply.
       </p>
       <img class="shot card" src="/guide-login.png"
            alt="The Open Relay sign-in screen" />
@@ -311,6 +316,25 @@ def hello():
         <li><strong>Your data → Delete my account</strong>: permanent and immediate. Your account, keys and settings are erased; messages you sent stay in other people's conversations but stop being attributed to you.</li>
       </ul>
 
+      <h2 id="webhooks"><span class="sec-ico">🔗</span>Channel webhooks</h2>
+      <p>
+        Incoming webhooks let outside services post into a channel: CI results,
+        alerts, home-automation events, anything that can send an HTTP request.
+      </p>
+      <p>
+        If you <strong>own or moderate</strong> a channel, open
+        <strong>Channel settings → Webhooks</strong> to create one. You get back
+        a <strong>secret URL</strong>; anything POSTed to it appears in the
+        channel under a name you choose. Copy the URL when you create it, and
+        <strong>revoke</strong> it from the same place anytime it leaks or you're
+        done with it.
+      </p>
+      <blockquote>
+        Treat the URL like a password: anyone who has it can post to the channel.
+        The request format is in the
+        <a href="/developers.html">developer guide</a>.
+      </blockquote>
+
       <h2 id="install"><span class="sec-ico">📲</span>Install it as an app</h2>
       <p>Open Relay can be installed like a native app and opens in its own window:</p>
       <ul>
@@ -318,6 +342,21 @@ def hello():
         <li><strong>iPhone / iPad</strong>: <strong>Share → Add to Home Screen</strong>.</li>
       </ul>
       <p>The app shell loads offline, though you still need a connection to send or receive messages.</p>
+
+      <h2 id="desktop"><span class="sec-ico">🖥️</span>Desktop app</h2>
+      <p>
+        There's also a native desktop app for <strong>macOS, Linux and
+        Windows</strong>: the same Open Relay in its own window, built with Tauri
+        and Rust, around 4&nbsp;MB. Download it from the
+        <a href="https://github.com/magikh0e/open-relay/releases" target="_blank" rel="noreferrer">releases page</a>.
+      </p>
+      <p>
+        It points at your server just like the web app, and
+        <strong>updates itself</strong>: when a new version is published it asks
+        whether to install, then updates and restarts on your OK. You're never
+        forced, and it only checks GitHub for the new build; it never phones home
+        about you.
+      </p>
 
       <h2 id="commands"><span class="sec-ico">⌨️</span>Slash commands</h2>
       <p>Type these in the message box. <code>/help</code> lists them in-app.</p>

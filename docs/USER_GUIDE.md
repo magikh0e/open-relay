@@ -15,7 +15,9 @@ _Open Relay and this guide by **magikh0e**. Free software under the GNU GPL-3.0.
 - [Notifications](#notifications)
 - [Presence and privacy](#presence-and-privacy)
 - [Your account and data](#your-account-and-data)
+- [Channel webhooks](#channel-webhooks)
 - [Install it as an app](#install-it-as-an-app)
+- [Desktop app](#desktop-app)
 - [Slash commands](#slash-commands)
 
 ---
@@ -23,8 +25,10 @@ _Open Relay and this guide by **magikh0e**. Free software under the GNU GPL-3.0.
 ## Signing in
 
 Register with a username, email and password, or use **Continue with Discord**
-if the server has it enabled. You land in `#whatsnew`, a read-only channel where
-release notes are posted; you can react to those but not reply.
+if the server has it enabled. If the server is **invite-only**, the sign-up form
+shows an extra **invite code** field; you'll need a code from an admin to
+register. You land in `#whatsnew`, a read-only channel where release notes are
+posted; you can react to those but not reply.
 
 ## Channels and DMs
 
@@ -163,6 +167,19 @@ From your profile:
   keys and settings are erased; messages you sent stay in other people's
   conversations but stop being attributed to you.
 
+## Channel webhooks
+
+Incoming webhooks let outside services post into a channel: CI results, alerts,
+home-automation events, anything that can send an HTTP request.
+
+If you **own or moderate** a channel, open **Channel settings → Webhooks** to
+create one. You get back a **secret URL**; anything POSTed to it appears in the
+channel under a name you choose. Copy the URL when you create it, and **revoke**
+it from the same place anytime it leaks or you're done with it.
+
+> Treat the URL like a password: anyone who has it can post to the channel. The
+> request format is in the [developer guide](DEVELOPER_GUIDE.md).
+
 ## Install it as an app
 
 Open Relay can be installed like a native app and opens in its own window:
@@ -173,6 +190,17 @@ Open Relay can be installed like a native app and opens in its own window:
 
 The app shell loads offline, though you still need a connection to send or
 receive messages.
+
+## Desktop app
+
+There's also a native desktop app for **macOS, Linux and Windows**: the same
+Open Relay in its own window, built with Tauri and Rust, around 4 MB. Download it
+from the [releases page](https://github.com/magikh0e/open-relay/releases).
+
+It points at your server just like the web app, and **updates itself**: when a
+new version is published it asks whether to install, then updates and restarts on
+your OK. You're never forced, and it only checks GitHub for the new build; it
+never phones home about you.
 
 ## Slash commands
 
