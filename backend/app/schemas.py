@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -107,7 +108,7 @@ class ModerateIn(BaseModel):
 
 class RoleUpdate(BaseModel):
     user_id: str
-    role: str  # "mod" (operator) or "member"
+    role: Literal["owner", "mod", "member"]
 
 
 class ProfileOut(BaseModel):

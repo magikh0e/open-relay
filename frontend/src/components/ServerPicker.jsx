@@ -7,12 +7,14 @@ import {
   hasSession,
   setServer,
 } from "../config.js";
+import { useDialog } from "../useDialog.js";
 
 // Point the app at any Open Relay instance and keep a list to switch between.
 // Switching writes localStorage (read by config.js on next load) and reloads;
 // sessions are namespaced per server, so switching to one you're already
 // signed into is instant, and others just ask you to sign in.
 export default function ServerPicker({ onClose }) {
+  const dialogRef = useDialog(onClose);
   const active = serverLabel(); // the origin currently in use
   // Make sure the active server is listed, so switching is symmetric.
   const [list, setList] = useState(() => addSavedServer(active));
@@ -47,10 +49,6 @@ export default function ServerPicker({ onClose }) {
       setMsg("That doesn't look like a valid address.");
       return;
     }
-    if (!/^https?:\/\//i.test(target)) {
-      setMsg("Enter an http(s) address.");
-      return;
-    }
     setBusy(true);
     setMsg("");
     // Best-effort reachability probe; CORS can block it even when the server is
@@ -79,15 +77,22 @@ export default function ServerPicker({ onClose }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Servers"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
           <h3>Servers</h3>
-          <button className="link" onClick={onClose}>
+          <button className="link" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
         <p className="muted small">
-          Point this app at any Open Relay instance. Sessions are kept per
+          Point this app at any Open Relay server. Sessions are kept per
           server, so switching to one you're signed into is instant; the rest
           ask you to sign in.
         </p>

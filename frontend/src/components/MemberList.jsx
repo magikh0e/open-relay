@@ -38,14 +38,14 @@ export default function MemberList({
   return (
     <aside className="member-list" {...bind}>
       <Section
-        title={`Online — ${onlineMembers.length}`}
+        title={`Online · ${onlineMembers.length}`}
         members={onlineMembers}
         isOnline
         {...shared}
       />
       {offlineMembers.length > 0 && (
         <Section
-          title={`Offline — ${offlineMembers.length}`}
+          title={`Offline · ${offlineMembers.length}`}
           members={offlineMembers}
           {...shared}
         />
@@ -88,7 +88,7 @@ function Section({
               onClick={() => onOpenProfile?.(m.id)}
               title={
                 awayMap[m.id]
-                  ? `@${m.username} — away: ${awayMap[m.id]}`
+                  ? `@${m.username}, away: ${awayMap[m.id]}`
                   : `@${m.username}`
               }
             >

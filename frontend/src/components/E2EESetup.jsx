@@ -72,11 +72,11 @@ export default function E2EESetup({ mode, onUnlocked, onClose }) {
           <>
             <p className="muted small">
               Your messages get a key that only you hold. Pick a passphrase to
-              protect it — you'll enter this on each new device.
+              protect it; you'll enter this on each new device.
             </p>
             <div className="e2ee-warn">
               There is no reset. If you forget this passphrase, your encrypted
-              messages are gone for good — not even the server admin can recover
+              messages are gone for good; not even the server admin can recover
               them.
             </div>
           </>

@@ -14,7 +14,7 @@ from ..models import (
 )
 from ..schemas import ChannelOut, DMCreate, GroupCreate, UserPublic
 from ..ws_manager import manager
-from .channels import _announce_removal, _member_count, _unread_for
+from .channels import _announce_removal, _channel_stats, _member_count
 from .messages import announce_action
 
 # Total people (including the creator) a group DM may hold.
@@ -49,9 +49,28 @@ async def list_dms(db: DB, user: CurrentUser) -> list[ChannelOut]:
         )
     ).scalars().all()
 
+    ids = [ch.id for ch in channels]
+    stats = await _channel_stats(db, ids, user.id)
+
+    # The other participant of every 1:1 DM, in one query rather than per-DM.
+    dm_ids = [ch.id for ch in channels if ch.kind == KIND_DM]
+    peers: dict[str, User] = {}
+    if dm_ids:
+        for cid, other in (
+            await db.execute(
+                select(ChannelMember.channel_id, User)
+                .join(User, User.id == ChannelMember.user_id)
+                .where(
+                    ChannelMember.channel_id.in_(dm_ids),
+                    ChannelMember.user_id != user.id,
+                )
+            )
+        ).all():
+            peers[cid] = other
+
     out: list[ChannelOut] = []
     for ch in channels:
-        unread, mentions = await _unread_for(db, ch.id, user.id)
+        st = stats[ch.id]
         if ch.kind == KIND_GROUP:
             out.append(
                 ChannelOut(
@@ -62,22 +81,14 @@ async def list_dms(db: DB, user: CurrentUser) -> list[ChannelOut]:
                     topic="",
                     created_by=ch.created_by,
                     created_at=ch.created_at,
-                    member_count=await _member_count(db, ch.id),
+                    member_count=st["member_count"],
                     is_member=True,
-                    unread_count=unread,
-                    mention_count=mentions,
+                    unread_count=st["unread"],
+                    mention_count=st["mentions"],
                 )
             )
             continue
-        other = (
-            await db.execute(
-                select(User)
-                .join(ChannelMember, ChannelMember.user_id == User.id)
-                .where(
-                    ChannelMember.channel_id == ch.id, User.id != user.id
-                )
-            )
-        ).scalar_one_or_none()
+        other = peers.get(ch.id)
         out.append(
             ChannelOut(
                 id=ch.id,
@@ -89,8 +100,8 @@ async def list_dms(db: DB, user: CurrentUser) -> list[ChannelOut]:
                 created_at=ch.created_at,
                 member_count=2,
                 is_member=True,
-                unread_count=unread,
-                mention_count=mentions,
+                unread_count=st["unread"],
+                mention_count=st["mentions"],
             )
         )
     return out

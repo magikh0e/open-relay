@@ -541,7 +541,7 @@ export default function MessagePane({
           {e2ee?.ready && (
             <button
               className="e2ee-badge"
-              title="End-to-end encrypted — click to verify the connection"
+              title="End-to-end encrypted; click to verify the connection"
               onClick={() => setShowFingerprint((v) => !v)}
             >
               🔒 Encrypted
@@ -549,7 +549,8 @@ export default function MessagePane({
           )}
           {!isDm && (
             <span className="muted small member-count-label">
-              {channel.member_count} members
+              {channel.member_count}{" "}
+              {channel.member_count === 1 ? "member" : "members"}
             </span>
           )}
           {!isDm && onToggleRoster && (
@@ -587,7 +588,7 @@ export default function MessagePane({
           <div className="fingerprint-head">Safety number</div>
           <code className="fingerprint">{e2ee.fingerprint}</code>
           <p className="muted small">
-            Read this aloud to {channel.name} — over the phone or in person. If
+            Read this aloud to {channel.name}, over the phone or in person. If
             your numbers match, nobody is sitting in the middle. If they don't,
             stop and don't share anything sensitive here.
           </p>
@@ -873,7 +874,7 @@ export default function MessagePane({
           <span className="reply-arrow">↩</span>
           <span className="reply-bar-text">
             Replying to <b>{replyingTo.sender_name}</b>
-            <span className="reply-snippet"> — {replyingTo.content}</span>
+            <span className="reply-snippet">: {replyingTo.content}</span>
           </span>
           <button
             className="link"
@@ -912,7 +913,7 @@ export default function MessagePane({
       {e2ee && !e2ee.ready && (
         <div className="e2ee-bar">
           <span>
-            🔓 Not encrypted —{" "}
+            🔓 Not encrypted.{" "}
             {e2ee.status === "none"
               ? "set up encryption to protect these messages."
               : e2ee.status === "locked"
@@ -930,7 +931,7 @@ export default function MessagePane({
       <div className="composer-wrap">
         {!canPost ? (
           <div className="readonly-note">
-            🔒 Announcements only — react to updates below, but posting is
+            🔒 Announcements only; react to updates below, but posting is
             disabled here.
           </div>
         ) : (

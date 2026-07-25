@@ -77,12 +77,12 @@ export default function SearchModal({ onClose, onOpen }) {
               if (e.key === "Escape") onClose();
             }}
           />
-          <button className="link" onClick={onClose}>
+          <button className="link" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
         <div className="search-note muted small">
-          🔒 Encrypted direct messages aren't searchable — the server can't read
+          🔒 Encrypted direct messages aren't searchable; the server can't read
           them to index them.
         </div>
         <div className="search-results">

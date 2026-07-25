@@ -173,7 +173,7 @@ export default function Login() {
             type="button"
             className="policy-link"
             onClick={() => setPickerOpen(true)}
-            title="Connect to a different Open Relay instance"
+            title="Connect to a different Open Relay server"
           >
             {serverLabel()}
           </button>

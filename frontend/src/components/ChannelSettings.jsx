@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Avatar from "./Avatar.jsx";
 import ChannelWebhooks from "./ChannelWebhooks.jsx";
+import { useDialog } from "../useDialog.js";
 
 // Channel management for owners/admins: details (name, topic, privacy), member
 // roles (op / transfer ownership / kick / ban), and deletion.
@@ -16,6 +17,7 @@ export default function ChannelSettings({
   onOpenProfile,
   onClose,
   onConfirm,}) {
+  const dialogRef = useDialog(onClose);
   const [name, setName] = useState(channel.name);
   const [topic, setTopic] = useState(channel.topic || "");
   const [isPrivate, setIsPrivate] = useState(channel.kind === "private");
@@ -27,17 +29,20 @@ export default function ChannelSettings({
   const [pw, setPw] = useState("");
   const [pwBusy, setPwBusy] = useState(false);
   const [pwMsg, setPwMsg] = useState("");
+  const [pwErr, setPwErr] = useState(false); // colours pwMsg as an error vs a notice
   const canHavePassword = channel.kind === "public" && !channel.read_only;
 
   async function setPassword() {
     if (pw.length < 8) return;
     setPwBusy(true);
     setPwMsg("");
+    setPwErr(false);
     try {
       await onUpdate({ password: pw });
       setPw("");
       setPwMsg("Password set. New members will need it to join.");
     } catch (e) {
+      setPwErr(true);
       setPwMsg(e.message);
     } finally {
       setPwBusy(false);
@@ -47,10 +52,12 @@ export default function ChannelSettings({
   async function removePassword() {
     setPwBusy(true);
     setPwMsg("");
+    setPwErr(false);
     try {
       await onUpdate({ password: "" });
       setPwMsg("Password removed. Anyone can join now.");
     } catch (e) {
+      setPwErr(true);
       setPwMsg(e.message);
     } finally {
       setPwBusy(false);
@@ -80,10 +87,17 @@ export default function ChannelSettings({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal settings-modal"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Channel settings"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
           <h3>Channel settings</h3>
-          <button className="link" onClick={onClose}>
+          <button className="link" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
@@ -111,7 +125,7 @@ export default function ChannelSettings({
               checked={isPrivate}
               onChange={(e) => setIsPrivate(e.target.checked)}
             />
-            Private — hidden from the public directory (members only)
+            Private: hidden from the public directory (members only)
           </label>
           <button className="primary" disabled={!dirty || saving} onClick={save}>
             {saving ? "Saving…" : "Save changes"}
@@ -163,7 +177,9 @@ export default function ChannelSettings({
                 </button>
               )}
             </div>
-            {pwMsg && <div className="muted small">{pwMsg}</div>}
+            {pwMsg && (
+              <div className={pwErr ? "error" : "muted small"}>{pwMsg}</div>
+            )}
           </div>
         )}
 

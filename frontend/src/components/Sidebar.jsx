@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { serverLabel } from "../config.js";
 import { useAuth } from "../auth.jsx";
+import { useDialog } from "../useDialog.js";
 import Avatar from "./Avatar.jsx";
 import ServerPicker from "./ServerPicker.jsx";
 
@@ -51,7 +52,12 @@ export default function Sidebar({
       <div className="section">
         <div className="section-head">
           <span>Channels</span>
-          <button className="link" onClick={() => setCreating(true)}>
+          <button
+            className="link"
+            onClick={() => setCreating(true)}
+            title="Create a channel"
+            aria-label="Create a channel"
+          >
             +
           </button>
         </div>
@@ -103,7 +109,12 @@ export default function Sidebar({
       <div className="section">
         <div className="section-head">
           <span>Direct Messages</span>
-          <button className="link" onClick={() => setDmSearch(true)}>
+          <button
+            className="link"
+            onClick={() => setDmSearch(true)}
+            title="Start a conversation"
+            aria-label="Start a conversation"
+          >
             +
           </button>
         </div>
@@ -162,7 +173,7 @@ export default function Sidebar({
       <button
         className="server-switch"
         onClick={() => setServerOpen(true)}
-        title="Switch server or add another instance"
+        title="Switch server or add another"
       >
         <span className="server-switch-icon">⇄</span>
         <span className="server-switch-label">
@@ -211,6 +222,7 @@ function CreateChannel({ onClose, onCreated }) {
   const [isPrivate, setIsPrivate] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const slug = name
     .toLowerCase()
@@ -221,6 +233,7 @@ function CreateChannel({ onClose, onCreated }) {
   const pwTooShort = !isPrivate && password.length > 0 && password.length < 8;
 
   async function create() {
+    setBusy(true);
     setError("");
     try {
       const body = { slug, name, topic: "", is_private: isPrivate };
@@ -229,6 +242,7 @@ function CreateChannel({ onClose, onCreated }) {
       onCreated(ch.id);
     } catch (e) {
       setError(e.message);
+      setBusy(false);
     }
   }
 
@@ -267,10 +281,10 @@ function CreateChannel({ onClose, onCreated }) {
       {error && <div className="error">{error}</div>}
       <button
         className="primary"
-        disabled={slug.length < 2 || pwTooShort}
+        disabled={slug.length < 2 || pwTooShort || busy}
         onClick={create}
       >
-        Create
+        {busy ? "Creating…" : "Create"}
       </button>
     </Modal>
   );
@@ -395,7 +409,7 @@ function NewDM({ onClose, onOpened, onCreateGroup }) {
       <div className="results">
         {results.map((u) => (
           <button key={u.id} className="result" onClick={() => toggle(u)}>
-            <span className="avatar sm">{u.display_name[0]?.toUpperCase()}</span>
+            <Avatar name={u.display_name} admin={u.is_admin} size="sm" />
             <span>
               {u.display_name} <span className="muted">@{u.username}</span>
             </span>
@@ -414,7 +428,9 @@ function NewDM({ onClose, onOpened, onCreateGroup }) {
       {selected.length > 0 && (
         <button className="primary" disabled={busy} onClick={go}>
           {busy
-            ? "…"
+            ? isGroup
+              ? "Creating…"
+              : "Opening…"
             : isGroup
             ? `Create group (${selected.length})`
             : `Message ${selected[0].display_name}`}
@@ -425,12 +441,20 @@ function NewDM({ onClose, onOpened, onCreateGroup }) {
 }
 
 function Modal({ title, children, onClose }) {
+  const dialogRef = useDialog(onClose);
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
           <h3>{title}</h3>
-          <button className="link" onClick={onClose}>
+          <button className="link" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>

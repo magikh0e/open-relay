@@ -264,6 +264,7 @@ async def export_me(db: DB, user: CurrentUser) -> dict:
             "share_presence": user.share_presence,
             "allow_dms": user.allow_dms,
             "discoverable": user.discoverable,
+            "share_last_active": user.share_last_active,
         },
         "messages": [
             {

@@ -610,7 +610,7 @@ export default function ChatShell() {
         setMsgsByChannel((prev) => ({ ...prev, [active.id]: [] }));
         return {
           ok: true,
-          message: "Cleared this view locally — reload to restore history.",
+          message: "Cleared this view locally; reload to restore history.",
         };
       case "quit":
         logout();
@@ -753,7 +753,7 @@ export default function ChatShell() {
         }
       }
       default:
-        throw new Error(`Unknown command: /${cmd} — try /help`);
+        throw new Error(`Unknown command: /${cmd}. Try /help`);
     }
   }
 
@@ -1119,7 +1119,7 @@ export default function ChatShell() {
           members={activeMembers}
           myId={user.id}
           isOwner={isOwner}
-          online={online}
+          onConfirm={ask}
           onRename={(name) => updateChannel(active.id, { name })}
           onAddMember={(userId) => addGroupMember(active.id, userId)}
           onRemoveMember={(userId) => removeGroupMember(active.id, userId)}

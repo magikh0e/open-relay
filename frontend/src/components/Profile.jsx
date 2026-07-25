@@ -361,7 +361,7 @@ function PasswordForm({ hasPassword }) {
         {busy ? "Saving…" : hasPassword ? "Change password" : "Set password"}
       </button>
       <div className="muted small">
-        This is separate from your message-encryption passphrase — changing it
+        This is separate from your message-encryption passphrase; changing it
         won't affect encrypted DMs.
       </div>
     </form>

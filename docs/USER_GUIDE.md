@@ -31,8 +31,8 @@ register. You land in `#whatsnew`, a read-only channel where release notes are
 posted; you can react to those but not reply.
 
 **Connecting to a different server.** Both the sign-in screen and a switcher at
-the bottom of the sidebar let you point the app at any Open Relay instance. Add
-the instances you use and switch between them in a click; each keeps its own
+the bottom of the sidebar let you point the app at any Open Relay server. Add
+the servers you use and switch between them in a click; each keeps its own
 session, so switching to one you're already signed into is instant, and the
 rest just ask you to sign in. Your login and encryption keys are per-server.
 

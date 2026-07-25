@@ -37,6 +37,19 @@ from .messages import announce_action
 router = APIRouter(prefix="/channels", tags=["channels"])
 
 
+async def _active_channel(db, channel_id: str) -> Channel:
+    """Load a channel for an action, 404ing if it's missing or archived.
+
+    Centralizes the archived check so every mutation path treats an archived
+    channel as gone, the same way get/join already do — rather than each
+    endpoint remembering (or forgetting) to check.
+    """
+    ch = await db.get(Channel, channel_id)
+    if ch is None or ch.archived:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return ch
+
+
 async def _require_moderator(db, channel: Channel, user: User) -> None:
     """Site admins, or the channel's owner/mod, may moderate."""
     if user.is_admin:
@@ -53,6 +66,22 @@ async def _require_moderator(db, channel: Channel, user: User) -> None:
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to moderate this channel",
+        )
+
+
+async def _require_owner(db, channel: Channel, user: User) -> None:
+    """Site admins, or the channel's owner, may perform owner-only actions.
+
+    The owner-or-admin gate was hand-rolled in four endpoints; this is the one
+    copy they now share.
+    """
+    if user.is_admin:
+        return
+    member = await _target_member(db, channel.id, user.id)
+    if member is None or member.role != ROLE_OWNER:
+        raise HTTPException(
+            status_code=403,
+            detail="Only the channel owner or a site admin can do that",
         )
 
 
@@ -77,43 +106,81 @@ async def _is_member(db, channel_id: str, user_id: str) -> bool:
     ).scalar_one_or_none() is not None
 
 
-async def _unread_for(db, channel_id: str, user_id: str) -> tuple[int, int]:
-    """(unread, mentions) since the member's last_read_at. Own messages and
-    deleted ones don't count."""
-    member = (
+async def _channel_stats(
+    db, channel_ids: list[str], user_id: str
+) -> dict[str, dict]:
+    """Batch the per-channel figures the list endpoints need.
+
+    Returns ``{channel_id: {member_count, is_member, unread, mentions}}`` using
+    a constant number of grouped queries, instead of the previous ~5 queries per
+    channel (member count, membership, and a three-query unread/mention count
+    looped over every channel).
+    """
+    stats = {
+        cid: {"member_count": 0, "is_member": False, "unread": 0, "mentions": 0}
+        for cid in channel_ids
+    }
+    if not channel_ids:
+        return stats
+
+    # Member counts for every channel, one grouped query.
+    for cid, cnt in (
+        await db.execute(
+            select(ChannelMember.channel_id, func.count())
+            .where(ChannelMember.channel_id.in_(channel_ids))
+            .group_by(ChannelMember.channel_id)
+        )
+    ).all():
+        stats[cid]["member_count"] = int(cnt)
+
+    # The caller's own membership rows carry both is_member and each channel's
+    # last_read_at, in one query.
+    for m in (
         await db.execute(
             select(ChannelMember).where(
-                ChannelMember.channel_id == channel_id,
+                ChannelMember.channel_id.in_(channel_ids),
                 ChannelMember.user_id == user_id,
             )
         )
-    ).scalar_one_or_none()
-    if member is None:
-        return 0, 0
-    base = (
-        select(Message.id)
-        .where(
-            Message.channel_id == channel_id,
-            Message.created_at > member.last_read_at,
-            Message.deleted_at.is_(None),
-            Message.sender_id != user_id,
-        )
-        .subquery()
+    ).scalars().all():
+        stats[m.channel_id]["is_member"] = True
+
+    # Unread and mention counts. Joining messages against the caller's own
+    # membership row measures each channel from its own last_read_at, so both
+    # figures come from one grouped query each (channels the caller hasn't
+    # joined match no membership row and stay at zero, as before).
+    my_membership = (ChannelMember.channel_id == Message.channel_id) & (
+        ChannelMember.user_id == user_id
     )
-    unread = (
-        await db.execute(select(func.count()).select_from(base))
-    ).scalar_one()
-    mentions = (
+    unread_where = (
+        Message.channel_id.in_(channel_ids),
+        Message.deleted_at.is_(None),
+        Message.sender_id != user_id,
+        Message.created_at > ChannelMember.last_read_at,
+    )
+    for cid, cnt in (
         await db.execute(
-            select(func.count())
-            .select_from(MessageMention)
-            .where(
-                MessageMention.user_id == user_id,
-                MessageMention.message_id.in_(select(base.c.id)),
-            )
+            select(Message.channel_id, func.count())
+            .join(ChannelMember, my_membership)
+            .where(*unread_where)
+            .group_by(Message.channel_id)
         )
-    ).scalar_one()
-    return int(unread), int(mentions)
+    ).all():
+        stats[cid]["unread"] = int(cnt)
+
+    for cid, cnt in (
+        await db.execute(
+            select(Message.channel_id, func.count())
+            .select_from(MessageMention)
+            .join(Message, Message.id == MessageMention.message_id)
+            .join(ChannelMember, my_membership)
+            .where(MessageMention.user_id == user_id, *unread_where)
+            .group_by(Message.channel_id)
+        )
+    ).all():
+        stats[cid]["mentions"] = int(cnt)
+
+    return stats
 
 
 def _to_out(
@@ -168,19 +235,18 @@ async def list_channels(db: DB, user: CurrentUser) -> list[ChannelOut]:
         )
     ).scalars().all()
 
-    out: list[ChannelOut] = []
-    for ch in [*public, *private]:
-        unread, mentions = await _unread_for(db, ch.id, user.id)
-        out.append(
-            _to_out(
-                ch,
-                await _member_count(db, ch.id),
-                await _is_member(db, ch.id, user.id),
-                unread,
-                mentions,
-            )
+    all_channels = [*public, *private]
+    stats = await _channel_stats(db, [ch.id for ch in all_channels], user.id)
+    return [
+        _to_out(
+            ch,
+            stats[ch.id]["member_count"],
+            stats[ch.id]["is_member"],
+            stats[ch.id]["unread"],
+            stats[ch.id]["mentions"],
         )
-    return out
+        for ch in all_channels
+    ]
 
 
 # Non-admin users may create at most this many channels (DMs don't count).
@@ -236,12 +302,12 @@ async def create_channel(body: ChannelCreate, db: DB, user: CurrentUser) -> Chan
 
 @router.get("/{channel_id}", response_model=ChannelOut)
 async def get_channel(channel_id: str, db: DB, user: CurrentUser) -> ChannelOut:
-    ch = await db.get(Channel, channel_id)
-    if ch is None or ch.archived:
-        raise HTTPException(status_code=404, detail="Channel not found")
+    ch = await _active_channel(db, channel_id)
     is_member = await _is_member(db, ch.id, user.id)
     if ch.kind in (KIND_PRIVATE, KIND_DM, KIND_GROUP) and not is_member:
-        raise HTTPException(status_code=403, detail="Not a member")
+        raise HTTPException(
+            status_code=403, detail="You are not a member of this channel"
+        )
     return _to_out(ch, await _member_count(db, ch.id), is_member)
 
 
@@ -249,9 +315,7 @@ async def get_channel(channel_id: str, db: DB, user: CurrentUser) -> ChannelOut:
 async def join_channel(
     channel_id: str, db: DB, user: CurrentUser, body: ChannelJoin = ChannelJoin()
 ) -> ChannelOut:
-    ch = await db.get(Channel, channel_id)
-    if ch is None or ch.archived:
-        raise HTTPException(status_code=404, detail="Channel not found")
+    ch = await _active_channel(db, channel_id)
     if ch.kind != KIND_PUBLIC:
         raise HTTPException(
             status_code=403, detail="This channel cannot be joined directly"
@@ -295,6 +359,13 @@ async def leave_channel(channel_id: str, db: DB, user: CurrentUser) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can't leave the announcements channel.",
         )
+    if ch is not None and ch.kind == KIND_DM:
+        # A DM is left via close (which only hides it); hard-deleting the
+        # membership here would corrupt the peer's view of the conversation.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Close a direct message instead of leaving it.",
+        )
     await db.delete(member)
     # Part notice for public channels and group DMs (private-channel membership
     # is managed via invite/kick, which announce separately). announce_action
@@ -335,12 +406,8 @@ async def channel_members(
 async def update_channel(
     channel_id: str, body: ChannelUpdate, db: DB, user: CurrentUser
 ) -> ChannelOut:
-    ch = await db.get(Channel, channel_id)
-    if ch is None:
-        raise HTTPException(status_code=404, detail="Channel not found")
-    member = await require_membership(db, channel_id, user.id)
-    if member.role not in (ROLE_OWNER,) and not user.is_admin:
-        raise HTTPException(status_code=403, detail="Only the owner can edit")
+    ch = await _active_channel(db, channel_id)
+    await _require_owner(db, ch, user)
     # Captured before any change so the redacted key notice can say set vs
     # changed vs removed. The key value itself is never announced.
     had_password = bool(ch.password_hash)
@@ -427,9 +494,7 @@ async def _announce_removal(channel_id: str, target_id: str, banned: bool) -> No
 async def kick_member(
     channel_id: str, body: ModerateIn, db: DB, user: CurrentUser
 ) -> None:
-    ch = await db.get(Channel, channel_id)
-    if ch is None:
-        raise HTTPException(status_code=404, detail="Channel not found")
+    ch = await _active_channel(db, channel_id)
     await _require_moderator(db, ch, user)
     if body.user_id == user.id:
         raise HTTPException(status_code=400, detail="Use leave to remove yourself")
@@ -451,9 +516,7 @@ async def kick_member(
 async def ban_member(
     channel_id: str, body: ModerateIn, db: DB, user: CurrentUser
 ) -> None:
-    ch = await db.get(Channel, channel_id)
-    if ch is None:
-        raise HTTPException(status_code=404, detail="Channel not found")
+    ch = await _active_channel(db, channel_id)
     await _require_moderator(db, ch, user)
     if body.user_id == user.id:
         raise HTTPException(status_code=400, detail="You cannot ban yourself")
@@ -496,9 +559,7 @@ async def ban_member(
 async def unban_member(
     channel_id: str, body: ModerateIn, db: DB, user: CurrentUser
 ) -> None:
-    ch = await db.get(Channel, channel_id)
-    if ch is None:
-        raise HTTPException(status_code=404, detail="Channel not found")
+    ch = await _active_channel(db, channel_id)
     await _require_moderator(db, ch, user)
     ban = (
         await db.execute(
@@ -522,12 +583,14 @@ async def invite_member(
     channel_id: str, body: ModerateIn, db: DB, user: CurrentUser
 ) -> None:
     """Add a user to a channel (any member may invite; key for private channels)."""
-    ch = await db.get(Channel, channel_id)
-    if ch is None:
-        raise HTTPException(status_code=404, detail="Channel not found")
+    ch = await _active_channel(db, channel_id)
     if ch.kind == KIND_DM:
         raise HTTPException(status_code=400, detail="Not applicable to direct messages")
     await require_membership(db, channel_id, user.id)
+    # A password-protected channel gates entry on the key; only a moderator may
+    # add someone directly, so an ordinary member can't invite around the key.
+    if ch.password_hash:
+        await _require_moderator(db, ch, user)
 
     target = await db.get(User, body.user_id)
     if target is None or not target.is_active:
@@ -564,9 +627,7 @@ async def set_member_role(
     channel_id: str, body: RoleUpdate, db: DB, user: CurrentUser
 ) -> None:
     """Grant or revoke channel operator (mod) status. Owner or site admin only."""
-    ch = await db.get(Channel, channel_id)
-    if ch is None:
-        raise HTTPException(status_code=404, detail="Channel not found")
+    ch = await _active_channel(db, channel_id)
     if ch.kind == KIND_DM:
         raise HTTPException(status_code=400, detail="Not applicable to direct messages")
     if body.role not in (ROLE_OWNER, ROLE_MOD, ROLE_MEMBER):
@@ -575,13 +636,7 @@ async def set_member_role(
         )
 
     # Only the channel owner or a site admin can assign roles.
-    if not user.is_admin:
-        me = await _target_member(db, channel_id, user.id)
-        if me is None or me.role != ROLE_OWNER:
-            raise HTTPException(
-                status_code=403,
-                detail="Only the channel owner or a site admin can set roles",
-            )
+    await _require_owner(db, ch, user)
     if body.user_id == user.id:
         raise HTTPException(status_code=400, detail="You cannot change your own role")
 
@@ -651,13 +706,7 @@ async def delete_channel(channel_id: str, db: DB, user: CurrentUser) -> None:
         raise HTTPException(
             status_code=403, detail="The announcements channel can't be deleted."
         )
-    if not user.is_admin:
-        member = await _target_member(db, channel_id, user.id)
-        if member is None or member.role != ROLE_OWNER:
-            raise HTTPException(
-                status_code=403,
-                detail="Only the channel owner or a site admin can delete this channel",
-            )
+    await _require_owner(db, ch, user)
 
     # Record before deletion (the channel_id FK gets nulled by the cascade, so
     # keep the name in `detail`).

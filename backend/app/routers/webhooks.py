@@ -35,7 +35,7 @@ def _invoke_url(webhook: Webhook) -> str:
 
 async def _channel_for_moderation(db, channel_id: str, user) -> Channel:
     channel = await db.get(Channel, channel_id)
-    if channel is None or channel.kind == KIND_DM:
+    if channel is None or channel.archived or channel.kind == KIND_DM:
         raise HTTPException(status_code=404, detail="Channel not found")
     await _require_moderator(db, channel, user)  # raises 403 if not owner/mod/admin
     return channel
@@ -115,13 +115,15 @@ async def invoke_webhook(
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
 
     channel = await db.get(Channel, wh.channel_id)
-    if channel is None:  # channel deleted out from under the webhook
+    if channel is None or channel.archived:  # deleted/archived out from under it
         raise HTTPException(status_code=404, detail="Not found")
 
     content = sanitize_text(body.text, max_length=4000, allow_newlines=True)
     if not content.strip():
         raise HTTPException(status_code=422, detail="Empty message")
-    display = (body.name or wh.name)[:64]
+    display = sanitize_text(
+        body.name or wh.name, max_length=64, allow_newlines=False
+    )
 
     msg = Message(
         channel_id=channel.id,

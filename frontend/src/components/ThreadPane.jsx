@@ -84,7 +84,7 @@ export default function ThreadPane({
           </button>
         </form>
       ) : (
-        <div className="readonly-note">🔒 React only — replies are disabled.</div>
+        <div className="readonly-note">🔒 React only; replies are disabled.</div>
       )}
     </aside>
   );

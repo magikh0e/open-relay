@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import Avatar from "./Avatar.jsx";
+import { useDialog } from "../useDialog.js";
 
 // Group DM management: rename (owner), see/add/remove members, and leave.
 // Members are managed here rather than via channel moderation (no roles, kicks
@@ -15,14 +16,17 @@ export default function GroupInfo({
   onRemoveMember, // (userId) => Promise
   onLeave,
   onOpenProfile,
+  onConfirm, // (opts) => Promise<bool>, the app's in-house confirm dialog
   onClose,
 }) {
+  const dialogRef = useDialog(onClose);
   const [name, setName] = useState(group.name);
   const [savingName, setSavingName] = useState(false);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
 
   const memberIds = new Set(members.map((m) => m.id));
 
@@ -65,21 +69,41 @@ export default function GroupInfo({
     }
   }
 
-  async function remove(userId) {
+  async function remove(member) {
+    if (removingId) return; // guard against a double-click firing twice
+    const ok = onConfirm
+      ? await onConfirm({
+          title: `Remove ${member.display_name}?`,
+          body: "They'll lose access to this group and need to be added back to rejoin.",
+          confirmLabel: "Remove",
+          danger: true,
+        })
+      : true;
+    if (!ok) return;
+    setRemovingId(member.id);
     setError("");
     try {
-      await onRemoveMember(userId);
+      await onRemoveMember(member.id);
     } catch (e) {
       setError(e.message);
+    } finally {
+      setRemovingId(null);
     }
   }
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal settings-modal"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Group info"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
-          <h3>👥 Group</h3>
-          <button className="link" onClick={onClose}>
+          <h3>Group info</h3>
+          <button className="link" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
@@ -155,8 +179,12 @@ export default function GroupInfo({
                 </button>
                 {isOwner && m.id !== myId && m.role !== "owner" && (
                   <span className="settings-member-actions">
-                    <button className="mini ghost" onClick={() => remove(m.id)}>
-                      Remove
+                    <button
+                      className="mini ghost"
+                      disabled={removingId === m.id}
+                      onClick={() => remove(m)}
+                    >
+                      {removingId === m.id ? "Removing…" : "Remove"}
                     </button>
                   </span>
                 )}

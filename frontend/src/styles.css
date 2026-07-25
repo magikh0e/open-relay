@@ -408,11 +408,7 @@ button.primary:disabled {
   color: var(--danger);
 }
 .act.op-on {
-  color: #f2c94c; /* lit star for current operators */
-}
-.role-tag.op {
-  color: #f2c94c;
-  border-color: #f2c94c55;
+  color: var(--warn); /* lit star for current operators */
 }
 
 /* admin crown on avatars */
@@ -446,9 +442,6 @@ button.primary:disabled {
   border-radius: 50%;
   background: var(--online);
   border: 2px solid var(--bg-2);
-}
-.presence-dot.away {
-  background: #f2c94c; /* amber for away */
 }
 .member-name.is-away {
   opacity: 0.6;
@@ -602,9 +595,6 @@ button.primary:disabled {
 }
 .mention:hover {
   text-decoration: underline;
-}
-.mention-me {
-  background: rgba(91, 140, 255, 0.28);
 }
 .msg.mentions-me {
   background: rgba(91, 140, 255, 0.08);
@@ -1393,7 +1383,7 @@ button.primary:disabled {
   flex-direction: column;
   gap: 3px;
   padding: 7px 9px;
-  background: var(--bg-3, rgba(255, 255, 255, 0.03));
+  background: var(--bg-3);
   border: 1px solid var(--line);
   border-radius: 8px;
 }
@@ -1477,7 +1467,7 @@ button.primary:disabled {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  background: var(--bg-3, rgba(255, 255, 255, 0.03));
+  background: var(--bg-3);
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
@@ -1523,7 +1513,7 @@ button.primary:disabled {
 }
 .server-remove:hover {
   color: var(--text);
-  background: var(--bg-3, rgba(255, 255, 255, 0.06));
+  background: var(--bg-3);
 }
 
 /* New-conversation multi-select chips + group management. */
@@ -1534,7 +1524,7 @@ button.primary:disabled {
   margin-bottom: 4px;
 }
 .chip {
-  background: var(--bg-3, rgba(255, 255, 255, 0.06));
+  background: var(--bg-3);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 3px 10px;
