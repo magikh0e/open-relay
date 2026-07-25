@@ -1,9 +1,8 @@
 """Messages: unread tracking, encryption rules, and read-only channels."""
-import pytest
-from sqlalchemy import select
+from uuid import uuid4
 
-from app.database import SessionLocal
-from app.models import Channel
+import pytest
+
 from app.seed import WHATSNEW_SLUG
 
 pytestmark = pytest.mark.asyncio
@@ -18,6 +17,23 @@ async def _dm_between(client, a, b):
 async def _channel(client, user, slug):
     res = await client.get("/channels", headers=user["headers"])
     return next(c for c in res.json() if c["slug"] == slug)
+
+
+async def _new_public_channel(client, owner):
+    """A throwaway public channel owned by `owner`.
+
+    Tests that need an ordinary channel create their own rather than reaching
+    for a seeded #general, which only exists if someone has run demo_setup.
+    Depending on it meant these tests silently skipped in CI.
+    """
+    slug = "t" + uuid4().hex[:10]
+    res = await client.post(
+        "/channels",
+        headers=owner["headers"],
+        json={"slug": slug, "name": slug, "topic": "", "is_private": False},
+    )
+    assert res.status_code == 201, res.text
+    return res.json()
 
 
 # --- unread badges --------------------------------------------------------
@@ -59,30 +75,24 @@ async def test_mark_read_clears_the_badge(client, alice, bob):
 
 async def test_mentions_counted_separately(client, alice, bob):
     """A mention should be distinguishable from ordinary unread traffic."""
-    async with SessionLocal() as db:
-        general = (
-            await db.execute(select(Channel).where(Channel.slug == "general"))
-        ).scalar_one_or_none()
-    if general is None:
-        pytest.skip("no #general in this environment")
-
-    await client.post(f"/channels/{general.id}/join", headers=alice["headers"])
-    await client.post(f"/channels/{general.id}/join", headers=bob["headers"])
-    await client.post(f"/channels/{general.id}/read", headers=alice["headers"])
+    cid = (await _new_public_channel(client, alice))["id"]
+    await client.post(f"/channels/{cid}/join", headers=bob["headers"])
+    # Mark read after bob's join notice, so only the two messages below count.
+    await client.post(f"/channels/{cid}/read", headers=alice["headers"])
 
     await client.post(
-        f"/channels/{general.id}/messages",
+        f"/channels/{cid}/messages",
         headers=bob["headers"],
         json={"content": "just chatter"},
     )
     await client.post(
-        f"/channels/{general.id}/messages",
+        f"/channels/{cid}/messages",
         headers=bob["headers"],
         json={"content": f"hey @{alice['username']} look"},
     )
 
     chans = await client.get("/channels", headers=alice["headers"])
-    ch = next(c for c in chans.json() if c["id"] == general.id)
+    ch = next(c for c in chans.json() if c["id"] == cid)
     assert ch["unread_count"] == 2
     assert ch["mention_count"] == 1
 
@@ -99,15 +109,9 @@ async def test_encrypted_messages_only_allowed_in_dms(client, alice, bob):
     assert ok.status_code == 201
     assert ok.json()["encrypted"] is True
 
-    async with SessionLocal() as db:
-        general = (
-            await db.execute(select(Channel).where(Channel.slug == "general"))
-        ).scalar_one_or_none()
-    if general is None:
-        pytest.skip("no #general in this environment")
-    await client.post(f"/channels/{general.id}/join", headers=alice["headers"])
+    cid = (await _new_public_channel(client, alice))["id"]
     refused = await client.post(
-        f"/channels/{general.id}/messages",
+        f"/channels/{cid}/messages",
         headers=alice["headers"],
         json={"content": "AAAABBBBCCCC", "encrypted": True},
     )
