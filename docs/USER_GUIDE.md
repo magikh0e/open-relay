@@ -5,6 +5,9 @@ sections are enough; the rest is here when you need it.
 
 _Open Relay and this guide by **magikh0e**. Free software under the GNU GPL-3.0._
 
+**Covers Open Relay v1.24.0.** If your server's version (shown by `/version`)
+is newer, some features here may have changed.
+
 - [Signing in](#signing-in)
 - [Channels and DMs](#channels-and-dms)
 - [Writing messages](#writing-messages)
