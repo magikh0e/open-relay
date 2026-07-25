@@ -19,7 +19,10 @@
 #   COMPOSE_FILE     default: docker-compose.prod.yml
 #   ENV_FILE         default: .env.prod (read for POSTGRES_USER / POSTGRES_DB)
 #   BACKUP_DIR       where archives are written (default: /var/backups/openrelay)
-#   RETENTION_DAYS   local archives to keep (default: 14)
+#   RETENTION_DAYS   delete archives older than this many days (default: 14; 0 = off)
+#   RETENTION_COUNT  keep at most this many newest archives (default: 0 = unlimited).
+#                    Applies to BOTH the local and offsite copies, so enabling it
+#                    later trims the existing backlog down on the next run.
 #   OFFSITE_HOST     if set, rsync the archive here over SSH
 #   OFFSITE_USER / OFFSITE_PORT / OFFSITE_PATH / OFFSITE_KEY
 #
@@ -33,6 +36,7 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.prod}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/openrelay}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
+RETENTION_COUNT="${RETENTION_COUNT:-0}"
 
 [ -n "${BACKUP_PASSPHRASE_FILE:-}" ] || die "set BACKUP_PASSPHRASE_FILE"
 [ -r "$BACKUP_PASSPHRASE_FILE" ] || die "cannot read BACKUP_PASSPHRASE_FILE ($BACKUP_PASSPHRASE_FILE)"
@@ -78,18 +82,35 @@ tar czf - -C "$WORK" db.sql uploads.tar.gz \
 SIZE="$(du -h "$ARCHIVE" | cut -f1)"
 log "wrote $ARCHIVE ($SIZE)"
 
-# 4. Prune old local archives.
-find "$BACKUP_DIR" -name 'openrelay-*.tar.gz.gpg' -mtime "+$RETENTION_DAYS" -print -delete \
-  | sed 's/^/pruned /' || true
+# 4. Prune local archives, by age and/or count.
+if [ "$RETENTION_DAYS" -gt 0 ] 2>/dev/null; then
+  find "$BACKUP_DIR" -name 'openrelay-*.tar.gz.gpg' -mtime "+$RETENTION_DAYS" -print -delete \
+    | sed 's#^#pruned (age) #' || true
+fi
+if [ "$RETENTION_COUNT" -gt 0 ] 2>/dev/null; then
+  # Keep the newest N; delete everything past them (any age).
+  ls -1t "$BACKUP_DIR"/openrelay-*.tar.gz.gpg 2>/dev/null | tail -n "+$((RETENTION_COUNT + 1))" \
+    | while IFS= read -r old; do rm -f -- "$old" && log "pruned (count) $(basename "$old")"; done || true
+fi
 
-# 5. Offsite copy (optional).
+# 5. Offsite copy (optional), pruned the same way as local.
 if [ -n "${OFFSITE_HOST:-}" ]; then
-  log "copying offsite to ${OFFSITE_USER:-$USER}@$OFFSITE_HOST"
   ssh_opts="-p ${OFFSITE_PORT:-22} -o StrictHostKeyChecking=accept-new"
   [ -n "${OFFSITE_KEY:-}" ] && ssh_opts="$ssh_opts -i $OFFSITE_KEY"
-  rsync -az -e "ssh $ssh_opts" "$ARCHIVE" \
-    "${OFFSITE_USER:-$USER}@$OFFSITE_HOST:${OFFSITE_PATH:-openrelay-backups}/" \
-    || die "offsite rsync failed"
+  remote="${OFFSITE_USER:-$USER}@$OFFSITE_HOST"
+  rdir="${OFFSITE_PATH:-openrelay-backups}"
+  log "copying offsite to $remote:$rdir"
+  rsync -az -e "ssh $ssh_opts" "$ARCHIVE" "$remote:$rdir/" || die "offsite rsync failed"
+
+  prune=""
+  [ "$RETENTION_DAYS" -gt 0 ] 2>/dev/null && \
+    prune="find . -maxdepth 1 -name 'openrelay-*.tar.gz.gpg' -mtime +$RETENTION_DAYS -delete; "
+  [ "$RETENTION_COUNT" -gt 0 ] 2>/dev/null && \
+    prune="${prune}ls -1t openrelay-*.tar.gz.gpg 2>/dev/null | tail -n +$((RETENTION_COUNT + 1)) | xargs -r rm -f; "
+  if [ -n "$prune" ]; then
+    ssh $ssh_opts "$remote" "cd \"$rdir\" 2>/dev/null && { $prune }" \
+      || log "warning: offsite prune failed (the new backup itself is safe)"
+  fi
   log "offsite copy done"
 fi
 

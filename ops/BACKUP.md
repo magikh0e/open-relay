@@ -41,7 +41,15 @@ sudo BACKUP_PASSPHRASE_FILE=/root/.openrelay-backup-pass \
 ```
 
 Drop the `OFFSITE_*` vars to keep backups local only. Other knobs:
-`BACKUP_DIR` (default `/var/backups/openrelay`), `RETENTION_DAYS` (default 14).
+`BACKUP_DIR` (default `/var/backups/openrelay`), `RETENTION_DAYS` (delete older
+than N days, default 14; set 0 to disable), and `RETENTION_COUNT` (keep at most
+the newest N archives, default 0 = unlimited).
+
+Retention applies to both the local and offsite copies. The two rules combine:
+an archive is removed if it is older than `RETENTION_DAYS` **or** past the newest
+`RETENTION_COUNT`. Because the count rule keeps the newest N regardless of age,
+turning it on later trims an existing backlog down to N on the next run. For
+count-only retention, set `RETENTION_DAYS=0` and `RETENTION_COUNT=30` (or so).
 
 ## Automate it (cron)
 
