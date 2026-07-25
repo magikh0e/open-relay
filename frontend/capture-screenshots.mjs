@@ -112,13 +112,25 @@ const run = async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch();
 
-  // 1) Login screen (fresh, logged out).
+  // 1) Login screen (fresh, logged out). Framed on the card plus a little
+  // breathing room rather than the whole 1360x850 viewport: at full width the
+  // card floats in a large empty field, which reads poorly as the README hero.
   const ctx1 = await browser.newContext({ viewport: { width: 1360, height: 850 }, deviceScaleFactor: 2 });
   const p1 = await ctx1.newPage();
   await p1.goto(APP, { waitUntil: "networkidle" });
   await p1.mouse.move(0, 0);
   await p1.waitForTimeout(700);
-  await p1.screenshot({ path: join(OUT, "01-login.png") });
+  const card = await p1.locator(".auth-card").boundingBox();
+  const PAD = 24;
+  await p1.screenshot({
+    path: join(OUT, "01-login.png"),
+    clip: {
+      x: Math.max(0, card.x - PAD),
+      y: Math.max(0, card.y - PAD),
+      width: card.width + PAD * 2,
+      height: card.height + PAD * 2,
+    },
+  });
   await ctx1.close();
 
   // 2) Main chat — the #garden channel.
