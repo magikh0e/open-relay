@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://orc.openrelay.pl"><strong>▶ Try the live instance at orc.openrelay.pl</strong></a>
+  <a href="https://orc.openrelay.pl"><strong>▶ Try it live at orc.openrelay.pl</strong></a>
 </p>
 
 <p align="center">
@@ -45,6 +45,8 @@ you own end to end.
 
 **Chat**
 - Public and private channels, and one-to-one direct messages you can close and reopen
+- Group DMs: message several people at once (plaintext, like channels; owner manages the member list)
+- Password-protected public channels: anyone can find them in the directory, but only people with the key can join
 - Threads, inline replies with a quoted preview, and @mentions
 - Unread counts per channel, with a distinct badge when you're mentioned
 - Emoji reactions, and GIF search (proxied, so your IP isn't handed to the GIF provider)
@@ -65,9 +67,11 @@ you own end to end.
 - Deleted messages and orphaned files are purged after a retention window
 
 **Platform**
+- Point the app at any Open Relay server and switch between the ones you use in a click, each with its own saved sign-in
 - Installable PWA (add to home screen / desktop); the app shell works offline
 - Push notifications for DMs and mentions: payloads say *who* and *where*, never *what*
 - Optional Discord (and Google) SSO alongside username/password
+- Invite-only mode: flip registration so new accounts need a code from an admin, with an audit trail of who invited whom
 - A read-only `#whatsnew` announcements channel, seeded automatically
 - Incoming webhooks: post into a channel from CI, alerts, or home automation via a secret URL
 
@@ -75,7 +79,7 @@ you own end to end.
 
 Being honest about this is the point:
 
-- **Channel messages are readable by whoever runs the server**; only DMs can be end-to-end encrypted.
+- **Channel and group messages are readable by whoever runs the server**; only one-to-one DMs can be end-to-end encrypted.
 - Encryption hides message *contents*, not *metadata*; who talks to whom, and when, is recorded.
 - Files shared in ordinary channels sit behind an unguessable but **publicly accessible** link.
 - Forget your encryption passphrase and those messages are unrecoverable; there is no reset.
@@ -163,8 +167,9 @@ the slash commands, notifications, and managing your data.
 Native desktop builds, a thin [Tauri](https://tauri.app) shell around the same
 web UI, are on the [**releases page**](https://github.com/magikh0e/open-relay/releases)
 for macOS (universal), Linux (`.AppImage`/`.deb`/`.rpm`) and Windows
-(`.msi`/`.exe`). They're ~4 MB and open the app in its own window pointed at a
-server of your choice. Source is in [`desktop/`](desktop/README.md); building
+(`.msi`/`.exe`). They're ~4 MB, open the app in its own window pointed at a
+server of your choice, and keep themselves up to date (they ask before
+installing a new build). Source is in [`desktop/`](desktop/README.md); building
 your own needs only the Rust toolchain.
 
 Client developers: the [**developer guide**](frontend/public/developers.html)
@@ -180,7 +185,7 @@ opacity) only behave realistically against the real thing.
 
 ```bash
 cd backend
-pytest -q          # ~49 tests
+pytest -q          # ~75 tests
 ```
 
 ## License
