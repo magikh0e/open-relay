@@ -77,6 +77,35 @@ Auth is stateless JWT. There are two tokens:
 - Store both tokens in the platform's secure storage (the web client uses
   `localStorage`; a desktop client should prefer the OS keychain).
 
+### Bot tokens
+
+A **bot account** authenticates with a long-lived opaque token instead of a JWT.
+A program is meant to stay connected for weeks, and a 30-minute token with a
+refresh dance is the wrong shape for that.
+
+- Sent the same way: `Authorization: Bearer <token>`. The server tries the JWT
+  path first and falls back to a bot-token lookup, so a client library needs no
+  special casing.
+- **No expiry and no refresh.** Revocation is deleting or rotating the token.
+- Issued once, at creation or rotation, and never retrievable again: only its
+  SHA-256 digest is stored.
+- Carries **scopes** (`read`, `write`, `react`). A bot is refused anything
+  outside them.
+- A bot is **refused outright** on endpoints that only make sense for a person:
+  password change, account export, account deletion, publishing encryption
+  keys, and minting other bots. It has no password hash, so the login and OAuth
+  paths cannot admit it either.
+
+A bot has **no encryption keypair**, since there is no passphrase for a program
+to hold. DMs with one are plaintext, and a group containing one cannot be
+encrypted, because publishing a group key requires every member to have a
+published public key (§4).
+
+Bots reach only the channels they have been added to, through ordinary
+membership. `is_bot` is exposed on every user shape so a client can label them:
+a bot in a channel can read that channel, and that should be visible in the
+roster rather than something people have to be told.
+
 ### The refresh flow
 
 On any `401`, POST the refresh token to the refresh endpoint to get a fresh
@@ -301,7 +330,7 @@ username. For a group (`kind: "group"`), `name` is the group's own name and
 `member_count` its real size; groups are plaintext, so E2EE never applies.
 
 **AttachmentOut**: `{id, name, content_type, size, is_image, url, encrypted, enc_meta}`.
-**UserPublic**: `{id, username, display_name, avatar_url, is_admin}`.
+**UserPublic**: `{id, username, display_name, avatar_url, is_admin, is_bot}`.
 **ProfileOut**: `{id, username, display_name, bio, pronouns, is_admin, created_at, registered_via_invite, invited_by_username, last_active_at}` (no email). `invited_by_username` names the admin whose invite the account redeemed (null if none/deleted); `last_active_at` is null when the target hid it (unless you're them or an admin).
 **UserOut** (self): adds `has_password, share_typing, share_presence, allow_dms, discoverable, share_last_active`.
 Email is exposed **only** via `GET /users/me/export`.
@@ -374,6 +403,20 @@ Email is exposed **only** via `GET /users/me/export`.
 | `DELETE /dms/{id}/members/{user_id}` | - | `204`, owner-only; removes a member |
 | `POST /dms/{id}/keys` | `{shares: [{user_id, wrapped_key, sender_public_key}]}` | `201` GroupKeysOut. Owner only. Publishes the next key epoch (number assigned by the server). Shares must cover **exactly** the current members and every one of them must have published a public key, else `400` |
 | `GET /dms/{id}/keys` | - | `{keys: [{epoch, wrapped_key, sender_public_key}], current_epoch: int\|null}`: every epoch sealed to you, oldest first. `current_epoch` is null for a plaintext group |
+
+### Bots: `/bots` (admin only)
+
+| Method · Path | Body | Returns |
+|---|---|---|
+| `GET /bots` | - | `[BotOut]` |
+| `POST /bots` | `{username, display_name?, scopes[]}` | `201` BotOut **plus `token`**, shown once. 409 on a taken username, 400 on an unknown scope |
+| `POST /bots/{id}/token` | - | BotOut plus a new `token`; the previous one stops working immediately. Identity, scopes and channel memberships are kept |
+| `DELETE /bots/{id}` | - | `204`. Messages survive with the sender nulled, as for a deleted person |
+
+**BotOut**: `{id, username, display_name, scopes[], created_at, last_used_at}`.
+
+Add a bot to a channel the same way as anybody else, with
+`POST /channels/{id}/invite`.
 
 ### Keys: `/keys` (see §4)
 

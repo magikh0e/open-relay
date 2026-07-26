@@ -352,7 +352,7 @@ unread_count (int), mention_count (int)</code></pre>
       <p>For a 1:1 DM, <code>name</code> is the other person's display name and <code>topic</code> their username. For a group (<code>kind: "group"</code>), <code>name</code> is the group's own name and <code>member_count</code> its real size; groups are plaintext, so E2EE never applies.</p>
       <ul>
         <li><strong>AttachmentOut</strong>: <code>{id, name, content_type, size, is_image, url, encrypted, enc_meta}</code></li>
-        <li><strong>UserPublic</strong>: <code>{id, username, display_name, avatar_url, is_admin}</code></li>
+        <li><strong>UserPublic</strong>: <code>{id, username, display_name, avatar_url, is_admin, is_bot}</code></li>
         <li><strong>ProfileOut</strong>: <code>{id, username, display_name, bio, pronouns, is_admin, created_at, registered_via_invite, invited_by_username, last_active_at}</code> (no email). <code>invited_by_username</code> names the admin whose invite the account redeemed (null if none/deleted); <code>last_active_at</code> is null when the target hid it (unless you're them or an admin).</li>
         <li><strong>UserOut</strong> (self): adds <code>has_password, share_typing, share_presence, allow_dms, discoverable, share_last_active</code>. Email is exposed only via <code>GET /users/me/export</code>.</li>
       </ul>
@@ -432,6 +432,11 @@ unread_count (int), mention_count (int)</code></pre>
           <tr><td><code>DELETE /dms/{id}/members/{user_id}</code></td><td>-</td><td><code>204</code>, owner-only; removes a member</td></tr>
           <tr><td><code>POST /dms/{id}/keys</code></td><td><code>{shares: [{user_id, wrapped_key, sender_public_key}]}</code></td><td><code>201</code>. Owner only. Publishes the next key epoch (number assigned by the server). Shares must cover <strong>exactly</strong> the current members, and every one of them must have published a public key, else <code>400</code></td></tr>
           <tr><td><code>GET /dms/{id}/keys</code></td><td>-</td><td><code>{keys: [{epoch, wrapped_key, sender_public_key}], current_epoch}</code> &mdash; every epoch sealed to you, oldest first. <code>current_epoch</code> is null for a plaintext group</td></tr>
+          <tr><td colspan="3"><strong>Bots</strong> (admin only). A bot authenticates with a long-lived opaque token sent as an ordinary bearer credential; only its SHA-256 digest is stored. It carries scopes (<code>read</code>, <code>write</code>, <code>react</code>), is refused password change, account export or deletion, key publishing and bot creation, and has no encryption keypair, so a group containing one cannot be encrypted. Add it to a channel with <code>POST /channels/{id}/invite</code> like anybody else.</td></tr>
+          <tr><td><code>GET /bots</code></td><td>-</td><td><code>[BotOut]</code></td></tr>
+          <tr><td><code>POST /bots</code></td><td><code>{username, display_name?, scopes[]}</code></td><td><code>201</code> BotOut plus <code>token</code>, shown once. 409 taken username, 400 unknown scope</td></tr>
+          <tr><td><code>POST /bots/{id}/token</code></td><td>-</td><td>New <code>token</code>; the previous one stops working at once. Identity, scopes and memberships kept</td></tr>
+          <tr><td><code>DELETE /bots/{id}</code></td><td>-</td><td><code>204</code>. Messages survive with the sender nulled</td></tr>
           <tr><td><code>GET /keys/me</code></td><td>-</td><td><code>{public_key, wrapped_private_key, salt, iv}</code> (404 if none)</td></tr>
           <tr><td><code>PUT /keys/me</code></td><td>same four fields</td><td>echoes bundle; broadcasts <code>keys_published</code></td></tr>
           <tr><td><code>GET /keys/{user_id}</code></td><td>-</td><td><code>{user_id, public_key}</code> (404 if peer has no keys)</td></tr>

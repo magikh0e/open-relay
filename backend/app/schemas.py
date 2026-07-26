@@ -90,6 +90,10 @@ class UserPublic(BaseModel):
     display_name: str
     avatar_url: str
     is_admin: bool = False
+    # A program rather than a person. Exposed so a client can label it: a bot
+    # in a channel can read that channel, and people should be able to see
+    # that from the roster rather than having to be told.
+    is_bot: bool = False
 
 
 class MemberOut(BaseModel):
@@ -99,6 +103,7 @@ class MemberOut(BaseModel):
     display_name: str
     avatar_url: str
     is_admin: bool = False
+    is_bot: bool = False
     role: str = "member"
 
 

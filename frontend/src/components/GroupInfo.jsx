@@ -189,6 +189,11 @@ export default function GroupInfo({
                 >
                   <Avatar name={m.display_name} admin={m.is_admin} />
                   <span className="member-name">{m.display_name}</span>
+                  {m.is_bot && (
+                    <span className="role-tag bot" title="A program, not a person">
+                      BOT
+                    </span>
+                  )}
                   {m.role === "owner" && (
                     <span className="role-tag">owner</span>
                   )}

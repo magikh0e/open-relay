@@ -2168,4 +2168,7 @@ button.primary:not(:disabled):hover {
 
 /* Amber literals → the token, so away/operator accents stay consistent. */
 .role-tag.op { color: var(--warn); border-color: rgba(242, 201, 76, 0.33); }
+/* Deliberately its own colour: 'owner' and 'op' describe a person's
+   authority, whereas BOT says the account is not a person at all. */
+.role-tag.bot { color: var(--accent); border-color: rgba(91, 140, 255, 0.4); letter-spacing: 0.06em; }
 .presence-dot.away { background: var(--warn); }

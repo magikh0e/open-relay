@@ -396,6 +396,7 @@ async def channel_members(
             display_name=u.display_name,
             avatar_url=u.avatar_url,
             is_admin=u.is_admin,
+            is_bot=u.is_bot,
             role=role,
         )
         for u, role in rows
