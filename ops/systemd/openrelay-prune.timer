@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly Docker build cache prune
+
+[Timer]
+# Sundays 05:00. Pick a slot clear of your backup window so the two are not
+# competing for disk. Persistent so a run missed while the machine was off is
+# caught up on the next boot.
+OnCalendar=Sun 05:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

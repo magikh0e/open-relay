@@ -82,8 +82,38 @@ actions are available via the API: `POST /api/invites`, `GET /api/invites`,
 - **Backups**: encrypted Postgres + uploads archive, offsite copy, retention,
   and a tested restore. See [ops/BACKUP.md](../ops/BACKUP.md). Do this first; the
   E2EE keys make some data unrecoverable if the box is lost without a backup.
-- **Uptime**: point the tiny alerting script (or Uptime Kuma) at `/api/health`
-  from a box other than the one it watches. See [ops/UPTIME.md](../ops/UPTIME.md).
+- **Uptime**: point a monitor at `/api/health` from somewhere other than the box
+  it watches, so an outage can actually be reported. A hosted checker is the
+  simplest option. See [ops/UPTIME.md](../ops/UPTIME.md).
+
+## Disk: prune the Docker build cache
+
+Push-to-deploy rebuilds both images on every deploy, and Docker never reclaims
+the build cache by itself. On an actively developed server it reached **3GB in
+two days**, which is enough to matter on a small VPS. Check it with:
+
+```bash
+docker system df          # look at the Build Cache row
+docker builder prune -f --filter until=168h    # release anything over a week old
+```
+
+This only discards cached build layers. Images, containers and volumes are
+untouched, and the next deploy simply rebuilds what it needs.
+
+To automate it, `ops/systemd/openrelay-prune.{service,timer}` runs that weekly.
+Installing them needs no root if your user can run `docker`:
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp ops/systemd/openrelay-prune.* ~/.config/systemd/user/
+loginctl enable-linger "$USER"     # so it runs when you are not logged in
+systemctl --user daemon-reload
+systemctl --user enable --now openrelay-prune.timer
+systemctl --user list-timers openrelay-prune.timer
+```
+
+Drop them in `/etc/systemd/system/` and use `systemctl` without `--user` if you
+would rather run it as root.
 
 ## Rotating secrets
 

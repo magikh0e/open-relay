@@ -1,0 +1,12 @@
+[Unit]
+Description=Discard Docker build cache older than a week
+
+[Service]
+Type=oneshot
+# Push-to-deploy rebuilds both images on every deploy and Docker never reclaims
+# the build cache on its own. On an actively developed server it reached 3GB in
+# two days. `until=168h` keeps the last week of layers, so incremental rebuilds
+# stay fast while the long tail is released.
+ExecStart=/usr/bin/docker builder prune -f --filter until=168h
+Nice=10
+IOSchedulingClass=idle
