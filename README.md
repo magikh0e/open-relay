@@ -204,6 +204,12 @@ CI runs this same suite on every push and pull request, against Postgres and
 Redis service containers, with the schema applied by Alembic exactly as in
 production.
 
+## Roadmap
+
+[`ROADMAP.md`](ROADMAP.md) covers what is likely next (bot accounts,
+one-to-one voice calls), what is being considered, and what has been looked at
+and deliberately ruled out, with the reasoning in each case.
+
 ## Contributing
 
 Patches welcome. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers local setup, the
