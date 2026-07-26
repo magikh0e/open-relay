@@ -11,6 +11,7 @@ from .redis_client import reset_presence
 from .seed import ensure_whatsnew
 from .routers import (
     auth,
+    bots,
     channels,
     dms,
     giphy,
@@ -76,6 +77,7 @@ app.include_router(search.router)
 app.include_router(moderation.router)
 app.include_router(invites.router)
 app.include_router(webhooks.router)
+app.include_router(bots.router)
 app.include_router(ws.router)
 
 

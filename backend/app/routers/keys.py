@@ -5,10 +5,10 @@ private key *already wrapped* by the client, and hands public keys out to other
 users so they can derive a shared secret. It never sees a passphrase and cannot
 unwrap anything, so it cannot read encrypted DMs.
 """
-from fastapi import APIRouter, HTTPException, status
+from fastapi import Depends, APIRouter, HTTPException, status
 from sqlalchemy import select
 
-from ..deps import DB, CurrentUser
+from ..deps import DB, CurrentUser, reject_bots
 from ..models import KIND_DM, Channel, ChannelMember, UserKey
 from ..schemas import KeyBundleIn, KeyBundleOut, PublicKeyOut
 from ..ws_manager import manager
@@ -25,7 +25,9 @@ async def my_keys(db: DB, user: CurrentUser) -> KeyBundleOut:
     return KeyBundleOut.model_validate(row)
 
 
-@router.put("/me", response_model=KeyBundleOut)
+@router.put(
+    "/me", response_model=KeyBundleOut, dependencies=[Depends(reject_bots)]
+)
 async def set_my_keys(
     body: KeyBundleIn, db: DB, user: CurrentUser
 ) -> KeyBundleOut:
