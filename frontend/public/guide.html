@@ -147,7 +147,7 @@
       <a class="back" href="/privacy.html">Privacy</a>
       <a class="back" href="https://github.com/magikh0e/open-relay" target="_blank" rel="noreferrer">GitHub</a>
       <h1>User Guide</h1>
-      <p class="updated">Everything you need to get comfortable. Covers Open Relay v1.25.1.</p>
+      <p class="updated">Everything you need to get comfortable. Covers Open Relay v1.26.0.</p>
 
       <nav class="toc">
         <a href="#signing-in"><span class="ti">🔑</span>Signing in</a>
@@ -161,6 +161,7 @@
         <a href="#privacy"><span class="ti">🎛️</span>Presence &amp; privacy</a>
         <a href="#account"><span class="ti">📦</span>Your account &amp; data</a>
         <a href="#webhooks"><span class="ti">🔗</span>Channel webhooks</a>
+        <a href="#bots"><span class="ti">🤖</span>Bot accounts</a>
         <a href="#install"><span class="ti">📲</span>Install as an app</a>
         <a href="#desktop"><span class="ti">🖥️</span>Desktop app</a>
         <a href="#commands"><span class="ti">⌨️</span>Slash commands</a>
@@ -353,6 +354,53 @@ def hello():
       <blockquote>
         Treat the URL like a password: anyone who has it can post to the channel.
         The request format is in the
+        <a href="/developers.html">developer guide</a>.
+      </blockquote>
+
+      <h2 id="bots"><span class="sec-ico">🤖</span>Bot accounts</h2>
+      <p>
+        A webhook posts into one channel and nothing more. A <strong>bot</strong>
+        is a full account a program signs in as: it has a name and avatar, joins
+        channels, reads along, and can reply. Reach for one when something needs
+        to hold a conversation rather than announce into it.
+      </p>
+      <p>
+        If you are a <strong>site admin</strong>, open your profile and choose
+        <strong>Bots</strong> under Server admin. Creating one asks for a
+        username and which of three permissions it gets:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Permission</th><th>What it allows</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>read</strong></td><td>See channels it belongs to and their messages</td></tr>
+          <tr><td><strong>write</strong></td><td>Post, edit and delete its own messages</td></tr>
+          <tr><td><strong>react</strong></td><td>Add emoji reactions</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Tick only what the bot needs. Anything outside those permissions is
+        refused, and so is everything the list does not mention: a bot cannot
+        create channels, invite people, search for users, or moderate, whatever
+        you tick.
+      </p>
+      <p>
+        <strong>The token appears once.</strong> Only a hash of it is kept, so it
+        genuinely cannot be shown again. Copy it when you create the bot; if you
+        lose it, rotate it and update the program. Rotating cuts off a bot that
+        is currently running.
+      </p>
+      <p>
+        A bot sees only the channels you add it to, exactly like a person, so a
+        channel's member list already tells you which bots can read it. Messages
+        it sends are labelled <strong>BOT</strong>, so nobody has to guess
+        whether a person wrote them.
+      </p>
+      <blockquote>
+        Bots have no password and no encryption key. That means a group with a
+        bot in it cannot be switched to end-to-end encryption, since there would
+        be no way to hand the bot a key. The API is in the
         <a href="/developers.html">developer guide</a>.
       </blockquote>
 

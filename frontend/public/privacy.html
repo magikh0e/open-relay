@@ -176,6 +176,15 @@
           someone added cannot read what was said before they arrived.
         </li>
         <li>
+          A <strong>bot</strong> is an account a program signs in as, created by
+          an admin. It reads the channels it has been added to, exactly like any
+          other member, so a channel's member list is the honest answer to which
+          bots can see it, and anything a bot posts is labelled. A bot holds no
+          encryption key, so a group containing one cannot be switched to
+          end-to-end encryption; it is refused outright rather than quietly
+          left readable.
+        </li>
+        <li>
           There is <strong>no forward secrecy</strong>. Your key does not change
           as you talk, so anyone who obtains it could read the encrypted
           messages you can read, including old ones. Protecting past messages
