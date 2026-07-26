@@ -220,6 +220,12 @@ honest).
 Found a security problem? Do not open a public issue: use **Report a
 vulnerability** on the repository's Security tab.
 
+## Support
+
+Open Relay is free and open-source, built and maintained in my own time, with no telemetry and no data sharing. If you run it and find it useful, a coffee is always appreciated and helps keep it going.
+
+<a href="https://buymeacoffee.com/magikh0e"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="42"></a>
+
 ## License
 
 [GNU GPL-3.0](LICENSE). Free to use, modify and run yourself. These terms cover
