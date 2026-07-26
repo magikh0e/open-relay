@@ -8,8 +8,10 @@ from ..config import settings
 from ..deps import DB, CurrentUser, require_membership
 from ..models import (
     KIND_DM,
+    KIND_GROUP,
     Channel,
     ChannelMember,
+    GroupKey,
     Message,
     MessageMention,
     MessageReaction,
@@ -165,6 +167,7 @@ def _msg_out(
         reply_count=reply_count,
         last_reply_at=last_reply_at,
         encrypted=m.encrypted,
+        key_epoch=m.key_epoch,
         attachment=attachment,
     )
 
@@ -380,14 +383,43 @@ async def post_message(
 
     # Encrypted messages are opaque base64: the server can't sanitize, scan for
     # mentions, or index them, and must store the payload byte-for-byte or it
-    # won't decrypt. Restricted to DMs — that's the only surface phase one
-    # covers, and it keeps public channels searchable and moderatable.
+    # won't decrypt. Allowed in 1:1 DMs and in groups that have a key; public
+    # channels stay plaintext so they remain searchable and moderatable.
+    key_epoch = None
     if body.encrypted:
-        if channel is None or channel.kind != KIND_DM:
+        if channel is None or channel.kind not in (KIND_DM, KIND_GROUP):
             raise HTTPException(
                 status_code=400,
                 detail="Encrypted messages are only supported in direct messages",
             )
+        if channel.kind == KIND_GROUP:
+            # A group's key rotates, so the message has to record which epoch
+            # opened it or later members could not tell what they can read.
+            # Pinned to an epoch that actually exists, so a client cannot
+            # mislabel a message as belonging to a key nobody holds.
+            current = (
+                await db.execute(
+                    select(func.max(GroupKey.epoch)).where(
+                        GroupKey.channel_id == channel_id
+                    )
+                )
+            ).scalar_one_or_none()
+            if current is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="This group has no encryption key yet",
+                )
+            if body.key_epoch is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="An encrypted group message must name its key epoch",
+                )
+            if body.key_epoch != current:
+                raise HTTPException(
+                    status_code=409,
+                    detail="The group key has changed; re-fetch it and resend",
+                )
+            key_epoch = body.key_epoch
         content = body.content.strip()
     else:
         content = sanitize_text(body.content, max_length=4000, allow_newlines=True)
@@ -420,6 +452,7 @@ async def post_message(
         thread_root_id=thread_root_id,
         upload_id=body.upload_id,
         encrypted=body.encrypted,
+        key_epoch=key_epoch,
     )
     db.add(msg)
     await db.flush()  # assign msg.id before storing mentions
@@ -645,5 +678,6 @@ def _msg_out_from_user(
         mentions=mentions or [],
         thread_root_id=msg.thread_root_id,
         encrypted=msg.encrypted,
+        key_epoch=msg.key_epoch,
         attachment=attachment,
     )

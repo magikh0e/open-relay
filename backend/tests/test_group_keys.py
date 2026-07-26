@@ -233,3 +233,89 @@ async def test_group_size_cap_bounds_the_share_list(client, alice, user_factory)
     oversized += _shares(*[f"00000000-0000-0000-0000-{i:012d}" for i in range(25)])
     r = await client.post(f"/dms/{gid}/keys", headers=alice["headers"], json={"shares": oversized})
     assert r.status_code == 422  # schema rejects it before any of it is stored
+
+
+# --- sending encrypted group messages --------------------------------------
+
+async def _publish(client, owner, gid, *user_ids):
+    r = await client.post(
+        f"/dms/{gid}/keys", headers=owner["headers"], json={"shares": _shares(*user_ids)}
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["current_epoch"]
+
+
+async def test_encrypted_group_message_records_its_epoch(client, alice, bob, user_factory):
+    carol = await user_factory()
+    await _with_keys(client, alice, bob, carol)
+    gid = await _group(client, alice, [bob["id"], carol["id"]])
+    epoch = await _publish(client, alice, gid, alice["id"], bob["id"], carol["id"])
+
+    r = await client.post(
+        f"/channels/{gid}/messages",
+        headers=alice["headers"],
+        json={"content": "AAAABBBBCCCC", "encrypted": True, "key_epoch": epoch},
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["encrypted"] is True
+    assert r.json()["key_epoch"] == epoch
+
+
+async def test_encrypted_group_message_requires_a_key(client, alice, bob, user_factory):
+    """A group with no published key cannot accept ciphertext nobody can open."""
+    carol = await user_factory()
+    gid = await _group(client, alice, [bob["id"], carol["id"]])
+    r = await client.post(
+        f"/channels/{gid}/messages",
+        headers=alice["headers"],
+        json={"content": "AAAABBBBCCCC", "encrypted": True, "key_epoch": 1},
+    )
+    assert r.status_code == 400
+
+
+async def test_encrypted_group_message_must_name_its_epoch(client, alice, bob, user_factory):
+    carol = await user_factory()
+    await _with_keys(client, alice, bob, carol)
+    gid = await _group(client, alice, [bob["id"], carol["id"]])
+    await _publish(client, alice, gid, alice["id"], bob["id"], carol["id"])
+
+    r = await client.post(
+        f"/channels/{gid}/messages",
+        headers=alice["headers"],
+        json={"content": "AAAABBBBCCCC", "encrypted": True},
+    )
+    assert r.status_code == 400
+
+
+async def test_stale_epoch_is_refused_rather_than_stored(client, alice, bob, user_factory):
+    """Sending under a superseded key would be unreadable to anyone who has
+    already rotated, so the write is refused and the client told to re-fetch."""
+    carol = await user_factory()
+    await _with_keys(client, alice, bob, carol)
+    gid = await _group(client, alice, [bob["id"], carol["id"]])
+    stale = await _publish(client, alice, gid, alice["id"], bob["id"], carol["id"])
+    await _publish(client, alice, gid, alice["id"], bob["id"], carol["id"])  # now epoch 2
+
+    r = await client.post(
+        f"/channels/{gid}/messages",
+        headers=alice["headers"],
+        json={"content": "AAAABBBBCCCC", "encrypted": True, "key_epoch": stale},
+    )
+    assert r.status_code == 409
+
+
+async def test_public_channels_still_refuse_ciphertext(client, alice):
+    """Groups gained encryption; ordinary channels deliberately did not."""
+    slug = "pub" + alice["id"][:8]
+    ch = await client.post(
+        "/channels",
+        headers=alice["headers"],
+        json={"slug": slug, "name": slug, "is_private": False},
+    )
+    assert ch.status_code == 201, ch.text
+    r = await client.post(
+        f"/channels/{ch.json()['id']}/messages",
+        headers=alice["headers"],
+        json={"content": "AAAABBBBCCCC", "encrypted": True},
+    )
+    assert r.status_code == 400

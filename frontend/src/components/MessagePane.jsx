@@ -36,7 +36,12 @@ export default function MessagePane({
   decrypted = {},
   encryptContent = null,
   e2ee = null,
-  dmKey = null,
+  // Key that new content is sealed with: a DM's pairwise secret, or a
+  // group's current epoch key. Null in a plaintext conversation.
+  sendKey = null,
+  // Resolver for reading existing content, since a group's history can
+  // span several epochs and each message names the one that sealed it.
+  keyForMessage = null,
 }) {
   const { user } = useAuth();
   // Drafts are per channel and survive switching away (and a reload). Kept in
@@ -121,11 +126,11 @@ export default function MessagePane({
       // un-stripped original is never sent.
       const toSend = await maybeCompressImage(file);
       const form = new FormData();
-      if (dmKey) {
+      if (sendKey) {
         // Encrypted conversation: the file is sealed with the same key as the
         // messages, so the server stores opaque bytes and never learns the
         // real name or type.
-        const { blob, meta } = await encryptFile(dmKey, toSend);
+        const { blob, meta } = await encryptFile(sendKey, toSend);
         form.append("file", blob, "blob.bin");
         form.append("encrypted", "true");
         form.append("enc_meta", meta);
@@ -297,11 +302,15 @@ export default function MessagePane({
     try {
       let body = content.startsWith("//") ? content.slice(1) : content;
       let encrypted = false;
-      // In an encryption-ready DM the ciphertext is all the server ever sees.
+      // In an encryption-ready conversation the ciphertext is all the server
+      // ever sees. A group also names the key epoch it sealed under, so the
+      // server can refuse anything sent under a key that has since rotated.
+      let keyEpoch = null;
       if (encryptContent && body) {
         const sealed = await encryptContent(body);
         if (sealed) {
-          body = sealed;
+          body = sealed.content;
+          keyEpoch = sealed.keyEpoch ?? null;
           encrypted = true;
         }
       }
@@ -312,6 +321,7 @@ export default function MessagePane({
           reply_to_id: replyId,
           upload_id: uploadId,
           encrypted,
+          key_epoch: keyEpoch,
         },
       });
       onSent(msg);
@@ -733,7 +743,10 @@ export default function MessagePane({
                 )}
 
                 {m.attachment && (
-                  <Attachment attachment={m.attachment} dmKey={dmKey} />
+                  <Attachment
+                    attachment={m.attachment}
+                    dmKey={keyForMessage ? keyForMessage(m) : sendKey}
+                  />
                 )}
 
                 {/* reactions */}

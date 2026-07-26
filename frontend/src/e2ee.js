@@ -141,6 +141,50 @@ export async function decryptMessage(sharedKey, payloadB64) {
   return dec.decode(plain);
 }
 
+// --- group keys ------------------------------------------------------------
+//
+// A group can't use a pairwise secret: everyone needs the same key. So the
+// group has its own random AES key, and whoever publishes an epoch seals one
+// copy of it per member under the pairwise secret they already share. The
+// server stores those sealed copies and can open none of them.
+//
+// These deliberately move raw key bytes, not text: the wrapped payload is key
+// material, and putting it through encryptMessage/decryptMessage would run it
+// via TextDecoder and mangle any byte that isn't valid UTF-8.
+
+/** A fresh symmetric key for a group epoch. */
+export async function generateGroupKey() {
+  return crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+    "encrypt",
+    "decrypt",
+  ]);
+}
+
+/** Seal a group key for one member, under the pairwise secret shared with them. */
+export async function wrapGroupKey(pairwiseKey, groupKey) {
+  const raw = await crypto.subtle.exportKey("raw", groupKey);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, pairwiseKey, raw);
+  const out = new Uint8Array(iv.length + ct.byteLength);
+  out.set(iv, 0);
+  out.set(new Uint8Array(ct), iv.length);
+  return b64(out);
+}
+
+/** Open a sealed group key. Throws if this pairwise secret isn't the right one. */
+export async function unwrapGroupKey(pairwiseKey, wrappedB64) {
+  const bytes = unb64(wrappedB64);
+  const raw = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: bytes.slice(0, 12) },
+    pairwiseKey,
+    bytes.slice(12)
+  );
+  return crypto.subtle.importKey("raw", raw, { name: "AES-GCM", length: 256 }, true, [
+    "encrypt",
+    "decrypt",
+  ]);
+}
+
 // --- session cache ---------------------------------------------------------
 //
 // The unwrapped private key is cached in sessionStorage so a page reload

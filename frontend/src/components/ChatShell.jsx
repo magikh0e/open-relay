@@ -17,6 +17,7 @@ import {
   decryptMessage,
   deriveSharedKey,
   encryptMessage,
+  unwrapGroupKey,
   exportPublicKey,
   importPublicKey,
   loadCachedKey,
@@ -79,6 +80,8 @@ export default function ChatShell() {
   const [keyStatus, setKeyStatus] = useState("loading");
   const [e2eeModal, setE2eeModal] = useState(null); // "setup" | "unlock" | null
   const [sharedKeys, setSharedKeys] = useState({}); // channelId -> AES key
+  // channelId -> { current: epoch|null, byEpoch: {epoch: AES key} }
+  const [groupKeys, setGroupKeys] = useState({});
   const [keyEpoch, setKeyEpoch] = useState(0); // bumped to force re-derivation
   const [fingerprints, setFingerprints] = useState({}); // channelId -> safety number
   const [jumpTo, setJumpTo] = useState(null); // message id to scroll to on open
@@ -838,28 +841,86 @@ export default function ChatShell() {
     };
   }, [isDmChannel, active, privateKey, activeMembers, user.id, sharedKeys, keyEpoch]);
 
+  // Group keys, per channel: { current: epoch|null, byEpoch: {epoch: AES key} }.
+  // A group holds several epochs at once because the key rotates on membership
+  // changes and older history is still readable with the key of its own time.
+  const groupRing = isGroup ? groupKeys[active.id] : null;
+  const groupKey = groupRing?.current ? groupRing.byEpoch[groupRing.current] : null;
+
+  // Fetch and open every epoch sealed to us. Each share was wrapped under the
+  // pairwise secret with whoever published it, so opening it is the same ECDH
+  // we already do for 1:1 DMs.
+  useEffect(() => {
+    if (!isGroup || !privateKey || !active || groupKeys[active.id]) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api(`/dms/${active.id}/keys`);
+        const byEpoch = {};
+        for (const k of res.keys) {
+          try {
+            const pairwise = await deriveSharedKey(
+              privateKey,
+              await importPublicKey(k.sender_public_key)
+            );
+            byEpoch[k.epoch] = await unwrapGroupKey(pairwise, k.wrapped_key);
+          } catch {
+            /* not sealed to this key; that epoch stays unreadable */
+          }
+        }
+        if (!cancelled) {
+          setGroupKeys((prev) => ({
+            ...prev,
+            [active.id]: { current: res.current_epoch, byEpoch },
+          }));
+        }
+      } catch {
+        /* plaintext group, or we're not a member any more */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isGroup, active, privateKey, groupKeys, keyEpoch]);
+
+  // Which key opens a given message: a DM has exactly one, a group has one per
+  // epoch and the message says which it used.
+  function keyForMessage(m) {
+    if (isDmChannel) return dmKey;
+    if (isGroup) return groupRing?.byEpoch?.[m.key_epoch] || null;
+    return null;
+  }
+
   // Decrypt ciphertext for display: message bodies plus any encrypted reply
   // previews (those carry the full payload, keyed by the parent's id).
   useEffect(() => {
-    if (!active || !dmKey) return;
+    if (!active || (!dmKey && !groupRing)) return;
     const list = msgsByChannel[active.id] || [];
     const todo = [];
     for (const m of list) {
       if (m.encrypted && decrypted[m.id] === undefined) {
-        todo.push([m.id, m.content]);
+        todo.push([m.id, m.content, keyForMessage(m)]);
       }
       const rp = m.reply_to;
       if (rp?.encrypted && decrypted[rp.id] === undefined) {
-        todo.push([rp.id, rp.content]);
+        // A reply preview is quoted from the same conversation, so it was
+        // sealed under the same epoch as the message quoting it.
+        todo.push([rp.id, rp.content, keyForMessage(m)]);
       }
     }
     if (!todo.length) return;
     let cancelled = false;
     (async () => {
       const updates = {};
-      for (const [id, payload] of todo) {
+      for (const [id, payload, key] of todo) {
+        if (!key) {
+          // No key for that epoch: sent before we joined, and meant to stay
+          // unreadable. Recorded as null so we don't retry it every render.
+          updates[id] = null;
+          continue;
+        }
         try {
-          updates[id] = await decryptMessage(dmKey, payload);
+          updates[id] = await decryptMessage(key, payload);
         } catch {
           updates[id] = null; // not decryptable with this key
         }
@@ -869,12 +930,21 @@ export default function ChatShell() {
     return () => {
       cancelled = true;
     };
-  }, [active, dmKey, msgsByChannel, decrypted]);
+  }, [active, dmKey, groupRing, msgsByChannel, decrypted]);
 
-  // Given to MessagePane; returning null means "send as plaintext".
+  // Given to MessagePane; returning null means "send as plaintext". Groups also
+  // report the epoch, which the server checks is still the current one.
   async function encryptForActive(text) {
-    if (!dmKey) return null;
-    return encryptMessage(dmKey, text);
+    if (isDmChannel && dmKey) {
+      return { content: await encryptMessage(dmKey, text) };
+    }
+    if (isGroup && groupKey) {
+      return {
+        content: await encryptMessage(groupKey, text),
+        keyEpoch: groupRing.current,
+      };
+    }
+    return null;
   }
 
   async function setRole(channelId, member, role) {
@@ -994,14 +1064,20 @@ export default function ChatShell() {
             jumpTo={jumpTo}
             onJumped={() => setJumpTo(null)}
             decrypted={decrypted}
-            encryptContent={dmKey ? encryptForActive : null}
-            dmKey={dmKey}
+            encryptContent={dmKey || groupKey ? encryptForActive : null}
+            sendKey={dmKey || groupKey}
+            keyForMessage={keyForMessage}
             e2ee={
-              isDmChannel
+              isDmChannel || isGroup
                 ? {
-                    ready: !!dmKey,
+                    ready: isGroup ? !!groupKey : !!dmKey,
                     status: keyStatus,
-                    fingerprint: fingerprints[active.id],
+                    // Safety numbers are pairwise, so a group has no single
+                    // fingerprint to show; the badge stands alone there.
+                    fingerprint: isGroup ? null : fingerprints[active.id],
+                    // A plaintext group isn't waiting on your key, it simply
+                    // has none yet, so don't nag about unlocking.
+                    plaintextGroup: isGroup && !groupRing?.current,
                     onUnlock: () =>
                       setE2eeModal(keyStatus === "none" ? "setup" : "unlock"),
                   }

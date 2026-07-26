@@ -215,6 +215,9 @@ class MessageCreate(BaseModel):
     thread_root_id: str | None = None  # set to reply within a thread
     upload_id: str | None = None  # attach a previously-uploaded file
     encrypted: bool = False  # content is client-encrypted; server must not touch it
+    # Which group key epoch encrypted this. Required for an encrypted group
+    # message, meaningless for a 1:1 DM (whose key never rotates).
+    key_epoch: int | None = None
 
 
 class MessageEdit(BaseModel):
@@ -294,6 +297,9 @@ class MessageOut(BaseModel):
     reply_count: int = 0  # thread reply count (for root messages)
     last_reply_at: datetime | None = None
     encrypted: bool = False
+    # The group key epoch that encrypted this, so a client reading history
+    # spanning a rotation knows which key to reach for. Null for 1:1 DMs.
+    key_epoch: int | None = None
     attachment: AttachmentOut | None = None
 
 
