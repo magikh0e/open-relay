@@ -636,10 +636,15 @@ button.primary:disabled {
   position: relative;
   width: 360px;
 }
+/* Sticky, not absolute: the modal scrolls now, and an absolute close button
+   scrolls away with the content. The negative margin keeps it overlapping the
+   header rather than claiming a row of its own. */
 .profile-close {
-  position: absolute;
-  top: 12px;
-  right: 14px;
+  position: sticky;
+  top: -2px;
+  align-self: flex-end;
+  margin: 0 -4px -22px 0;
+  z-index: 2;
 }
 .profile-head {
   display: flex;
@@ -676,8 +681,37 @@ button.primary:disabled {
 }
 .profile-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 4px;
+}
+/* Without wrapping, these buttons were squeezed below their natural width and
+   their labels broke onto two lines at ragged heights. */
+.profile-actions .mini {
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+/* Which panel is open, stated on the control that opened it. */
+.profile-actions .mini.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-2);
+}
+/* Server-wide tools, kept apart from the settings that are about you. */
+.profile-admin {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.profile-admin-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.profile-admin .profile-actions {
+  margin-top: 0;
 }
 .profile-modal textarea.edit-input {
   resize: vertical;
@@ -1377,6 +1411,11 @@ button.primary:disabled {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* Codes accumulate and are never pruned, so this list is unbounded. Scroll
+     it here rather than letting it stretch the modal and push the controls
+     above it out of reach. */
+  max-height: 320px;
+  overflow-y: auto;
 }
 .invite-row {
   display: flex;
@@ -1683,6 +1722,13 @@ button.primary:disabled {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* A modal grows with its content, and the backdrop that centres it does not
+     scroll, so anything past the fold used to be unreachable: not clipped and
+     scrollable, but genuinely impossible to get to. Any modal holding a list
+     can hit this. dvh so mobile browser chrome does not eat the last rows. */
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
 }
 .modal-head {
   display: flex;

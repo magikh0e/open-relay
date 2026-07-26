@@ -28,11 +28,10 @@ export default function Profile({ userId, onClose, onMessage }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ display_name: "", pronouns: "", bio: "" });
   const [saving, setSaving] = useState(false);
-  const [pwOpen, setPwOpen] = useState(false);
-  const [privacyOpen, setPrivacyOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [invitesOpen, setInvitesOpen] = useState(false);
-  const [botsOpen, setBotsOpen] = useState(false);
+  // One panel at a time. They were five independent booleans, which let all of
+  // them open at once and stacked into a modal taller than any screen.
+  const [panel, setPanel] = useState(null);
+  const toggle = (name) => setPanel((p) => (p === name ? null : name));
 
   const isMe = user?.id === userId;
   const dialogRef = useDialog(onClose);
@@ -41,11 +40,7 @@ export default function Profile({ userId, onClose, onMessage }) {
     let alive = true;
     setProfile(null);
     setEditing(false);
-    setPwOpen(false);
-    setPrivacyOpen(false);
-    setAccountOpen(false);
-    setInvitesOpen(false);
-    setBotsOpen(false);
+    setPanel(null);
     setError("");
     api(`/users/${userId}`)
       .then((p) => {
@@ -133,7 +128,9 @@ export default function Profile({ userId, onClose, onMessage }) {
                 />
               ) : (
                 <div className="profile-value">
-                  {profile.pronouns || <span className="muted">—</span>}
+                  {profile.pronouns || (
+                    <span className="muted">Not set</span>
+                  )}
                 </div>
               )}
             </div>
@@ -216,52 +213,62 @@ export default function Profile({ userId, onClose, onMessage }) {
                     <button className="mini" onClick={() => setEditing(true)}>
                       Edit profile
                     </button>
-                    <button
-                      className="mini"
-                      onClick={() => setPwOpen((o) => !o)}
-                    >
-                      {user?.has_password === false
-                        ? "Set a password"
-                        : "Change password"}
-                    </button>
-                    <button
-                      className="mini"
-                      onClick={() => setPrivacyOpen((o) => !o)}
-                    >
-                      Privacy
-                    </button>
-                    <button
-                      className="mini"
-                      onClick={() => setAccountOpen((o) => !o)}
-                    >
-                      Your data
-                    </button>
-                    {user?.is_admin && (
-                      <>
-                        <button
-                          className="mini"
-                          onClick={() => setInvitesOpen((o) => !o)}
-                        >
-                          Invites
-                        </button>
-                        <button
-                          className="mini"
-                          onClick={() => setBotsOpen((o) => !o)}
-                        >
-                          Bots
-                        </button>
-                      </>
-                    )}
+                    <PanelButton
+                      name="password"
+                      panel={panel}
+                      onToggle={toggle}
+                      label={
+                        user?.has_password === false
+                          ? "Set a password"
+                          : "Change password"
+                      }
+                    />
+                    <PanelButton
+                      name="privacy"
+                      panel={panel}
+                      onToggle={toggle}
+                      label="Privacy"
+                    />
+                    <PanelButton
+                      name="data"
+                      panel={panel}
+                      onToggle={toggle}
+                      label="Your data"
+                    />
                   </>
                 )}
               </div>
             )}
 
-            {isMe && pwOpen && <PasswordForm hasPassword={user?.has_password !== false} />}
-            {isMe && accountOpen && <AccountData onClose={onClose} />}
-            {isMe && user?.is_admin && invitesOpen && <InvitesAdmin />}
-            {isMe && user?.is_admin && botsOpen && <BotsAdmin />}
-            {isMe && privacyOpen && (
+            {/* Admin tools are set apart: they manage the server, not you, and
+                mixing them in made six equal-looking buttons with no hierarchy. */}
+            {isMe && user?.is_admin && !editing && (
+              <div className="profile-admin">
+                <div className="profile-admin-label">Server admin</div>
+                <div className="profile-actions">
+                  <PanelButton
+                    name="invites"
+                    panel={panel}
+                    onToggle={toggle}
+                    label="Invites"
+                  />
+                  <PanelButton
+                    name="bots"
+                    panel={panel}
+                    onToggle={toggle}
+                    label="Bots"
+                  />
+                </div>
+              </div>
+            )}
+
+            {isMe && panel === "password" && (
+              <PasswordForm hasPassword={user?.has_password !== false} />
+            )}
+            {isMe && panel === "data" && <AccountData onClose={onClose} />}
+            {isMe && user?.is_admin && panel === "invites" && <InvitesAdmin />}
+            {isMe && user?.is_admin && panel === "bots" && <BotsAdmin />}
+            {isMe && panel === "privacy" && (
               <>
                 <PrivacyForm />
                 <NotificationToggle />
@@ -282,6 +289,22 @@ export default function Profile({ userId, onClose, onMessage }) {
         )}
       </div>
     </div>
+  );
+}
+
+// A toggle for one of the profile's disclosure panels. It reports its state
+// through aria-expanded and a pressed look, so which panel is open is visible
+// rather than something you infer from what appeared below.
+function PanelButton({ name, panel, onToggle, label }) {
+  const open = panel === name;
+  return (
+    <button
+      className={"mini" + (open ? " active" : "")}
+      aria-expanded={open}
+      onClick={() => onToggle(name)}
+    >
+      {label}
+    </button>
   );
 }
 
