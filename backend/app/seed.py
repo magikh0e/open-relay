@@ -163,6 +163,14 @@ WHATSNEW_POSTS = [
         "Safety numbers are still one-to-one, so a group has no single number "
         "to compare",
     ),
+    (
+        "1.25.1",
+        "🧰 v1.25.1: Housekeeping\n"
+        "• The server's libraries are up to date again, including the ones that "
+        "hash your password and talk to the message store\n"
+        "• Nothing about using the app changes. This is the unglamorous work "
+        "that keeps security fixes arriving rather than piling up",
+    ),
 ]
 
 
