@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from .models import MAX_GROUP_SIZE
 from .sanitize import sanitize_text, validate_username
 
 
@@ -304,7 +305,7 @@ class DMCreate(BaseModel):
 
 class GroupCreate(BaseModel):
     # The other people to include (the creator is added automatically).
-    user_ids: list[str] = Field(min_length=2, max_length=19)
+    user_ids: list[str] = Field(min_length=2, max_length=MAX_GROUP_SIZE - 1)
     name: str | None = Field(default=None, max_length=64)
 
 
@@ -360,6 +361,44 @@ class KeyBundleOut(BaseModel):
 class PublicKeyOut(BaseModel):
     user_id: str
     public_key: str
+
+
+# --- Group encryption keys -------------------------------------------------
+
+class GroupKeyShareIn(BaseModel):
+    """One member's copy of a group key, sealed to them by the publisher."""
+
+    user_id: str
+    wrapped_key: str = Field(max_length=4000)
+    sender_public_key: str = Field(max_length=2000)
+
+
+class GroupRekeyIn(BaseModel):
+    """Publish a new group key epoch, with a share for every current member.
+
+    The epoch is assigned by the server (previous + 1) rather than trusted from
+    the client, so two racing publishers cannot collide on a number or reuse an
+    old one.
+    """
+
+    shares: list[GroupKeyShareIn] = Field(min_length=1, max_length=MAX_GROUP_SIZE)
+
+
+class GroupKeyOut(BaseModel):
+    """A key epoch the caller can open, plus what they need to open it."""
+
+    epoch: int
+    wrapped_key: str
+    sender_public_key: str
+
+
+class GroupKeysOut(BaseModel):
+    # Every epoch the caller holds a share for, oldest first, so they can read
+    # back through the history they were present for.
+    keys: list[GroupKeyOut] = []
+    # The epoch new messages should be encrypted under; null if the group has
+    # no keys yet (i.e. it is still plaintext).
+    current_epoch: int | None = None
 
 
 # --- Push notifications ---------------------------------------------------

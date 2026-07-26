@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from ..deps import DB, CurrentUser
@@ -8,17 +8,26 @@ from ..models import (
     KIND_GROUP,
     ROLE_MEMBER,
     ROLE_OWNER,
+    MAX_GROUP_SIZE,
     Channel,
     ChannelMember,
+    GroupKey,
+    GroupKeyShare,
     User,
+    UserKey,
 )
-from ..schemas import ChannelOut, DMCreate, GroupCreate, UserPublic
+from ..schemas import (
+    ChannelOut,
+    DMCreate,
+    GroupCreate,
+    GroupKeyOut,
+    GroupKeysOut,
+    GroupRekeyIn,
+    UserPublic,
+)
 from ..ws_manager import manager
 from .channels import _announce_removal, _channel_stats, _member_count
 from .messages import announce_action
-
-# Total people (including the creator) a group DM may hold.
-MAX_GROUP_SIZE = 20
 
 router = APIRouter(prefix="/dms", tags=["dms"])
 
@@ -312,6 +321,142 @@ async def add_group_member(
     )
     await manager.publish_user(
         target.id, {"type": "channel_added", "data": {"channel_id": channel_id}}
+    )
+
+
+# --- Group encryption keys ------------------------------------------------
+# A group is encrypted under a symmetric key that the server never sees. The
+# publisher seals one copy per member under the pairwise ECDH secret they
+# already share, so the server stores only blobs it cannot open. Each new epoch
+# supersedes the last; messages record the epoch that encrypted them.
+
+
+async def _member_ids(db, channel_id: str) -> set[str]:
+    rows = (
+        await db.execute(
+            select(ChannelMember.user_id).where(
+                ChannelMember.channel_id == channel_id
+            )
+        )
+    ).scalars().all()
+    return set(rows)
+
+
+@router.post(
+    "/{channel_id}/keys", response_model=GroupKeysOut, status_code=status.HTTP_201_CREATED
+)
+async def publish_group_key(
+    channel_id: str, body: GroupRekeyIn, db: DB, user: CurrentUser
+) -> GroupKeysOut:
+    """Publish a new key epoch for a group, with a share for every member.
+
+    Owner only, because it is the same authority as changing who is in the
+    group: whoever hands out the key decides who can read.
+    """
+    await _require_group_owner(db, channel_id, user)
+
+    members = await _member_ids(db, channel_id)
+    shared_with = {s.user_id for s in body.shares}
+    if len(shared_with) != len(body.shares):
+        raise HTTPException(status_code=400, detail="Duplicate share for a member")
+    # An exact match matters in both directions: a missing share locks that
+    # member out of the conversation, and a stray one would be a share for
+    # somebody who is not in the group.
+    if shared_with != members:
+        missing = len(members - shared_with)
+        extra = len(shared_with - members)
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Shares must cover exactly the current members "
+                f"({missing} missing, {extra} not in the group)"
+            ),
+        )
+
+    # Everyone needs a published public key, or they could not have been sealed
+    # a share in the first place. Checked explicitly so the failure is a clear
+    # 400 rather than a member who silently cannot read anything.
+    with_keys = set(
+        (
+            await db.execute(
+                select(UserKey.user_id).where(UserKey.user_id.in_(members))
+            )
+        ).scalars().all()
+    )
+    if with_keys != members:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"{len(members - with_keys)} member(s) have not set up encryption yet"
+            ),
+        )
+
+    # The server assigns the epoch rather than trusting the client, so racing
+    # publishers cannot collide on a number or replay an old one.
+    prev = (
+        await db.execute(
+            select(func.max(GroupKey.epoch)).where(GroupKey.channel_id == channel_id)
+        )
+    ).scalar_one_or_none()
+    epoch = (prev or 0) + 1
+
+    gk = GroupKey(channel_id=channel_id, epoch=epoch, created_by=user.id)
+    db.add(gk)
+    await db.flush()
+    for s in body.shares:
+        db.add(
+            GroupKeyShare(
+                group_key_id=gk.id,
+                user_id=s.user_id,
+                wrapped_key=s.wrapped_key,
+                sender_public_key=s.sender_public_key,
+            )
+        )
+    await db.commit()
+
+    # Tell the other members a new epoch exists so they can fetch their share
+    # without waiting for a reload.
+    await manager.publish_room(
+        channel_id,
+        {"type": "group_key", "data": {"channel_id": channel_id, "epoch": epoch}},
+    )
+    return await _my_group_keys(db, channel_id, user.id)
+
+
+@router.get("/{channel_id}/keys", response_model=GroupKeysOut)
+async def group_keys(channel_id: str, db: DB, user: CurrentUser) -> GroupKeysOut:
+    """Every epoch the caller can open, plus the epoch now in use.
+
+    A member added after an epoch was published holds no share for it and so
+    cannot read that stretch of history, which is the intended behaviour.
+    """
+    ch = await db.get(Channel, channel_id)
+    if ch is None or ch.kind != KIND_GROUP:
+        raise HTTPException(status_code=404, detail="Group not found")
+    if user.id not in await _member_ids(db, channel_id):
+        raise HTTPException(status_code=403, detail="You are not a member of this group")
+    return await _my_group_keys(db, channel_id, user.id)
+
+
+async def _my_group_keys(db, channel_id: str, user_id: str) -> GroupKeysOut:
+    rows = (
+        await db.execute(
+            select(GroupKey.epoch, GroupKeyShare.wrapped_key, GroupKeyShare.sender_public_key)
+            .join(GroupKeyShare, GroupKeyShare.group_key_id == GroupKey.id)
+            .where(GroupKey.channel_id == channel_id, GroupKeyShare.user_id == user_id)
+            .order_by(GroupKey.epoch)
+        )
+    ).all()
+    current = (
+        await db.execute(
+            select(func.max(GroupKey.epoch)).where(GroupKey.channel_id == channel_id)
+        )
+    ).scalar_one_or_none()
+    return GroupKeysOut(
+        keys=[
+            GroupKeyOut(epoch=e, wrapped_key=w, sender_public_key=p) for e, w, p in rows
+        ],
+        current_epoch=current,
     )
 
 

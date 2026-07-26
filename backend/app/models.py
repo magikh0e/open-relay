@@ -36,6 +36,11 @@ ROLE_OWNER = "owner"
 ROLE_MOD = "mod"
 ROLE_MEMBER = "member"
 
+# Total people (including the creator) a group DM may hold. Lives here rather
+# than in the router so the request schemas can bound themselves by the same
+# number instead of carrying their own copy of it.
+MAX_GROUP_SIZE = 20
+
 
 class User(Base):
     __tablename__ = "users"
@@ -115,6 +120,68 @@ class UserKey(Base):
     # Base64 PBKDF2 salt and AES-GCM IV used to wrap the private key.
     salt: Mapped[str] = mapped_column(String(64))
     iv: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class GroupKey(Base):
+    """One epoch of a group conversation's symmetric key.
+
+    The key itself is never stored here, or anywhere the server can read it.
+    This row only records that an epoch exists; the key material lives in
+    GroupKeyShare, encrypted separately to each member.
+
+    Epochs exist because membership changes have to change the key. Removing
+    someone who still holds the current key would not actually remove their
+    access to what is said next, and reusing a key when someone joins would
+    hand them the entire backlog. Each message records the epoch it was
+    encrypted under, so members can still read history from the epochs they
+    were present for.
+    """
+
+    __tablename__ = "group_keys"
+    __table_args__ = (UniqueConstraint("channel_id", "epoch"),)
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, default=_uuid
+    )
+    channel_id: Mapped[str] = mapped_column(
+        ForeignKey("channels.id", ondelete="CASCADE"), index=True
+    )
+    # Monotonic per channel, starting at 1.
+    epoch: Mapped[int] = mapped_column(Integer)
+    created_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class GroupKeyShare(Base):
+    """One member's copy of a group key, encrypted so only they can open it.
+
+    `wrapped_key` is the group key sealed with AES-GCM under the pairwise ECDH
+    secret between `sender_public_key` and the recipient's own key. The server
+    holds no part of that secret and cannot unwrap it, exactly as with the
+    wrapped private keys in `user_keys`.
+    """
+
+    __tablename__ = "group_key_shares"
+    __table_args__ = (UniqueConstraint("group_key_id", "user_id"),)
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, default=_uuid
+    )
+    group_key_id: Mapped[str] = mapped_column(
+        ForeignKey("group_keys.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # Base64 iv+ciphertext of the group key. Opaque to the server.
+    wrapped_key: Mapped[str] = mapped_column(Text)
+    # Base64 SPKI of the public key whose pairwise secret was used to wrap it,
+    # so the recipient knows which key to derive against. Recorded per share
+    # because a later epoch may be distributed by a different member.
+    sender_public_key: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
@@ -213,6 +280,10 @@ class Message(Base):
     encrypted: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="false"
     )
+    # For a group message, which group key epoch encrypted it, so a client can
+    # pick the right key for history spanning several epochs. NULL for 1:1 DMs,
+    # whose key is derived pairwise and never rotates.
+    key_epoch: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, index=True
     )
