@@ -1,7 +1,7 @@
 # Roadmap
 
-What is likely to be built next, what is being considered, and what has been
-looked at and deliberately ruled out.
+What has recently landed, what is likely to be built next, what is being
+considered, and what has been looked at and deliberately ruled out.
 
 No dates. This is a small project with one maintainer, and a list of promised
 quarters would be fiction. Order here is rough priority, not a schedule.
@@ -28,12 +28,14 @@ Kept here briefly so the reasoning above them is not lost when the entry moves.
   [developer guide](docs/DEVELOPER_GUIDE.md).
 - **End-to-end encrypted group messages** (1.25.0). Per-group key sealed to each
   member, rotated whenever somebody joins or leaves.
-- **Frontend tests.** The web client had none, which mattered more once outside
-  contributions were invited. There is now a Vitest suite over the parts where
-  being wrong is expensive: the crypto, the URL sanitising, and the message
-  renderer. It runs in CI beside the backend suite. Deliberately not a
+- **Frontend tests** (unreleased). The web client had none, which mattered more
+  once outside contributions were invited. There is now a Vitest suite over the
+  parts where being wrong is expensive: the crypto, the URL sanitising, and the
+  message renderer. It runs in CI beside the backend suite. Deliberately not a
   coverage-chasing exercise; the components with the most lines are the ones
   where a test would mostly assert that the markup still looks like the markup.
+  The crypto tests run against real WebCrypto, since a green suite over a
+  mocked crypto layer would say nothing about the guarantee it protects.
 
 ---
 
@@ -80,6 +82,13 @@ Smaller or less certain, in no particular order.
   in practice than expected.
 - **Read receipts and per-channel notification settings**, both frequently
   wanted and neither yet designed.
+- **Automated accessibility checks.** The unit suite covers logic, not what the
+  interface is actually like to use. A contrast and target-size pass found five
+  places where white sat on the accent fill at 3.16:1, avatar initials that
+  passed on two of twelve palette colours, and header buttons at 20px against a
+  24px minimum, one of which deletes a channel. All were found by measuring by
+  hand, which means the next regression will be too. Worth wiring into CI, and
+  the natural rung above the tests that now exist.
 
 ---
 
