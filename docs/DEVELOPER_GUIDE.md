@@ -11,7 +11,7 @@ canonical example of every flow described here.
 
 _Open Relay and this guide by **magikh0e**. Free software under the GNU GPL-3.0._
 
-**Covers Open Relay v1.25.1.** This line tracks the API surface below; if the
+**Covers Open Relay v1.26.0.** This line tracks the API surface below; if the
 server's `GET /api/health` reports a newer version, the guide may be behind.
 
 ---

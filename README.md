@@ -83,6 +83,7 @@ you own end to end.
 - Invite-only mode: flip registration so new accounts need a code from an admin, with an audit trail of who invited whom
 - A read-only `#whatsnew` announcements channel, seeded automatically
 - Incoming webhooks: post into a channel from CI, alerts, or home automation via a secret URL
+- **Bot accounts**: full accounts for programs, with scoped tokens (read / write / react) on a deny-by-default allowlist, so a bot can reach only what it was granted and nothing else
 
 ### What it deliberately does **not** protect
 

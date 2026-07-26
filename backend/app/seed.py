@@ -171,6 +171,27 @@ WHATSNEW_POSTS = [
         "• Nothing about using the app changes. This is the unglamorous work "
         "that keeps security fixes arriving rather than piling up",
     ),
+    (
+        "1.26.0",
+        "🤖 v1.26.0: Bot accounts\n"
+        "• A site admin can create bots from their profile: programs that post "
+        "to a channel, react, and read along, each with its own name and "
+        "avatar. Handy for build notifications, alerts, or anything that should "
+        "say something in a channel without a person typing it\n"
+        "• Each bot gets a token shown exactly once, kept only as a hash "
+        "afterwards, and limited to what you tick: reading, writing, reacting. "
+        "It can reach nothing else, so a bot meant to post cannot wander off "
+        "and start creating channels or looking people up\n"
+        "• A bot sees only the channels you add it to, like anyone else, so the "
+        "member list already answers which bots can read a channel\n"
+        "• Anything a bot writes is labelled BOT, so it is always clear a "
+        "program wrote it\n"
+        "• Bots hold no encryption key, so a group with one in it cannot be "
+        "switched to end-to-end encryption\n"
+        "• Text across the app now meets the standard contrast minimum, the "
+        "buttons in the channel header are easier to hit on a phone, and a long "
+        "channel name no longer wraps the header onto two lines",
+    ),
 ]
 
 

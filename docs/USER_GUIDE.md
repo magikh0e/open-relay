@@ -5,7 +5,7 @@ sections are enough; the rest is here when you need it.
 
 _Open Relay and this guide by **magikh0e**. Free software under the GNU GPL-3.0._
 
-**Covers Open Relay v1.25.1.** If your server's version (shown by `/version`)
+**Covers Open Relay v1.26.0.** If your server's version (shown by `/version`)
 is newer, some features here may have changed.
 
 - [Signing in](#signing-in)
@@ -19,6 +19,7 @@ is newer, some features here may have changed.
 - [Presence and privacy](#presence-and-privacy)
 - [Your account and data](#your-account-and-data)
 - [Channel webhooks](#channel-webhooks)
+- [Bot accounts](#bot-accounts)
 - [Install it as an app](#install-it-as-an-app)
 - [Desktop app](#desktop-app)
 - [Slash commands](#slash-commands)
@@ -215,6 +216,38 @@ it from the same place anytime it leaks or you're done with it.
 
 > Treat the URL like a password: anyone who has it can post to the channel. The
 > request format is in the [developer guide](DEVELOPER_GUIDE.md).
+
+## Bot accounts
+
+A webhook posts into one channel and nothing more. A **bot** is a full account a
+program signs in as: it has a name and avatar, joins channels, reads along, and
+can reply. Reach for one when something needs to hold a conversation rather than
+announce into it.
+
+If you are a **site admin**, open your profile and choose **Bots** under Server
+admin. Creating one asks for a username and which of three permissions it gets:
+
+| Permission | What it allows |
+|---|---|
+| **read** | See channels it belongs to and their messages |
+| **write** | Post, edit and delete its own messages |
+| **react** | Add emoji reactions |
+
+Tick only what the bot needs. Anything outside those permissions is refused, and
+so is everything the list does not mention: a bot cannot create channels, invite
+people, search for users, or moderate, whatever you tick.
+
+**The token appears once.** Only a hash of it is kept, so it genuinely cannot be
+shown again. Copy it when you create the bot; if you lose it, rotate it and
+update the program. Rotating cuts off a bot that is currently running.
+
+A bot sees only the channels you add it to, exactly like a person, so a channel's
+member list already tells you which bots can read it. Messages it sends are
+labelled **BOT**, so nobody has to guess whether a person wrote them.
+
+> Bots have no password and no encryption key. That means a group with a bot in
+> it cannot be switched to end-to-end encryption, since there would be no way to
+> hand the bot a key. The API is in the [developer guide](DEVELOPER_GUIDE.md).
 
 ## Install it as an app
 
