@@ -81,15 +81,15 @@ if __name__ == "__main__":
     # A realistic exchange that shows mentions, replies, formatting, code and reactions.
     post(mia, cid, "morning! how did the FPJ turn out? 🫧")
     m1 = post(alice, cid,
-              "strong batch — stuck to the **1:1** plant-to-sugar ratio and it was "
+              "strong batch; stuck to the **1:1** plant-to-sugar ratio and it was "
               "bubbling by day two")
     post(alice, cid,
          "full recipe for anyone starting one:\n"
-         "```\nFPJ — Fermented Plant Juice\n"
+         "```\nFPJ: Fermented Plant Juice\n"
          "• fast-growing tips : brown sugar = 1 : 1 by weight\n"
          "• pack loosely, ferment 5–7 days in the shade\n"
          "• strain, then dilute 1:500 before foliar feeding\n```")
-    q = post(devon, cid, f"@{alice_un} this is great — mind sharing your LAB recipe too?")
+    q = post(devon, cid, f"@{alice_un} this is great, mind sharing your LAB recipe too?")
     r = post(alice, cid,
              "rice-wash water first, then milk at `1:10`. I'll write the full thing "
              "up in a thread later today", reply_to=q["id"])

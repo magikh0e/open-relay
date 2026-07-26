@@ -84,7 +84,7 @@ const CRYPTO_SETUP = async (page, apiBase) => {
       body: JSON.stringify({ content: await seal(text), encrypted: true }),
     });
     await send(aliceTok, "did the safety numbers match on your end?");
-    await send(bobTok, "yep — all twelve groups line up ✅");
+    await send(bobTok, "yep, all twelve groups line up ✅");
     await send(aliceTok, "perfect. sending the seed-bank spreadsheet now 🌱");
   }, apiBase);
 };
