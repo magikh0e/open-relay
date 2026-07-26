@@ -252,7 +252,7 @@ import.meta.env.VITE_API_BASE    →  baked in at build time
         Forget the passphrase → the private key is unrecoverable → those messages
         are gone for everyone, permanently. No server-side reset, by design.
       </p>
-      <h3>Encrypting a message</h3>
+      <h3>Encrypting a 1:1 message</h3>
       <p>
         For a 1:1 DM both parties derive the <strong>same</strong> AES key via
         ECDH (A's private + B's public ≡ B's private + A's public), so one
@@ -264,9 +264,71 @@ import.meta.env.VITE_API_BASE    →  baked in at build time
         <li>Wire format: <strong><code>base64(iv ‖ ciphertext)</code></strong>: the 12-byte IV prepended to the GCM ciphertext (which includes its auth tag), all base64. This exact string is the message <code>content</code> with <code>encrypted:true</code>.</li>
       </ol>
       <p>Decrypt reverses it: base64-decode, split the first 12 bytes as the IV, AES-GCM-decrypt the rest.</p>
+      <h3>Encrypting a group message</h3>
+      <p>
+        A group has no single pair of keys to derive from, so it uses one
+        symmetric key per <strong>epoch</strong>, sealed separately to each
+        member under the pairwise ECDH secret you already share with them. The
+        server stores only sealed blobs.
+      </p>
+      <p>Publishing an epoch, which the group's owner does:</p>
+      <ol>
+        <li>Generate a random <strong>AES-256-GCM</strong> key: the group key.</li>
+        <li>Export it as <strong>raw</strong> 32 bytes.</li>
+        <li>For each member, yourself included, derive
+          <code>pairwise = ECDH(myPrivate, theirPublic)</code> and encrypt those
+          raw bytes with a random 12-byte IV, giving
+          <code>wrapped_key = base64(iv ‖ ciphertext)</code>.</li>
+        <li><code>POST /dms/{id}/keys</code> with one share per member, each
+          carrying <code>user_id</code>, <code>wrapped_key</code> and
+          <code>sender_public_key</code> (your own public key, so the recipient
+          knows which peer to derive against).</li>
+      </ol>
+      <blockquote>
+        Wrap the <strong>raw key bytes</strong>, not text. A 32-byte key is
+        generally not valid UTF-8, so putting it through a string-based encrypt
+        helper corrupts it via <code>TextDecoder</code> and the unwrap yields a
+        key that decrypts nothing.
+      </blockquote>
+      <p>
+        The shares must cover <strong>exactly</strong> the current membership and
+        every member must already have published a public key, or the request is
+        rejected with <code>400</code>. That rule is also what keeps a bot out of
+        an encrypted group: a bot holds no keypair, so no share can be sealed to
+        it.
+      </p>
+      <p>
+        <strong>The server assigns the epoch number</strong>, incrementing from
+        the last, rather than trusting the client. Other members receive a
+        <code>group_key</code> event and fetch their share with
+        <code>GET /dms/{id}/keys</code>.
+      </p>
+      <p>
+        <strong>Sending:</strong> encrypt exactly as for a 1:1 DM but under the
+        group key, and set <code>key_epoch</code> on the message. The server
+        refuses an encrypted group message that omits it (<code>400</code>),
+        names a superseded epoch (<code>409</code>, re-fetch and resend), or
+        names one whose shares no longer match the membership (<code>409</code>,
+        the owner must rotate first).
+      </p>
+      <p>
+        <strong>Reading:</strong> every message carries the
+        <code>key_epoch</code> that sealed it, so keep the epochs you have
+        fetched and decrypt each message with the matching one.
+      </p>
+      <p>
+        <strong>Rotation</strong> is what makes membership changes mean
+        anything: publish a fresh epoch whenever somebody joins or leaves. A new
+        member gets shares from their arrival onward and cannot read earlier
+        history; a removed member keeps what they had but gets no share of the
+        new epoch. Neither property survives if you skip the rotation, which is
+        why the server refuses messages under a key whose shares no longer match
+        the member list.
+      </p>
       <h3>Encrypted attachments</h3>
       <p>
-        Same envelope over the raw file bytes. The filename and MIME type are
+        Same envelope over the raw file bytes, under the pairwise key in a 1:1 DM
+        or the current group key in a group. The filename and MIME type are
         encrypted <em>separately</em> as their own <code>base64(iv‖ct)</code>
         blob (<code>enc_meta</code>), so the server stores no hint of what the
         file is. Decrypt the bytes for content and <code>enc_meta</code> for
@@ -284,6 +346,12 @@ take the first 24 bytes as 12 big-endian uint16s
 each → (value % 100000) padded to 5 digits
 group into twelve 5-digit blocks → "12345 67890 …"</code></pre>
       <p>Sorting first means both sides get an identical value. Match the numbers in person and the channel is verified.</p>
+      <p>
+        A safety number is between <strong>two people</strong>, so a group has no
+        single number to compare. The lock on an encrypted group tells you the
+        server cannot read it; it is not a substitute for verifying each member
+        pairwise.
+      </p>
 
       <h2><span class="sec-ico">📎</span>5. Uploads</h2>
       <p>Files attach in <strong>two steps</strong>: upload the bytes to get an id, then send a message referencing it via <code>upload_id</code>.</p>
@@ -318,6 +386,7 @@ group into twelve 5-digit blocks → "12345 67890 …"</code></pre>
           <tr><td><code>member_updated</code></td><td><code>{channel_id, user_id, role}</code></td></tr>
           <tr><td><code>dm_opened</code></td><td><code>{channel_id}</code>: a DM with you was opened (personal topic)</td></tr>
           <tr><td><code>keys_published</code></td><td><code>{channel_id, user_id}</code>: a DM peer (re)published their key</td></tr>
+          <tr><td><code>group_key</code></td><td><code>{channel_id, epoch}</code>: a new group key epoch was published; fetch your share with <code>GET /dms/{id}/keys</code></td></tr>
         </table>
       </div>
 

@@ -208,7 +208,7 @@ derived from the user's passphrase:
 Forget the passphrase → the private key is unrecoverable → those messages are
 gone for everyone, permanently. There is no server-side reset by design.
 
-### Encrypting a message
+### Encrypting a 1:1 message
 
 For a 1:1 DM both parties derive the **same** AES key via ECDH (A's private +
 B's public ≡ B's private + A's public), so one ciphertext serves both, no
@@ -223,9 +223,57 @@ per-recipient copies.
 Decryption reverses it: base64-decode, split off the first 12 bytes as the IV,
 AES-GCM-decrypt the rest.
 
+### Encrypting a group message
+
+A group has no single pair of keys to derive from, so it uses one symmetric key
+per **epoch**, sealed separately to each member under the pairwise ECDH secret
+you already share with them. The server stores only sealed blobs.
+
+**Publishing an epoch** (the group owner does this):
+
+1. Generate a random **AES-256-GCM** key. This is the group key.
+2. Export it as **raw** 32 bytes.
+3. For each member, including yourself: derive `pairwise = ECDH(myPrivate,
+   theirPublic)` and encrypt those raw bytes with a random 12-byte IV, giving
+   `wrapped_key = base64(iv ‖ ciphertext)`.
+4. `POST /dms/{id}/keys` with one share per member, each carrying `user_id`,
+   `wrapped_key`, and `sender_public_key` (your own public key, so the
+   recipient knows which peer to derive against).
+
+> Wrap the **raw key bytes**, not text. A 32-byte key is generally not valid
+> UTF-8, so putting it through a string-based encrypt helper will corrupt it via
+> `TextDecoder` and the unwrap will produce a key that decrypts nothing.
+
+The shares must cover **exactly** the current membership, and every member must
+already have published a public key, or the request is rejected with `400`. That
+rule is also what stops a bot joining an encrypted group: a bot holds no
+keypair, so no share can be sealed to it.
+
+**The server assigns the epoch number**, incrementing from the last one, rather
+than trusting the client. Other members get a `group_key` WebSocket event naming
+the new epoch, and fetch their share with `GET /dms/{id}/keys`.
+
+**Sending:** encrypt exactly as for a 1:1 DM, but under the group key, and set
+`key_epoch` to the current epoch on the message. The server refuses an encrypted
+group message that omits it (`400`), names a superseded epoch (`409`, re-fetch
+and resend), or names an epoch whose shares no longer match the membership
+(`409`, the owner needs to rotate first).
+
+**Reading:** every message carries the `key_epoch` that sealed it, so hold the
+epochs you have fetched and decrypt each message with the matching one.
+
+**Rotation** is what makes membership changes mean anything: publish a fresh
+epoch whenever somebody joins or leaves. A new member receives shares only from
+the epoch they were present for onward, so they cannot read earlier history; a
+removed member keeps whatever they already had but gets no share of the new
+epoch, so they cannot read on. Neither property survives if you skip the
+rotation, which is why the server refuses to accept messages under a key whose
+shares no longer match the member list.
+
 ### Encrypted attachments
 
-Same envelope over the raw file bytes. The filename and MIME type are encrypted
+Same envelope over the raw file bytes, under the pairwise key in a 1:1 DM or the
+current group key in a group. The filename and MIME type are encrypted
 **separately** (as their own `base64(iv‖ct)` blob, `enc_meta`) so the server
 stores no hint of what the file is, just an anonymous ciphertext blob. Decrypt
 the bytes for content and `enc_meta` for `{ name, type }`.
@@ -247,6 +295,10 @@ group into twelve 5-digit blocks → "12345 67890 ..."
 Sorting the two keys first means both sides get an identical value regardless of
 who computes it. Match the numbers in person/over the phone and the channel is
 verified.
+
+A safety number is between **two people**, so a group has no single number to
+compare. The lock on an encrypted group tells you the server cannot read it; it
+is not a substitute for verifying each member pairwise.
 
 ---
 
@@ -304,6 +356,7 @@ shapes below. Datetimes are ISO 8601 strings; ids are UUID strings.
 | `member_updated` | `{channel_id, user_id, role}` |
 | `dm_opened` | `{channel_id}`, a DM with you was opened (personal topic) |
 | `keys_published` | `{channel_id, user_id}`, a DM peer (re)published their E2EE key |
+| `group_key` | `{channel_id, epoch}`, a new group key epoch was published; fetch your share with `GET /dms/{id}/keys` (§4) |
 
 Events reach you over two topic kinds: **room** events for channels you're
 subscribed to, and **personal** events (`channel_added`, `channel_kicked`,
