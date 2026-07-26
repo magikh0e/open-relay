@@ -28,6 +28,12 @@ Kept here briefly so the reasoning above them is not lost when the entry moves.
   [developer guide](docs/DEVELOPER_GUIDE.md).
 - **End-to-end encrypted group messages** (1.25.0). Per-group key sealed to each
   member, rotated whenever somebody joins or leaves.
+- **Frontend tests.** The web client had none, which mattered more once outside
+  contributions were invited. There is now a Vitest suite over the parts where
+  being wrong is expensive: the crypto, the URL sanitising, and the message
+  renderer. It runs in CI beside the backend suite. Deliberately not a
+  coverage-chasing exercise; the components with the most lines are the ones
+  where a test would mostly assert that the markup still looks like the markup.
 
 ---
 
@@ -70,9 +76,6 @@ Smaller or less certain, in no particular order.
 - **Message expiry.** Delete ciphertext after a chosen interval. Not forward
   secrecy, but it bounds how much a future key compromise exposes, and it works
   for plaintext channels too. Cheap next to a ratchet.
-- **Frontend tests.** The backend suite runs against real Postgres and Redis on
-  every push; the web client has no tests at all. The gap matters more now that
-  outside contributions are invited.
 - **Push notifications for incoming calls**, if the reliability turns out better
   in practice than expected.
 - **Read receipts and per-channel notification settings**, both frequently

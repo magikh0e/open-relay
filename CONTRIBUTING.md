@@ -127,13 +127,29 @@ Two things to know:
    If you added one, run `alembic upgrade head` before the suite or every test
    will fail on a missing column.
 
-**CI runs this suite on every push and pull request**, against Postgres and Redis
-service containers, with the schema applied by Alembic rather than `create_all`.
-So a broken migration fails the build too. A second job byte-compiles the
-backend, builds the frontend and builds both Docker images.
+The frontend has its own suite:
 
-Run the suite locally before pushing anyway: it takes about eight seconds, and
-it is a much shorter feedback loop than waiting on CI.
+```bash
+cd frontend
+npm test          # or npm run test:watch while you work
+```
+
+It is Vitest over jsdom, so it needs no database and finishes in about a second.
+It covers the places where being wrong is expensive rather than trying to cover
+everything: the end-to-end crypto, the server-origin and URL sanitising, and the
+message renderer, which turns text written by other people into DOM.
+
+The crypto tests run against Node's real WebCrypto, not a mock. Testing that
+module against a stub would produce a green suite that says nothing about the
+guarantee it exists to protect.
+
+**CI runs both suites on every push and pull request.** The backend runs against
+Postgres and Redis service containers, with the schema applied by Alembic rather
+than `create_all`, so a broken migration fails the build too. A third job
+byte-compiles the backend, builds the frontend and builds both Docker images.
+
+Run them locally before pushing anyway: together they take about ten seconds,
+and it is a much shorter feedback loop than waiting on CI.
 
 New behaviour should come with a test. Bug fixes should come with the test that
 would have caught the bug.

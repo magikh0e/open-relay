@@ -10,8 +10,12 @@ node_modules/
 dist/
 *.log
 
-# Uploaded files (local dev)
+# Uploaded files (local dev). Both paths: the upload directory is relative to
+# the working directory, so running pytest from the repo root writes to
+# ./uploads rather than ./backend/uploads, and those artifacts were getting
+# committed by accident.
 backend/uploads/
+/uploads/
 
 # Secrets / local env
 .env.prod

@@ -20,6 +20,15 @@ export default defineConfig({
     },
   ],
   define: { __BUILD_ID__: JSON.stringify(BUILD_ID) },
+  // Vitest reads this same config, so tests build the app exactly as the app
+  // builds, including the __BUILD_ID__ define above. Without that, any module
+  // touching it fails to parse under test.
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test/setup.js"],
+    include: ["src/**/*.test.{js,jsx}"],
+  },
   server: {
     port: 5173,
     proxy: {

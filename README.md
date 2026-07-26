@@ -198,12 +198,25 @@ opacity) only behave realistically against the real thing.
 ```bash
 cd backend
 pip install -r requirements-dev.txt   # pytest, once
-pytest -q                             # ~75 tests
+pytest -q                             # ~110 tests
 ```
 
-CI runs this same suite on every push and pull request, against Postgres and
-Redis service containers, with the schema applied by Alembic exactly as in
-production.
+The frontend has a Vitest suite covering the parts where being wrong is
+expensive: the end-to-end crypto, the URL and server-origin sanitising, and the
+message renderer that turns other people's text into DOM.
+
+```bash
+cd frontend
+npm test
+```
+
+The crypto tests run against Node's real WebCrypto rather than a mock, so they
+exercise the same algorithms the browser does; a green suite against a stubbed
+crypto layer would prove nothing about the guarantee it is there to protect.
+
+CI runs both suites on every push and pull request. The backend runs against
+Postgres and Redis service containers with the schema applied by Alembic exactly
+as in production.
 
 ## Roadmap
 
