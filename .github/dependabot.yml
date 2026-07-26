@@ -36,6 +36,15 @@ updates:
     commit-message:
       prefix: deps
     groups:
+      # react and react-dom must move together: npm refuses to resolve a tree
+      # with react 19 and react-dom 18, so split PRs each fail to install. Same
+      # for vite and its react plugin, whose majors are tied. Grouped across
+      # ALL update types, majors included, because that is exactly when they
+      # break apart.
+      react:
+        patterns: ["react", "react-dom"]
+      vite:
+        patterns: ["vite", "@vitejs/*"]
       frontend-minor-patch:
         patterns: ["*"]
         update-types: [minor, patch]
@@ -88,3 +97,8 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+        # tauri-action is excluded deliberately: CI never builds the desktop
+        # app (that only runs on a desktop-v* tag), so a green check on a
+        # tauri-action bump proves nothing. It gets its own PR to be reviewed
+        # and verified against a real build.
+        exclude-patterns: ["tauri-apps/tauri-action"]
