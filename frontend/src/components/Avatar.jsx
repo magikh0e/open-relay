@@ -1,13 +1,19 @@
 // Initials avatar with an optional admin crown. Name renders as text (escaped).
 //
 // The background colour is derived from the name so people are distinguishable
-// at a glance — every avatar being the same blue made conversations hard to
-// scan. The palette is hand-picked to sit well on the dark theme with white
-// initials, rather than hashing to an arbitrary hue that might clash or wash out.
+// at a glance; every avatar being the same blue made conversations hard to
+// scan. The palette is hand-picked rather than hashed to an arbitrary hue that
+// might clash or wash out.
+//
+// The initials are dark, not white. These are mid-tone colours, and white on
+// them measured between 2.9:1 and 3.6:1, under the 4.5:1 minimum for text.
+// Dark ink clears it on every swatch while leaving the colours as vivid as
+// they were, which is the point of having a palette at all. Three swatches
+// were lightened slightly to pass; the rest are untouched.
 const PALETTE = [
   "#e0567b", "#e0713a", "#d9a441", "#4bab5a", "#3aa6a0",
-  "#4b8ff0", "#6a5cff", "#a259d6", "#d356a8", "#5f97b0",
-  "#c0553f", "#7a9c3e",
+  "#4b8ff0", "#7d6eff", "#ac68dd", "#d356a8", "#5f97b0",
+  "#d2705a", "#7a9c3e",
 ];
 
 function colorFor(name) {

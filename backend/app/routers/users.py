@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_, select
 from sqlalchemy.orm import aliased
 
-from ..deps import DB, CurrentUser
+from ..deps import DB, CurrentUser, reject_bots
 from ..models import Channel, ChannelMember, Invite, Message, User
 from ..redis_client import (
     away_map,
@@ -87,7 +87,11 @@ async def update_me(body: ProfileUpdate, db: DB, user: CurrentUser) -> User:
     return user
 
 
-@router.post("/me/password", response_model=TokenPair)
+@router.post(
+    "/me/password",
+    response_model=TokenPair,
+    dependencies=[Depends(reject_bots)],
+)
 async def change_password(
     body: PasswordChange, db: DB, user: CurrentUser
 ) -> TokenPair:
@@ -234,7 +238,7 @@ async def profile(user_id: str, db: DB, viewer: CurrentUser) -> ProfileOut:
     )
 
 
-@router.get("/me/export")
+@router.get("/me/export", dependencies=[Depends(reject_bots)])
 async def export_me(db: DB, user: CurrentUser) -> dict:
     """Everything this account holds, as JSON.
 
@@ -281,7 +285,9 @@ async def export_me(db: DB, user: CurrentUser) -> dict:
     }
 
 
-@router.post("/me/delete", status_code=204)
+@router.post(
+    "/me/delete", status_code=204, dependencies=[Depends(reject_bots)]
+)
 async def delete_me(body: AccountDelete, db: DB, user: CurrentUser) -> None:
     """Permanently delete your own account.
 

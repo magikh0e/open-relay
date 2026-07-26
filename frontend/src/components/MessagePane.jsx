@@ -674,6 +674,11 @@ export default function MessagePane({
                       >
                         {authorName}
                       </button>
+                      {m.sender?.is_bot && (
+                        <span className="role-tag bot" title="A program, not a person">
+                          BOT
+                        </span>
+                      )}
                       {online.has(m.sender_id) && (
                         <span className="online-dot" title="online" />
                       )}

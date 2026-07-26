@@ -199,6 +199,11 @@ export default function ChannelSettings({
                   >
                     <Avatar name={m.display_name} admin={m.is_admin} />
                     <span className="member-name">{m.display_name}</span>
+                    {m.is_bot && (
+                      <span className="role-tag bot" title="A program, not a person">
+                        BOT
+                      </span>
+                    )}
                     {isOwner && <span className="role-tag">owner</span>}
                     {isOp && <span className="role-tag op">op</span>}
                   </button>

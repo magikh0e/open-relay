@@ -710,6 +710,7 @@ def _msg_out_from_user(
             display_name=user.display_name,
             avatar_url=user.avatar_url,
             is_admin=user.is_admin,
+            is_bot=user.is_bot,
         ),
         reactions=[],
         reply_to=reply_to,

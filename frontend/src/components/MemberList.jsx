@@ -103,6 +103,11 @@ function Section({
               <span className={`member-name ${awayMap[m.id] ? "is-away" : ""}`}>
                 {m.display_name}
               </span>
+              {m.is_bot && (
+                <span className="role-tag bot" title="A program, not a person">
+                  BOT
+                </span>
+              )}
               {m.role === "owner" && <span className="role-tag">owner</span>}
               {isOp && <span className="role-tag op">op</span>}
             </button>

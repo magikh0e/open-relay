@@ -90,6 +90,10 @@ class UserPublic(BaseModel):
     display_name: str
     avatar_url: str
     is_admin: bool = False
+    # A program rather than a person. Exposed so a client can label it: a bot
+    # in a channel can read that channel, and people should be able to see
+    # that from the roster rather than having to be told.
+    is_bot: bool = False
 
 
 class MemberOut(BaseModel):
@@ -99,6 +103,7 @@ class MemberOut(BaseModel):
     display_name: str
     avatar_url: str
     is_admin: bool = False
+    is_bot: bool = False
     role: str = "member"
 
 
@@ -367,6 +372,31 @@ class KeyBundleOut(BaseModel):
 class PublicKeyOut(BaseModel):
     user_id: str
     public_key: str
+
+
+# --- Bots -------------------------------------------------------------------
+
+class BotCreate(BaseModel):
+    username: str = Field(min_length=2, max_length=32)
+    display_name: str | None = Field(default=None, max_length=64)
+    # Subset of read, write, react. An empty list is allowed and yields a bot
+    # that can authenticate but do nothing, which is a useful starting point.
+    scopes: list[str] = Field(default_factory=list, max_length=8)
+
+
+class BotOut(BaseModel):
+    id: str
+    username: str
+    display_name: str
+    scopes: list[str] = []
+    created_at: datetime
+    last_used_at: datetime | None = None
+
+
+class BotCreated(BotOut):
+    # Shown once, at creation or rotation. Only its SHA-256 digest is stored,
+    # so it cannot be recovered afterwards.
+    token: str
 
 
 # --- Group encryption keys -------------------------------------------------

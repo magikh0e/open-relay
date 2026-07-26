@@ -28,10 +28,10 @@ export default function Profile({ userId, onClose, onMessage }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ display_name: "", pronouns: "", bio: "" });
   const [saving, setSaving] = useState(false);
-  const [pwOpen, setPwOpen] = useState(false);
-  const [privacyOpen, setPrivacyOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [invitesOpen, setInvitesOpen] = useState(false);
+  // One panel at a time. They were five independent booleans, which let all of
+  // them open at once and stacked into a modal taller than any screen.
+  const [panel, setPanel] = useState(null);
+  const toggle = (name) => setPanel((p) => (p === name ? null : name));
 
   const isMe = user?.id === userId;
   const dialogRef = useDialog(onClose);
@@ -40,10 +40,7 @@ export default function Profile({ userId, onClose, onMessage }) {
     let alive = true;
     setProfile(null);
     setEditing(false);
-    setPwOpen(false);
-    setPrivacyOpen(false);
-    setAccountOpen(false);
-    setInvitesOpen(false);
+    setPanel(null);
     setError("");
     api(`/users/${userId}`)
       .then((p) => {
@@ -131,7 +128,9 @@ export default function Profile({ userId, onClose, onMessage }) {
                 />
               ) : (
                 <div className="profile-value">
-                  {profile.pronouns || <span className="muted">—</span>}
+                  {profile.pronouns || (
+                    <span className="muted">Not set</span>
+                  )}
                 </div>
               )}
             </div>
@@ -214,43 +213,62 @@ export default function Profile({ userId, onClose, onMessage }) {
                     <button className="mini" onClick={() => setEditing(true)}>
                       Edit profile
                     </button>
-                    <button
-                      className="mini"
-                      onClick={() => setPwOpen((o) => !o)}
-                    >
-                      {user?.has_password === false
-                        ? "Set a password"
-                        : "Change password"}
-                    </button>
-                    <button
-                      className="mini"
-                      onClick={() => setPrivacyOpen((o) => !o)}
-                    >
-                      Privacy
-                    </button>
-                    <button
-                      className="mini"
-                      onClick={() => setAccountOpen((o) => !o)}
-                    >
-                      Your data
-                    </button>
-                    {user?.is_admin && (
-                      <button
-                        className="mini"
-                        onClick={() => setInvitesOpen((o) => !o)}
-                      >
-                        Invites
-                      </button>
-                    )}
+                    <PanelButton
+                      name="password"
+                      panel={panel}
+                      onToggle={toggle}
+                      label={
+                        user?.has_password === false
+                          ? "Set a password"
+                          : "Change password"
+                      }
+                    />
+                    <PanelButton
+                      name="privacy"
+                      panel={panel}
+                      onToggle={toggle}
+                      label="Privacy"
+                    />
+                    <PanelButton
+                      name="data"
+                      panel={panel}
+                      onToggle={toggle}
+                      label="Your data"
+                    />
                   </>
                 )}
               </div>
             )}
 
-            {isMe && pwOpen && <PasswordForm hasPassword={user?.has_password !== false} />}
-            {isMe && accountOpen && <AccountData onClose={onClose} />}
-            {isMe && user?.is_admin && invitesOpen && <InvitesAdmin />}
-            {isMe && privacyOpen && (
+            {/* Admin tools are set apart: they manage the server, not you, and
+                mixing them in made six equal-looking buttons with no hierarchy. */}
+            {isMe && user?.is_admin && !editing && (
+              <div className="profile-admin">
+                <div className="profile-admin-label">Server admin</div>
+                <div className="profile-actions">
+                  <PanelButton
+                    name="invites"
+                    panel={panel}
+                    onToggle={toggle}
+                    label="Invites"
+                  />
+                  <PanelButton
+                    name="bots"
+                    panel={panel}
+                    onToggle={toggle}
+                    label="Bots"
+                  />
+                </div>
+              </div>
+            )}
+
+            {isMe && panel === "password" && (
+              <PasswordForm hasPassword={user?.has_password !== false} />
+            )}
+            {isMe && panel === "data" && <AccountData onClose={onClose} />}
+            {isMe && user?.is_admin && panel === "invites" && <InvitesAdmin />}
+            {isMe && user?.is_admin && panel === "bots" && <BotsAdmin />}
+            {isMe && panel === "privacy" && (
               <>
                 <PrivacyForm />
                 <NotificationToggle />
@@ -271,6 +289,22 @@ export default function Profile({ userId, onClose, onMessage }) {
         )}
       </div>
     </div>
+  );
+}
+
+// A toggle for one of the profile's disclosure panels. It reports its state
+// through aria-expanded and a pressed look, so which panel is open is visible
+// rather than something you infer from what appeared below.
+function PanelButton({ name, panel, onToggle, label }) {
+  const open = panel === name;
+  return (
+    <button
+      className={"mini" + (open ? " active" : "")}
+      aria-expanded={open}
+      onClick={() => onToggle(name)}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -550,7 +584,7 @@ function AccountData({ onClose }) {
         </button>
         <div className="muted small" style={{ marginTop: 6 }}>
           Your profile, settings and messages as JSON. Encrypted messages are
-          included as the scrambled text the server holds — it can't read them
+          included as the scrambled text the server holds; it can't read them
           either.
         </div>
       </div>
@@ -684,6 +718,243 @@ function InvitesAdmin() {
                     {inv.used_by_username || "deleted user"}
                   </>
                 )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// Admin-only: mint bot accounts, hand out their token once, rotate or remove
+// them. A bot's token is a bearer credential with no expiry, so the only
+// honest moment to show it is the moment it is created.
+function BotsAdmin() {
+  const [bots, setBots] = useState(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [scopes, setScopes] = useState(["read", "write"]);
+  // The one-time token, held only until the admin dismisses it.
+  const [fresh, setFresh] = useState(null);
+  const [copied, setCopied] = useState(false);
+  // Both actions here are destructive in a way a single click should not
+  // trigger: rotating cuts off a bot that is currently running, and
+  // deleting is permanent. Holds {id, action} while awaiting confirmation.
+  const [confirming, setConfirming] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    api("/bots")
+      .then((rows) => alive && setBots(rows))
+      .catch((e) => alive && setError(e.message));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  function toggleScope(s) {
+    setScopes((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+    );
+  }
+
+  async function copy(token) {
+    try {
+      await navigator.clipboard.writeText(token);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setError("Couldn't copy. Select the token and copy it by hand.");
+    }
+  }
+
+  async function create() {
+    setBusy(true);
+    setError("");
+    try {
+      const bot = await api("/bots", {
+        method: "POST",
+        body: {
+          username: username.trim(),
+          display_name: displayName.trim() || null,
+          scopes,
+        },
+      });
+      setBots((prev) => [bot, ...(prev || [])]);
+      setFresh(bot);
+      setCreating(false);
+      setUsername("");
+      setDisplayName("");
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function rotate(bot) {
+    setError("");
+    try {
+      const updated = await api(`/bots/${bot.id}/token`, { method: "POST" });
+      setBots((prev) => prev.map((b) => (b.id === bot.id ? updated : b)));
+      setFresh(updated);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function remove(bot) {
+    setError("");
+    try {
+      await api(`/bots/${bot.id}`, { method: "DELETE" });
+      setBots((prev) => prev.filter((b) => b.id !== bot.id));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  return (
+    <div className="privacy-form invites-admin">
+      <div className="invites-head">
+        <div className="privacy-label">Bot accounts</div>
+        <button className="mini" onClick={() => setCreating((c) => !c)}>
+          {creating ? "Cancel" : "New bot"}
+        </button>
+      </div>
+      <div className="muted small">
+        A bot is a program that can read and post in the channels you add it
+        to, and nothing else. It cannot join on its own, open DMs, or moderate.
+        It has no encryption key, so a group with a bot in it cannot be
+        encrypted.
+      </div>
+      {error && <div className="error">{error}</div>}
+
+      {fresh && (
+        <div className="bot-token-reveal">
+          <div className="privacy-label">Token for @{fresh.username}</div>
+          <code className="bot-token">{fresh.token}</code>
+          <div className="invite-actions">
+            <button className="mini" onClick={() => copy(fresh.token)}>
+              {copied ? "Copied" : "Copy"}
+            </button>
+            <button className="mini ghost" onClick={() => setFresh(null)}>
+              Done
+            </button>
+          </div>
+          <div className="muted small">
+            Copy it now. Only a hash is stored, so this cannot be shown again;
+            if it is lost, rotate the token to get a new one.
+          </div>
+        </div>
+      )}
+
+      {creating && (
+        <div className="bot-create">
+          <input
+            className="edit-input"
+            placeholder="Username, e.g. ci-bot"
+            value={username}
+            maxLength={32}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <input
+            className="edit-input"
+            placeholder="Display name (optional)"
+            value={displayName}
+            maxLength={64}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
+          <div className="bot-scopes">
+            {[
+              ["read", "Read channels it is in"],
+              ["write", "Post messages"],
+              ["react", "Add reactions"],
+            ].map(([s, label]) => (
+              <label key={s} className="check">
+                <input
+                  type="checkbox"
+                  checked={scopes.includes(s)}
+                  onChange={() => toggleScope(s)}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <button
+            className="primary"
+            disabled={busy || username.trim().length < 2}
+            onClick={create}
+          >
+            {busy ? "Creating…" : "Create bot"}
+          </button>
+        </div>
+      )}
+
+      {bots === null ? (
+        <div className="muted small">Loading…</div>
+      ) : bots.length === 0 ? (
+        <div className="muted small">No bots yet.</div>
+      ) : (
+        <ul className="invites-list">
+          {bots.map((b) => (
+            <li key={b.id} className="invite-row">
+              <div className="invite-main">
+                <code className="invite-code">@{b.username}</code>
+                <span className="role-tag bot">BOT</span>
+                <span className="invite-actions">
+                  {confirming?.id === b.id ? (
+                    <>
+                      <button
+                        className="mini danger-btn"
+                        onClick={() => {
+                          const act = confirming.action;
+                          setConfirming(null);
+                          act === "rotate" ? rotate(b) : remove(b);
+                        }}
+                      >
+                        {confirming.action === "rotate"
+                          ? "Rotate, cutting it off"
+                          : "Delete permanently"}
+                      </button>
+                      <button
+                        className="mini ghost"
+                        onClick={() => setConfirming(null)}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className="mini"
+                        onClick={() =>
+                          setConfirming({ id: b.id, action: "rotate" })
+                        }
+                      >
+                        Rotate token
+                      </button>
+                      <button
+                        className="mini ghost"
+                        onClick={() =>
+                          setConfirming({ id: b.id, action: "delete" })
+                        }
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </span>
+              </div>
+              <div className="invite-meta muted small">
+                {b.scopes.length ? b.scopes.join(", ") : "no scopes"}
+                {" · "}
+                {b.last_used_at
+                  ? `last used ${timeAgo(b.last_used_at)}`
+                  : "never used"}
               </div>
             </li>
           ))}

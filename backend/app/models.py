@@ -41,6 +41,10 @@ ROLE_MEMBER = "member"
 # number instead of carrying their own copy of it.
 MAX_GROUP_SIZE = 20
 
+# What a bot token may authorise. A bot is refused anything it has not been
+# granted, and refused outright anywhere a scope has not been declared.
+BOT_SCOPES = ("read", "write", "react")
+
 
 class User(Base):
     __tablename__ = "users"
@@ -58,6 +62,13 @@ class User(Base):
     pronouns: Mapped[str] = mapped_column(String(40), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)  # site-wide moderator
+    # A program rather than a person. Bots reuse everything a user has (display
+    # name, avatar, membership, mentions, presence) but authenticate with a
+    # scoped token instead of a password, and are refused the endpoints that
+    # only make sense for a human account.
+    is_bot: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
     # Embedded in every issued JWT. Bumping it invalidates all outstanding
     # access AND refresh tokens for this user (used on password change).
     token_version: Mapped[int] = mapped_column(
@@ -183,6 +194,40 @@ class GroupKeyShare(Base):
     # because a later epoch may be distributed by a different member.
     sender_public_key: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class BotToken(Base):
+    """A bot's credential.
+
+    Stored as a SHA-256 digest, never the token itself, so a database leak does
+    not hand over working credentials. A fast hash is right here rather than
+    Argon2: the token is 32 random bytes, so there is nothing to brute-force,
+    and this runs on every request the bot makes.
+
+    Kept in its own table rather than a column on the user so a token can be
+    revoked and reissued without disturbing the bot's identity or its channel
+    memberships.
+    """
+
+    __tablename__ = "bot_tokens"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, default=_uuid
+    )
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    # Comma-separated subset of read, write, react. Deliberately no moderation
+    # scope: letting third-party code remove people is a far larger decision.
+    scopes: Mapped[str] = mapped_column(String(128), default="")
+    created_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    last_used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class Channel(Base):
