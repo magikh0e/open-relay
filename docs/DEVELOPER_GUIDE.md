@@ -96,6 +96,27 @@ refresh dance is the wrong shape for that.
   keys, and minting other bots. It has no password hash, so the login and OAuth
   paths cannot admit it either.
 
+A bot may reach **only** the endpoints below, and only with the scope named.
+Anything else is refused with `403`, including endpoints a future version adds:
+the list is an allowlist, so a new route is closed to bots until it is opened
+deliberately.
+
+| Scope | Endpoints |
+|---|---|
+| *(none)* | `GET /users/me`, so even a write-only bot can learn its own id |
+| `read` | `GET /channels`, `GET /channels/{id}`, `GET /channels/{id}/members`, `GET /channels/{id}/messages`, `GET /channels/{id}/messages/{root}/thread`, `GET /users/{id}`, `POST /channels/{id}/read`, and the WebSocket |
+| `write` | `POST /channels/{id}/messages`, and `PATCH`/`DELETE` on its own messages |
+| `react` | `POST /channels/{id}/messages/{id}/reactions` |
+
+Notably absent, and deliberately: creating channels, joining or leaving on its
+own initiative, opening DMs, uploading files, searching for people, and every
+moderation action. A bot is put into a channel by a person and can act only
+inside it.
+
+The WebSocket accepts a bot token in the same `?token=` slot and requires
+`read`. That is the difference between a bot and an incoming webhook: a webhook
+can only speak, a bot can listen.
+
 A bot has **no encryption keypair**, since there is no passphrase for a program
 to hold. DMs with one are plaintext, and a group containing one cannot be
 encrypted, because publishing a group key requires every member to have a

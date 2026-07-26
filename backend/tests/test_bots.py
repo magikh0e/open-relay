@@ -178,3 +178,121 @@ async def test_bot_in_a_group_blocks_encryption(client, alice, bob, user_factory
                           json={"shares": shares})
     assert r.status_code == 400
     assert "encryption" in r.json()["detail"].lower()
+
+
+# --- scope enforcement (stage 2) -------------------------------------------
+#
+# Access is deny-by-default: a bot may reach only the endpoints in
+# deps.BOT_ROUTES, and only with the scope each names. These pin both halves,
+# because either one failing open would be silent.
+
+async def _channel_with_bot(client, admin, bot_id, name=None):
+    """A channel the bot has been added to, since membership gates it too."""
+    import uuid
+    slug = "bt" + uuid.uuid4().hex[:8]
+    ch = await client.post(
+        "/channels", headers=admin["headers"],
+        json={"slug": slug, "name": name or slug, "is_private": False},
+    )
+    assert ch.status_code == 201, ch.text
+    cid = ch.json()["id"]
+    added = await client.post(
+        f"/channels/{cid}/invite", headers=admin["headers"], json={"user_id": bot_id}
+    )
+    assert added.status_code == 204, added.text
+    return cid
+
+
+async def test_read_scope_gates_history(client, alice):
+    await _make_admin(alice["id"])
+    reader = (await _new_bot(client, alice, scopes=["read"])).json()
+    mute = (await _new_bot(client, alice, scopes=["write"])).json()
+    cid = await _channel_with_bot(client, alice, reader["id"])
+    await client.post(f"/channels/{cid}/invite", headers=alice["headers"],
+                      json={"user_id": mute["id"]})
+
+    assert (await client.get(f"/channels/{cid}/messages",
+                             headers=_auth(reader["token"]))).status_code == 200
+    # Same channel, same membership: only the scope differs.
+    assert (await client.get(f"/channels/{cid}/messages",
+                             headers=_auth(mute["token"]))).status_code == 403
+
+
+async def test_write_scope_gates_posting(client, alice):
+    await _make_admin(alice["id"])
+    writer = (await _new_bot(client, alice, scopes=["write"])).json()
+    reader = (await _new_bot(client, alice, scopes=["read"])).json()
+    cid = await _channel_with_bot(client, alice, writer["id"])
+    await client.post(f"/channels/{cid}/invite", headers=alice["headers"],
+                      json={"user_id": reader["id"]})
+
+    posted = await client.post(f"/channels/{cid}/messages",
+                               headers=_auth(writer["token"]),
+                               json={"content": "build passed"})
+    assert posted.status_code == 201, posted.text
+    assert posted.json()["sender"]["is_bot"] is True
+
+    refused = await client.post(f"/channels/{cid}/messages",
+                                headers=_auth(reader["token"]),
+                                json={"content": "should not land"})
+    assert refused.status_code == 403
+
+
+async def test_react_scope_gates_reactions(client, alice):
+    await _make_admin(alice["id"])
+    bot = (await _new_bot(client, alice, scopes=["read", "react"])).json()
+    plain = (await _new_bot(client, alice, scopes=["read"])).json()
+    cid = await _channel_with_bot(client, alice, bot["id"])
+    await client.post(f"/channels/{cid}/invite", headers=alice["headers"],
+                      json={"user_id": plain["id"]})
+    mid = (await client.post(f"/channels/{cid}/messages", headers=alice["headers"],
+                             json={"content": "react to me"})).json()["id"]
+
+    ok = await client.post(f"/channels/{cid}/messages/{mid}/reactions",
+                           headers=_auth(bot["token"]), json={"emoji": "👍"})
+    assert ok.status_code in (200, 201), ok.text
+    no = await client.post(f"/channels/{cid}/messages/{mid}/reactions",
+                           headers=_auth(plain["token"]), json={"emoji": "👍"})
+    assert no.status_code == 403
+
+
+async def test_unlisted_endpoints_are_denied_even_with_every_scope(client, alice, bob):
+    """The allowlist is the boundary, not the scopes. A bot holding all three
+    still cannot do things no scope was ever meant to grant."""
+    await _make_admin(alice["id"])
+    bot = (await _new_bot(client, alice, scopes=["read", "write", "react"])).json()
+    h = _auth(bot["token"])
+
+    # Creating channels, joining on its own initiative, opening DMs, searching
+    # for people, and moderating are all absent from BOT_ROUTES.
+    assert (await client.post("/channels", headers=h,
+                              json={"slug": "botmade", "name": "botmade"})).status_code == 403
+    assert (await client.post("/dms", headers=h, json={"user_id": bob["id"]})).status_code == 403
+    assert (await client.get("/users/search?q=al", headers=h)).status_code == 403
+    assert (await client.get("/users/online", headers=h)).status_code == 403
+
+    cid = await _channel_with_bot(client, alice, bot["id"])
+    assert (await client.post(f"/channels/{cid}/kick", headers=h,
+                              json={"user_id": bob["id"]})).status_code == 403
+    assert (await client.post(f"/channels/{cid}/invite", headers=h,
+                              json={"user_id": bob["id"]})).status_code == 403
+
+
+async def test_identity_needs_no_scope(client, alice):
+    """A write-only bot must still be able to learn who it is."""
+    await _make_admin(alice["id"])
+    bot = (await _new_bot(client, alice, scopes=[])).json()
+    me = await client.get("/users/me", headers=_auth(bot["token"]))
+    assert me.status_code == 200
+    assert me.json()["id"] == bot["id"]
+
+
+async def test_humans_are_untouched_by_the_allowlist(client, alice, bob):
+    """Scopes narrow programs, not people. A human keeps the run of the API."""
+    assert (await client.get("/users/search?q=b", headers=alice["headers"])).status_code == 200
+    assert (await client.get("/users/online", headers=alice["headers"])).status_code == 200
+    import uuid
+    slug = "hm" + uuid.uuid4().hex[:8]  # slugs are globally unique
+    made = await client.post("/channels", headers=alice["headers"],
+                             json={"slug": slug, "name": slug})
+    assert made.status_code == 201, made.text

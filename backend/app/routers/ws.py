@@ -14,7 +14,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import select, update
 
 from ..database import SessionLocal
-from ..deps import resolve_token_user
+from ..deps import bot_scopes, resolve_bot_token, resolve_token_user
 from ..models import ChannelMember, User
 from ..redis_client import (
     mark_offline,
@@ -65,6 +65,13 @@ async def _broadcast_presence(channel_ids: list[str], user_id: str, online: bool
 async def ws_endpoint(ws: WebSocket, token: str = "") -> None:
     async with SessionLocal() as db:
         user = await resolve_token_user(db, token)
+        if user is None:
+            # Bots hold an opaque token rather than a JWT. Listening is the
+            # whole point of a bot over a webhook, so the socket accepts one,
+            # gated on the same read scope that gates message history.
+            user = await resolve_bot_token(db, token)
+            if user is not None and "read" not in bot_scopes(user):
+                user = None
     if user is None:
         await ws.close(code=status.WS_1008_POLICY_VIOLATION)
         return

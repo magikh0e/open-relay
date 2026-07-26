@@ -2,7 +2,7 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -68,6 +68,7 @@ async def resolve_bot_token(db: AsyncSession, token: str) -> User | None:
 
 
 async def get_current_user(
+    request: Request,
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
@@ -85,6 +86,8 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
+    if user.is_bot:
+        authorise_bot(request, user)
     return user
 
 
@@ -92,36 +95,70 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 DB = Annotated[AsyncSession, Depends(get_db)]
 
 
+# Everything a bot may reach, and the scope each needs. An empty string means
+# any bot may call it regardless of scopes.
+#
+# This is an allowlist on purpose. Adding a check to the handful of endpoints a
+# bot obviously needs would leave every other endpoint open by omission, and
+# the list of things a program must never touch is far longer and grows every
+# time somebody adds a route. Deny by default means a new endpoint is closed to
+# bots until someone deliberately opens it, and it makes a bot's whole reach
+# one table you can read in ten seconds.
+BOT_ROUTES: dict[tuple[str, str], str] = {
+    # Identity. Scope-free so even a write-only bot can learn its own id.
+    ("GET", "/users/me"): "",
+    # Reading
+    ("GET", "/channels"): "read",
+    ("GET", "/channels/{channel_id}"): "read",
+    ("GET", "/channels/{channel_id}/members"): "read",
+    ("GET", "/channels/{channel_id}/messages"): "read",
+    ("GET", "/channels/{channel_id}/messages/{root_id}/thread"): "read",
+    ("GET", "/users/{user_id}"): "read",
+    # Marking read is bookkeeping about what it has already seen.
+    ("POST", "/channels/{channel_id}/read"): "read",
+    # Writing, including correcting or withdrawing its own messages.
+    ("POST", "/channels/{channel_id}/messages"): "write",
+    ("PATCH", "/channels/{channel_id}/messages/{message_id}"): "write",
+    ("DELETE", "/channels/{channel_id}/messages/{message_id}"): "write",
+    # Reacting
+    ("POST", "/channels/{channel_id}/messages/{message_id}/reactions"): "react",
+}
+
+
 def bot_scopes(user: User) -> list[str]:
     """Scopes granted to this request, empty for a human (who is not limited)."""
     return getattr(user, "bot_scopes", []) or []
 
 
-def require_scope(scope: str):
-    """Gate an endpoint on a bot scope.
+def authorise_bot(request: Request, user: User) -> None:
+    """Refuse a bot any endpoint it has not been explicitly granted.
 
-    People pass straight through: scopes narrow what a *program* may do on
-    someone's server, and are not a permission system for humans, who are
-    already governed by membership and roles.
+    Runs where bots are authenticated, so every authenticated route passes
+    through it and none can be forgotten. Unauthenticated routes are unaffected,
+    since a bot has no identity there to act on.
     """
-
-    async def dep(user: CurrentUser) -> User:
-        if user.is_bot and scope not in bot_scopes(user):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"This bot does not have the '{scope}' scope",
-            )
-        return user
-
-    return dep
+    route = request.scope.get("route")
+    path = getattr(route, "path", None)
+    needed = BOT_ROUTES.get((request.method, path))
+    if needed is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bot accounts cannot use this endpoint",
+        )
+    if needed and needed not in bot_scopes(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"This bot does not have the '{needed}' scope",
+        )
 
 
 async def reject_bots(user: CurrentUser) -> User:
-    """Refuse a bot outright.
+    """Refuse a bot outright, on the endpoints where it matters most.
 
-    For anything that only makes sense for a person: changing a password,
-    deleting the account, publishing encryption keys, minting invites. A bot
-    reaching one of these is a bug or an attack, never a legitimate use.
+    Redundant with BOT_ROUTES, which already denies anything unlisted, and kept
+    deliberately: if one of these were ever added to that table by mistake, an
+    explicit guard on password changes and key publishing still refuses. Cheap
+    insurance on the two or three routes where being wrong is expensive.
     """
     if user.is_bot:
         raise HTTPException(
