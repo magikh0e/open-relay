@@ -129,7 +129,7 @@ that concern a specific person (`presence`, `reaction`, `away`) carry a
 
 ---
 
-## 4. End-to-end encryption (direct messages)
+## 4. End-to-end encryption (direct messages and groups)
 
 E2EE is optional and **client-side**; the server only ever stores opaque
 blobs. A non-JS client can interoperate by reproducing this scheme exactly. The
@@ -283,6 +283,7 @@ reply_to: {id, sender_name, content, encrypted} | null,   # content is full ciph
 mentions: [{id, username, display_name}],
 thread_root_id (str|null), reply_count, last_reply_at (null|ISO),
 encrypted (bool),
+key_epoch (int|null),            # group key epoch that sealed this; null for 1:1 DMs
 attachment: AttachmentOut | null
 ```
 `content` may be empty when an attachment carries the payload.
@@ -371,6 +372,8 @@ Email is exposed **only** via `GET /users/me/export`.
 | `POST /dms/group` | `{user_ids[2..19], name?}` | `201` ChannelOut (`kind: "group"`). Creator is added automatically; max 20 people total. 403 if any invitee disallows DMs |
 | `POST /dms/{id}/members` | `{user_id}` | `204`, owner-only; idempotent; 400 if full. Leave a group via `POST /channels/{id}/leave` |
 | `DELETE /dms/{id}/members/{user_id}` | - | `204`, owner-only; removes a member |
+| `POST /dms/{id}/keys` | `{shares: [{user_id, wrapped_key, sender_public_key}]}` | `201` GroupKeysOut. Owner only. Publishes the next key epoch (number assigned by the server). Shares must cover **exactly** the current members and every one of them must have published a public key, else `400` |
+| `GET /dms/{id}/keys` | - | `{keys: [{epoch, wrapped_key, sender_public_key}], current_epoch: int\|null}`: every epoch sealed to you, oldest first. `current_epoch` is null for a plaintext group |
 
 ### Keys: `/keys` (see §4)
 

@@ -229,7 +229,7 @@ import.meta.env.VITE_API_BASE    →  baked in at build time
         Redis bridge, the same way everyone else's arrives.
       </p>
 
-      <h2><span class="sec-ico">🔒</span>4. End-to-end encryption (direct messages)</h2>
+      <h2><span class="sec-ico">🔒</span>4. End-to-end encryption (direct messages and groups)</h2>
       <p>
         E2EE is optional and client-side; the server only ever stores opaque
         blobs. A non-JS client interoperates by reproducing this scheme exactly
@@ -340,6 +340,7 @@ reply_to: {id, sender_name, content, encrypted} | null,
 mentions: [{id, username, display_name}],
 thread_root_id (str|null), reply_count, last_reply_at (null|ISO),
 encrypted (bool),
+key_epoch (int|null),            # group key epoch that sealed this; null for 1:1 DMs
 attachment: AttachmentOut | null</code></pre>
       <p><code>content</code> may be empty when an attachment carries the payload.</p>
       <p><strong>ChannelOut</strong>:</p>
@@ -429,6 +430,8 @@ unread_count (int), mention_count (int)</code></pre>
           <tr><td><code>POST /dms/group</code></td><td><code>{user_ids[2..19], name?}</code></td><td><code>201</code> ChannelOut (<code>kind: "group"</code>). Creator added automatically; max 20 total; 403 if any invitee disallows DMs</td></tr>
           <tr><td><code>POST /dms/{id}/members</code></td><td><code>{user_id}</code></td><td><code>204</code>, owner-only; idempotent; 400 if full. Leave via <code>POST /channels/{id}/leave</code></td></tr>
           <tr><td><code>DELETE /dms/{id}/members/{user_id}</code></td><td>-</td><td><code>204</code>, owner-only; removes a member</td></tr>
+          <tr><td><code>POST /dms/{id}/keys</code></td><td><code>{shares: [{user_id, wrapped_key, sender_public_key}]}</code></td><td><code>201</code>. Owner only. Publishes the next key epoch (number assigned by the server). Shares must cover <strong>exactly</strong> the current members, and every one of them must have published a public key, else <code>400</code></td></tr>
+          <tr><td><code>GET /dms/{id}/keys</code></td><td>-</td><td><code>{keys: [{epoch, wrapped_key, sender_public_key}], current_epoch}</code> &mdash; every epoch sealed to you, oldest first. <code>current_epoch</code> is null for a plaintext group</td></tr>
           <tr><td><code>GET /keys/me</code></td><td>-</td><td><code>{public_key, wrapped_private_key, salt, iv}</code> (404 if none)</td></tr>
           <tr><td><code>PUT /keys/me</code></td><td>same four fields</td><td>echoes bundle; broadcasts <code>keys_published</code></td></tr>
           <tr><td><code>GET /keys/{user_id}</code></td><td>-</td><td><code>{user_id, public_key}</code> (404 if peer has no keys)</td></tr>
