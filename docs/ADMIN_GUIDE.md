@@ -32,6 +32,7 @@ with `docker compose -f docker-compose.prod.yml up -d backend` (use `up -d`, not
 | `LOGIN_RATE_PER_MIN` / `REGISTER_RATE_PER_HOUR` / `UPLOAD_RATE_PER_MIN` | Abuse throttles (defaults 10 / 5 / 5). |
 | `ACCESS_TOKEN_TTL_MIN` / `REFRESH_TOKEN_TTL_DAYS` | Session lifetimes (defaults 30 min / 30 days). |
 | `PURGE_AFTER_DAYS` | Deleted messages and orphaned files are hard-purged after this many days (default 30). |
+| `GUNICORN_WORKERS` | Backend worker processes (default 2). They are async, so one serves many concurrent requests; the sync-era `(2 x cores) + 1` rule over-provisions and mainly costs memory. Raise it on a larger box. |
 
 > The database schema is migrated automatically on backend start
 > (`alembic upgrade head` in the entrypoint), so a deploy never needs a manual
