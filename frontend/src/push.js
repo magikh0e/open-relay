@@ -42,7 +42,7 @@ export async function enablePush() {
   if (permission !== "granted") {
     throw new Error(
       permission === "denied"
-        ? "Notifications are blocked for this site — you'll need to allow them in your browser settings."
+        ? "Notifications are blocked for this site. You'll need to allow them in your browser settings."
         : "Notifications weren't enabled."
     );
   }

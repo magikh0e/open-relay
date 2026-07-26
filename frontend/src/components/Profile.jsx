@@ -584,7 +584,7 @@ function AccountData({ onClose }) {
         </button>
         <div className="muted small" style={{ marginTop: 6 }}>
           Your profile, settings and messages as JSON. Encrypted messages are
-          included as the scrambled text the server holds — it can't read them
+          included as the scrambled text the server holds; it can't read them
           either.
         </div>
       </div>

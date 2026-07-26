@@ -9,6 +9,13 @@
   --accent: #5b8cff;
   --accent-2: #7aa2ff;
   --accent-soft: rgba(91, 140, 255, 0.14);
+  /* Same hue, dark enough that white text on it clears 4.5:1. --accent itself
+     is fine as a border or as text on a dark background, but white on it is
+     only 3.16:1, and that is the Send button. Solid fills use this instead. */
+  --accent-strong: #3a6fe0;
+  /* Ink for initials on the avatar palette. Near-black rather than pure, so it
+     reads as part of the theme instead of a hole punched in the colour. */
+  --avatar-ink: #10131c;
   --danger: #ff6b6b;
   --online: #4ade80;
   --warn: #f2c94c;
@@ -131,7 +138,7 @@ input {
   color: var(--muted);
 }
 .tabs button.active {
-  background: var(--accent);
+  background: var(--accent-strong);
   color: white;
 }
 .auth-card input,
@@ -149,7 +156,7 @@ input {
   border-color: var(--accent);
 }
 button.primary {
-  background: var(--accent);
+  background: var(--accent-strong);
   color: white;
   padding: 10px;
   border-radius: 8px;
@@ -238,8 +245,11 @@ button.primary:disabled {
   width: 34px;
   height: 34px;
   border-radius: 50%;
+  /* The lighter accent here, not --accent-strong: the ink is dark, so this
+     wants the brighter background rather than the one picked for white text.
+     Only a fallback in practice, since Avatar sets a palette colour inline. */
   background: var(--accent);
-  color: white;
+  color: var(--avatar-ink);
   display: grid;
   place-items: center;
   font-weight: 700;
@@ -285,7 +295,7 @@ button.primary:disabled {
   color: var(--text);
 }
 .row.active {
-  background: var(--accent);
+  background: var(--accent-strong);
   color: white;
 }
 .row .hash {
@@ -460,6 +470,13 @@ button.primary:disabled {
 }
 .pane-title {
   font-weight: 700;
+  /* A long name used to wrap, splitting "# general" across two lines and
+     making the header taller than the row beside it. The topic next to it
+     already truncates; the name should behave the same way. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 .pane-topic {
   color: var(--muted);
@@ -549,6 +566,14 @@ button.primary:disabled {
   border-radius: 6px;
   font-size: 14px;
   line-height: 1;
+  /* These were 20px tall, under the 24px minimum tap target, and one of them
+     deletes a channel while sitting flush against its neighbours. The mobile
+     rules already widened the message-action row for this reason; the header
+     row was missed. Hit area only, the glyph is unchanged. */
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-grid;
+  place-items: center;
 }
 .act:hover {
   background: var(--bg-2);
@@ -980,7 +1005,7 @@ button.primary:disabled {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--accent);
+  background: var(--accent-strong);
   color: #fff;
   padding: 8px 10px 8px 16px;
   border-radius: 999px;
@@ -1722,10 +1747,17 @@ button.primary:disabled {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* A modal grows with its content, and the backdrop that centres it does not
-     scroll, so anything past the fold used to be unreachable: not clipped and
-     scrollable, but genuinely impossible to get to. Any modal holding a list
-     can hit this. dvh so mobile browser chrome does not eat the last rows. */
+}
+/* A modal grows with its content, and the backdrop that centres it does not
+   scroll, so anything past the fold used to be unreachable: not clipped and
+   scrollable, but genuinely impossible to get to. Any modal holding a list can
+   hit this. dvh so mobile browser chrome does not eat the last rows.
+
+   :where() so this is a floor rather than a ruling. .search-modal and
+   .settings-modal set deliberate caps of their own and are declared earlier in
+   this file, so at equal specificity a plain .modal rule here would silently
+   win and undo them. At zero specificity they keep their own values. */
+:where(.modal) {
   max-height: calc(100vh - 32px);
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
@@ -1889,7 +1921,7 @@ button.primary:disabled {
   text-align: center;
 }
 .unread-badge.mention {
-  background: var(--accent);
+  background: var(--accent-strong);
   border-color: var(--accent);
   color: #fff;
 }
