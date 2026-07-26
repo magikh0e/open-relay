@@ -50,5 +50,5 @@ jobs:
             --title "Open Relay $tag (server + web app)" \
             --prerelease \
             --latest=false \
-            --notes "Version marker for the full self-hosted Open Relay stack ($version): the FastAPI backend, the React frontend, and the browser client together. Deployed at chat.openrelay.pl via git push, not distributed through GitHub releases (only the desktop client is), so this is a pre-release and never takes the \"latest\" badge from the desktop updater. See CHANGELOG.txt for the full history."
+            --notes "Version marker for the full self-hosted Open Relay stack ($version): the FastAPI backend, the React frontend, and the browser client together. Deployed at chat.openrelay.pl via git push, not distributed through GitHub releases (only the desktop client is), so this is a pre-release and never takes the \"latest\" badge from the desktop updater. Plain-English release notes are posted in the app's #whatsnew channel; the commit log has the detail behind them."
           echo "Created pre-release $tag."
