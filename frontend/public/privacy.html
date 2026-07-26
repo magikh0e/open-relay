@@ -176,6 +176,20 @@
           someone added cannot read what was said before they arrived.
         </li>
         <li>
+          There is <strong>no forward secrecy</strong>. Your key does not change
+          as you talk, so anyone who obtains it could read the encrypted
+          messages you can read, including old ones. Protecting past messages
+          from a future key compromise would mean discarding keys as they are
+          used, which would also stop you reading your own history on a new
+          device. That trade has been made deliberately in favour of your
+          history staying available to you.
+        </li>
+        <li>
+          Safety numbers are between two people. A group has no single number to
+          compare, so the lock on a group tells you the server cannot read it,
+          but it is not a substitute for verifying each person individually.
+        </li>
+        <li>
           Your private key is protected by a passphrase only you know. <strong
             >If you forget it, those messages cannot be recovered by anyone,
             including the administrator.</strong

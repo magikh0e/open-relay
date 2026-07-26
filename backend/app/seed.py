@@ -146,6 +146,23 @@ WHATSNEW_POSTS = [
         "Escape and keep keyboard focus, clearer button labels, and steadier "
         "wording throughout",
     ),
+    (
+        "1.25.0",
+        "🔒 v1.25.0: Group messages can be end-to-end encrypted\n"
+        "• A group's owner can switch encryption on from Group info. From that "
+        "point the server stores only ciphertext it cannot read; anything sent "
+        "before stays as it was\n"
+        "• Files sent in an encrypted group are encrypted too\n"
+        "• The key changes whenever somebody joins or leaves. Someone added "
+        "reads from their arrival onward, not the history before it, and "
+        "someone removed cannot read what is said after they go\n"
+        "• Everyone in the group needs encryption set up before it can be "
+        "switched on\n"
+        "• Worth knowing: as with one-to-one DMs there is no forward secrecy, "
+        "so anyone who obtains your key could read the messages you can read. "
+        "Safety numbers are still one-to-one, so a group has no single number "
+        "to compare",
+    ),
 ]
 
 
