@@ -190,10 +190,29 @@
           but it is not a substitute for verifying each person individually.
         </li>
         <li>
-          Your private key is protected by a passphrase only you know. <strong
-            >If you forget it, those messages cannot be recovered by anyone,
-            including the administrator.</strong
+          Your private key is generated in your browser and only ever leaves it
+          <strong>wrapped</strong>: encrypted with a key stretched from your
+          passphrase (PBKDF2, 300,000 iterations) that the server never
+          receives. What we store is that sealed blob, which we cannot open.
+          Unwrapped, the key exists only in the browser tab you are using and is
+          discarded when the browser session ends, which is why you are asked
+          for the passphrase again in a new session.
+        </li>
+        <li>
+          We keep that wrapped key rather than leaving it only on one device, so
+          that you can sign in somewhere else and still read your history. The
+          trade is that <strong>its safety rests on your passphrase</strong>:
+          anyone who obtained a copy of the database could try to guess it
+          offline, at their own pace and without us being able to stop them. The
+          iteration count above makes each guess slow, not impossible. Choose a
+          strong passphrase.
+        </li>
+        <li>
+          <strong
+            >If you forget that passphrase, those messages cannot be recovered
+            by anyone, including the administrator.</strong
           >
+          There is no reset, because a reset would mean we could open your key.
         </li>
         <li>
           Encryption hides the <em>contents</em> of a message, not the fact that
