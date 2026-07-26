@@ -238,7 +238,7 @@ vulnerability** on the repository's Security tab.
 
 Open Relay is free and open-source, built and maintained in my own time, with no telemetry and no data sharing. If you run it and find it useful, a coffee is always appreciated and helps keep it going.
 
-<a href="https://buymeacoffee.com/magikh0e"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="42"></a>
+<a href="https://buymeacoffee.com/magikh0e"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20beer&emoji=%F0%9F%8D%BA&slug=magikh0e&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a beer" height="42"></a>
 
 ## License
 
