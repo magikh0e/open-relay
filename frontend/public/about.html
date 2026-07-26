@@ -230,6 +230,14 @@
             </p>
           </div>
           <div class="card">
+            <h3><span class="ico">👥</span> Group messages</h3>
+            <p>
+              Message several people at once, named or not. The owner can add
+              or remove people, anyone can leave, and the owner can switch on
+              end-to-end encryption for the whole group.
+            </p>
+          </div>
+          <div class="card">
             <h3><span class="ico">🧵</span> Threads &amp; replies</h3>
             <p>
               Branch a side conversation into a thread, or reply inline with the
@@ -320,6 +328,38 @@
               you can set or change a password later.
             </p>
           </div>
+          <div class="card">
+            <h3><span class="ico">🔐</span> Channels with a key</h3>
+            <p>
+              Give a public channel a password: anyone can find it in the
+              directory, but only people with the key can join. An admin can
+              also flip the whole server to invite-only.
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="ico">🔗</span> Webhooks</h3>
+            <p>
+              Pipe CI results, alerts or home-automation events straight into a
+              channel with a secret URL, under whatever name you choose.
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="ico">🤖</span> Bot accounts</h3>
+            <p>
+              Accounts for programs rather than people, so something can hold a
+              conversation instead of only announcing into one. Each is limited
+              to reading, writing or reacting, and anything it posts is
+              labelled.
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="ico">🌐</span> Any server, one app</h3>
+            <p>
+              Point the app at any Open Relay server and switch between the ones
+              you use in a click. Each keeps its own sign-in, so hopping back is
+              instant.
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -334,10 +374,24 @@
             <span>
               <strong>End-to-end encrypted direct messages</strong>
               <span class="d">
-                Turn it on and your browser generates a key that never leaves
-                your device. DMs are encrypted before they're sent, so the
+                Turn it on and your browser generates a key that only ever
+                leaves it sealed, locked with your passphrase, which the server
+                never receives. DMs are encrypted before they're sent, so the
                 server stores text it has no way to unlock; the person running
                 it genuinely cannot read them.
+              </span>
+            </span>
+          </li>
+          <li>
+            <span class="k">👥</span>
+            <span>
+              <strong>Groups can be encrypted too</strong>
+              <span class="d">
+                A group starts readable, like a channel, until its owner
+                switches encryption on; from then the server stores only
+                ciphertext. The key changes whenever somebody joins or leaves,
+                so a new member reads from their arrival onward and a removed
+                one cannot read what is said after they go.
               </span>
             </span>
           </li>
@@ -434,7 +488,21 @@
           <ul>
             <li>
               <strong>Channel messages are readable by whoever runs the
-              server.</strong> Only direct messages can be end-to-end encrypted.
+              server</strong>, and so is a group until its owner switches
+              encryption on. Ordinary channels always are.
+            </li>
+            <li>
+              <strong>Your wrapped key is kept on the server</strong>, which is
+              what lets you sign in on another device and still read your
+              history. It cannot be opened without your passphrase, but its
+              safety rests on that passphrase: anyone holding a copy of the
+              database could try to guess it offline, at their own pace. Pick a
+              strong one.
+            </li>
+            <li>
+              There is no forward secrecy. Your key does not change as you talk,
+              so anyone who obtained it could read the encrypted messages you
+              can read, old ones included.
             </li>
             <li>
               Encryption hides <em>what</em> you said, not <em>that</em> you said
