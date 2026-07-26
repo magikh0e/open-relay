@@ -207,9 +207,9 @@ production.
 
 ## Roadmap
 
-[`ROADMAP.md`](ROADMAP.md) covers what is likely next (bot accounts,
-one-to-one voice calls), what is being considered, and what has been looked at
-and deliberately ruled out, with the reasoning in each case.
+[`ROADMAP.md`](ROADMAP.md) covers what is likely next (one-to-one voice calls),
+what is being considered, and what has been looked at and deliberately ruled
+out, with the reasoning in each case.
 
 ## Contributing
 

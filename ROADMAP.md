@@ -11,35 +11,30 @@ arguing for it is more useful than a vote.
 
 ---
 
+## Shipped
+
+Kept here briefly so the reasoning above them is not lost when the entry moves.
+
+- **Bot accounts** (1.26.0). Built as designed: `is_bot` on the user record so
+  bots reuse avatars, member lists, mentions and presence; a long-lived opaque
+  token stored as a SHA-256 hash and shown once; `read` / `write` / `react`
+  scopes and no moderation scope; access through ordinary channel membership.
+  One thing was added during the build that the plan did not name: the scopes
+  sit on top of a **deny-by-default allowlist**, so a bot can reach only the
+  endpoints explicitly listed for it and a newly added endpoint is closed to
+  bots until somebody opens it. Checking a handful of obvious endpoints would
+  have left every other one open by omission. See the
+  [user guide](docs/USER_GUIDE.md#bot-accounts) and
+  [developer guide](docs/DEVELOPER_GUIDE.md).
+- **End-to-end encrypted group messages** (1.25.0). Per-group key sealed to each
+  member, rotated whenever somebody joins or leaves.
+
+---
+
 ## Next up
 
-These two are designed rather than merely wished for; the shape below is what
-would actually get built.
-
-### Bot accounts
-
-Today a bot has to log in as an ordinary user with a password, which means it
-holds a full human session and can do anything that account can. Incoming
-webhooks exist but only speak in one direction: they cannot listen or reply.
-
-The plan:
-
-- `is_bot` on the user record, so bots reuse display names, avatars, member
-  lists, mentions and presence rather than duplicating all of it.
-- A long-lived opaque token instead of a 30-minute JWT, stored as a SHA-256
-  hash and shown once at creation. High entropy, so no slow hash is needed;
-  hashing at rest means a database leak does not hand over live credentials.
-- Scopes: `read`, `write`, `react`. Deliberately no moderation scope at first,
-  since a bot that can remove people is a much larger trust decision.
-- Access through **ordinary channel membership**. A bot sees the channels it was
-  added to and nothing else, so "which bots can read this channel" is answered
-  by the member list rather than by trust.
-- Admin-only creation to begin with. Easy to relax later; the reverse is not.
-
-A bot has no encryption keypair, since there is no passphrase for a program to
-hold. So DMs with a bot are plaintext, and **a group containing a bot cannot be
-encrypted**. That already enforces itself: publishing a group key requires every
-member to have a published public key.
+Designed rather than merely wished for; the shape below is what would actually
+get built.
 
 ### One-to-one voice calls
 
@@ -126,8 +121,8 @@ private key straight out of memory. The central claim of this project is that
 nobody but the participants can read a DM; a browser plugin API would make that
 false and require saying so.
 
-Extensibility is better served by bot accounts, where the code runs elsewhere
-with a scoped token and only the channels it was added to.
+Extensibility is served by bot accounts instead, which now exist: the code runs
+elsewhere, holds a scoped token, and sees only the channels it was added to.
 
 ### Community-scale features
 
