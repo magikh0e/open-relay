@@ -52,7 +52,9 @@ rest just ask you to sign in. Your login and encryption keys are per-server.
 - **Group DMs**: pick more than one person from that same `+` to start a group
   (name it if you like). Groups are private to their members; the owner can
   rename them and add or remove people, and anyone can leave. Unlike encrypted
-  1:1 DMs, group messages are readable by whoever runs the server.
+  1:1 DMs, a group is plaintext until its owner turns encryption on, from
+  *Group info*. Once on, the key changes whenever someone joins or leaves, so
+  a new member reads what is said from their arrival onward, not before it.
 
 ![A group DM](screenshots/07-group-dm.png)
 - **Close a DM** by hovering it and clicking `✕`, or typing `/close`. It only

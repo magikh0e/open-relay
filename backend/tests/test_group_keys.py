@@ -319,3 +319,87 @@ async def test_public_channels_still_refuse_ciphertext(client, alice):
         json={"content": "AAAABBBBCCCC", "encrypted": True},
     )
     assert r.status_code == 400
+
+
+# --- rotation is enforced, not merely encouraged ---------------------------
+
+async def test_send_blocked_until_the_key_follows_a_removal(client, alice, bob, user_factory):
+    """Removing someone without rotating leaves them holding a working key.
+    The server refuses further encrypted writes until the key catches up."""
+    carol = await user_factory()
+    await _with_keys(client, alice, bob, carol)
+    gid = await _group(client, alice, [bob["id"], carol["id"]])
+    epoch = await _publish(client, alice, gid, alice["id"], bob["id"], carol["id"])
+
+    # Works while the key matches the membership.
+    ok = await client.post(
+        f"/channels/{gid}/messages", headers=alice["headers"],
+        json={"content": "AAAA", "encrypted": True, "key_epoch": epoch},
+    )
+    assert ok.status_code == 201
+
+    await client.delete(f"/dms/{gid}/members/{carol['id']}", headers=alice["headers"])
+
+    # Carol is gone but still holds epoch 1, so writing under it is refused.
+    blocked = await client.post(
+        f"/channels/{gid}/messages", headers=alice["headers"],
+        json={"content": "BBBB", "encrypted": True, "key_epoch": epoch},
+    )
+    assert blocked.status_code == 409
+    assert "rotat" in blocked.json()["detail"].lower()
+
+    # Rotating to the reduced membership restores sending.
+    new_epoch = await _publish(client, alice, gid, alice["id"], bob["id"])
+    after = await client.post(
+        f"/channels/{gid}/messages", headers=alice["headers"],
+        json={"content": "CCCC", "encrypted": True, "key_epoch": new_epoch},
+    )
+    assert after.status_code == 201
+
+
+async def test_send_blocked_until_the_key_follows_an_addition(client, alice, bob, user_factory):
+    """A member added without a rotation holds no key at all, so letting the
+    group keep writing would simply exclude them."""
+    carol = await user_factory()
+    dave = await user_factory()
+    await _with_keys(client, alice, bob, carol, dave)
+    gid = await _group(client, alice, [bob["id"], carol["id"]])
+    epoch = await _publish(client, alice, gid, alice["id"], bob["id"], carol["id"])
+
+    await client.post(
+        f"/dms/{gid}/members", headers=alice["headers"], json={"user_id": dave["id"]}
+    )
+    blocked = await client.post(
+        f"/channels/{gid}/messages", headers=alice["headers"],
+        json={"content": "AAAA", "encrypted": True, "key_epoch": epoch},
+    )
+    assert blocked.status_code == 409
+
+    new_epoch = await _publish(
+        client, alice, gid, alice["id"], bob["id"], carol["id"], dave["id"]
+    )
+    after = await client.post(
+        f"/channels/{gid}/messages", headers=alice["headers"],
+        json={"content": "BBBB", "encrypted": True, "key_epoch": new_epoch},
+    )
+    assert after.status_code == 201
+
+
+async def test_new_member_gets_no_share_for_earlier_epochs(client, alice, bob, user_factory):
+    """The history cutoff: joining hands you the current key only."""
+    carol = await user_factory()
+    dave = await user_factory()
+    await _with_keys(client, alice, bob, carol, dave)
+    gid = await _group(client, alice, [bob["id"], carol["id"]])
+    await _publish(client, alice, gid, alice["id"], bob["id"], carol["id"])  # epoch 1
+
+    await client.post(
+        f"/dms/{gid}/members", headers=alice["headers"], json={"user_id": dave["id"]}
+    )
+    await _publish(client, alice, gid, alice["id"], bob["id"], carol["id"], dave["id"])
+
+    daves = (await client.get(f"/dms/{gid}/keys", headers=dave["headers"])).json()
+    assert [k["epoch"] for k in daves["keys"]] == [2]  # nothing from before he joined
+
+    alices = (await client.get(f"/dms/{gid}/keys", headers=alice["headers"])).json()
+    assert [k["epoch"] for k in alices["keys"]] == [1, 2]  # present throughout

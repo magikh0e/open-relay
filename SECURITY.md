@@ -50,7 +50,8 @@ following are known, documented design decisions rather than bugs. See
 ["What it deliberately does not protect"](README.md) and the in-app privacy
 policy.
 
-- **Whoever runs the server can read channel and group messages.** Only
+- **Whoever runs the server can read channel messages, and any group that has
+  not switched encryption on.** Only
   one-to-one DMs can be end-to-end encrypted. A server operator reading a
   channel is the design, not a flaw.
 - **Encryption hides message contents, not metadata.** Who talked to whom, and

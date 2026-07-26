@@ -12,6 +12,7 @@ from ..models import (
     Channel,
     ChannelMember,
     GroupKey,
+    GroupKeyShare,
     Message,
     MessageMention,
     MessageReaction,
@@ -123,6 +124,33 @@ def _mention_outs(users: list[User]) -> list[MentionOut]:
         MentionOut(id=u.id, username=u.username, display_name=u.display_name)
         for u in users
     ]
+
+
+async def _key_matches_membership(db, channel_id: str, epoch: int) -> bool:
+    """Is this epoch's key sealed to exactly the group's current members?
+
+    Anything else means membership moved without the key following it, which
+    is the one state an encrypted group must not keep writing into.
+    """
+    members = set(
+        (
+            await db.execute(
+                select(ChannelMember.user_id).where(
+                    ChannelMember.channel_id == channel_id
+                )
+            )
+        ).scalars().all()
+    )
+    holders = set(
+        (
+            await db.execute(
+                select(GroupKeyShare.user_id)
+                .join(GroupKey, GroupKey.id == GroupKeyShare.group_key_id)
+                .where(GroupKey.channel_id == channel_id, GroupKey.epoch == epoch)
+            )
+        ).scalars().all()
+    )
+    return members == holders
 
 
 def _reply_preview(parent: Message) -> ReplyPreview:
@@ -418,6 +446,16 @@ async def post_message(
                 raise HTTPException(
                     status_code=409,
                     detail="The group key has changed; re-fetch it and resend",
+                )
+            # The current key must be sealed to exactly today's members. If it
+            # is not, membership changed without a rotation: either somebody
+            # removed still holds this key, or somebody added cannot read it.
+            # Refusing the write is what actually enforces rotation, and it
+            # fails closed rather than leaking to a former member.
+            if not await _key_matches_membership(db, channel_id, current):
+                raise HTTPException(
+                    status_code=409,
+                    detail="The group key needs rotating after a membership change",
                 )
             key_epoch = body.key_epoch
         content = body.content.strip()

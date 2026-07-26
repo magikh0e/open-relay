@@ -32,7 +32,7 @@ you own end to end.
 
 ![Channel](docs/screenshots/02-chat.png)
 
-**A group DM**: message several people at once, with the same channels, files and mentions. Groups are plaintext (readable by whoever runs the server), so they're kept separate from the end-to-end encrypted one-to-one DMs:
+**A group DM**: message several people at once, with the same channels, files and mentions. Groups start plaintext and can be switched to end-to-end encryption by their owner:
 
 ![Group DM](docs/screenshots/07-group-dm.png)
 
@@ -53,7 +53,8 @@ you own end to end.
 
 **Chat**
 - Public and private channels, and one-to-one direct messages you can close and reopen
-- Group DMs: message several people at once (plaintext, like channels; owner manages the member list)
+- Group DMs: message several people at once, optionally end-to-end encrypted
+  (the owner switches it on; the key rotates whenever membership changes)
 - Password-protected public channels: anyone can find them in the directory, but only people with the key can join
 - Threads, inline replies with a quoted preview, and @mentions
 - Unread counts per channel, with a distinct badge when you're mentioned
@@ -87,7 +88,9 @@ you own end to end.
 
 Being honest about this is the point:
 
-- **Channel and group messages are readable by whoever runs the server**; only one-to-one DMs can be end-to-end encrypted.
+- **Channel messages are readable by whoever runs the server.** Groups *can* be
+  end-to-end encrypted, but are plaintext until someone switches it on, and
+  ordinary channels always are.
 - Encryption hides message *contents*, not *metadata*; who talks to whom, and when, is recorded.
 - Files shared in ordinary channels sit behind an unguessable but **publicly accessible** link.
 - Forget your encryption passphrase and those messages are unrecoverable; there is no reset.

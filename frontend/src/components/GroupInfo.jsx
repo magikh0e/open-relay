@@ -17,6 +17,9 @@ export default function GroupInfo({
   onLeave,
   onOpenProfile,
   onConfirm, // (opts) => Promise<bool>, the app's in-house confirm dialog
+  encrypted = false,
+  canEncrypt = false, // our own key is unlocked, so we can seal shares
+  onEnableEncryption, // () => Promise, publishes the first key epoch
   onClose,
 }) {
   const dialogRef = useDialog(onClose);
@@ -27,6 +30,7 @@ export default function GroupInfo({
   const [results, setResults] = useState([]);
   const [busy, setBusy] = useState(false);
   const [removingId, setRemovingId] = useState(null);
+  const [enabling, setEnabling] = useState(false);
 
   const memberIds = new Set(members.map((m) => m.id));
 
@@ -66,6 +70,18 @@ export default function GroupInfo({
       setError(e.message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function enable() {
+    setEnabling(true);
+    setError("");
+    try {
+      await onEnableEncryption();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setEnabling(false);
     }
   }
 
@@ -191,6 +207,49 @@ export default function GroupInfo({
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="settings-section">
+          <label>
+            Encryption{" "}
+            {encrypted ? (
+              <span className="role-tag">🔒 on</span>
+            ) : (
+              <span className="muted small">off</span>
+            )}
+          </label>
+          {encrypted ? (
+            <p className="muted small">
+              Messages and files here are encrypted in your browser; the server
+              stores only ciphertext it cannot read. The key changes whenever
+              someone joins or leaves, so a new member sees what is said from
+              their arrival onward, not the history before it.
+            </p>
+          ) : (
+            <>
+              <p className="muted small">
+                This group is plaintext: whoever runs the server can read it,
+                the same as a channel. Turning encryption on applies from here
+                onward, and messages already sent stay as they are.
+              </p>
+              {isOwner && (
+                <>
+                  <button
+                    className="mini"
+                    disabled={enabling || !canEncrypt}
+                    onClick={enable}
+                  >
+                    {enabling ? "Turning on…" : "Turn on encryption"}
+                  </button>
+                  <p className="muted small">
+                    {canEncrypt
+                      ? "Everyone in the group needs encryption set up before this can be switched on."
+                      : "Unlock your own encryption key first, from your profile."}
+                  </p>
+                </>
+              )}
+            </>
+          )}
         </div>
 
         <div className="settings-danger">

@@ -17,6 +17,8 @@ import {
   decryptMessage,
   deriveSharedKey,
   encryptMessage,
+  generateGroupKey,
+  wrapGroupKey,
   unwrapGroupKey,
   exportPublicKey,
   importPublicKey,
@@ -445,12 +447,20 @@ export default function ChatShell() {
     });
     const rows = await api(`/channels/${channelId}/members`);
     setMembersByChannel((prev) => ({ ...prev, [channelId]: rows }));
+    // A new member gets a new epoch rather than the current key, so the
+    // backlog stays closed to them. Until this lands the server refuses
+    // encrypted sends, so a failure here stalls the group rather than
+    // quietly letting them read.
+    if (groupKeys[channelId]?.current) await rekeyGroup(channelId);
   }
 
   async function removeGroupMember(channelId, userId) {
     await api(`/dms/${channelId}/members/${userId}`, { method: "DELETE" });
     const rows = await api(`/channels/${channelId}/members`);
     setMembersByChannel((prev) => ({ ...prev, [channelId]: rows }));
+    // Rotating is what makes the removal real: they keep the old key, but it
+    // opens nothing said from here on.
+    if (groupKeys[channelId]?.current) await rekeyGroup(channelId);
   }
 
   async function leaveGroup(channel) {
@@ -883,6 +893,47 @@ export default function ChatShell() {
     };
   }, [isGroup, active, privateKey, groupKeys, keyEpoch]);
 
+  // Publish a fresh epoch for a group: mint a key, seal one copy per member
+  // under the pairwise secret we share with them, and hand the sealed copies
+  // to the server. This is the only way a group key ever moves, and the server
+  // never sees an unsealed one.
+  //
+  // Used both to switch encryption on and to rotate after a membership change.
+  // Rotating is what makes removal real: the departing member keeps the old
+  // key, but it opens nothing said afterwards.
+  const rekeyGroup = useCallback(
+    async (channelId) => {
+      if (!privateKey) throw new Error("Unlock your encryption key first");
+      const members = await api(`/channels/${channelId}/members`);
+      const mine = await api("/keys/me");
+      const key = await generateGroupKey();
+      const shares = [];
+      for (const m of members) {
+        // Includes ourselves: sealing to our own public key is a valid ECDH
+        // only we can reproduce, and it means a new device can catch up.
+        const { public_key } = await api(`/keys/${m.id}`);
+        const pairwise = await deriveSharedKey(
+          privateKey,
+          await importPublicKey(public_key)
+        );
+        shares.push({
+          user_id: m.id,
+          wrapped_key: await wrapGroupKey(pairwise, key),
+          sender_public_key: mine.public_key,
+        });
+      }
+      await api(`/dms/${channelId}/keys`, { method: "POST", body: { shares } });
+      // Drop the cached ring so the next render refetches and opens the new
+      // epoch alongside the ones we already hold.
+      setGroupKeys((prev) => {
+        const next = { ...prev };
+        delete next[channelId];
+        return next;
+      });
+    },
+    [privateKey]
+  );
+
   // Which key opens a given message: a DM has exactly one, a group has one per
   // epoch and the message says which it used.
   function keyForMessage(m) {
@@ -1196,6 +1247,9 @@ export default function ChatShell() {
           myId={user.id}
           isOwner={isOwner}
           onConfirm={ask}
+          encrypted={!!groupKeys[active.id]?.current}
+          canEncrypt={keyStatus === "unlocked"}
+          onEnableEncryption={() => rekeyGroup(active.id)}
           onRename={(name) => updateChannel(active.id, { name })}
           onAddMember={(userId) => addGroupMember(active.id, userId)}
           onRemoveMember={(userId) => removeGroupMember(active.id, userId)}
