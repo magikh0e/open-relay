@@ -82,6 +82,16 @@ Smaller or less certain, in no particular order.
   in practice than expected.
 - **Read receipts and per-channel notification settings**, both frequently
   wanted and neither yet designed.
+- **Rotation without the owner.** Publishing a key epoch is owner-only, and the
+  server refuses encrypted sends under a key whose shares no longer match the
+  membership. An owner can also leave a group, and nothing transfers ownership
+  when they do. So a membership change after the owner goes leaves an encrypted
+  group unable to send: an availability cliff rather than a security hole, but a
+  sharp one, and reachable through ordinary use. A site admin can rotate as
+  well, which is the current escape hatch, though it means the admin holds a key
+  to a group they may not be in. Transferring ownership on departure is the
+  smaller fix; letting any member commit a rotation is the more general one.
+  Neither is designed yet.
 - **Automated accessibility checks.** The unit suite covers logic, not what the
   interface is actually like to use. A contrast and target-size pass found five
   places where white sat on the accent fill at 3.16:1, avatar initials that
@@ -115,6 +125,48 @@ a rewrite of the key model rather than an addition to it.
 
 The trade has been made in favour of history staying available, and the privacy
 policy says so plainly. Message expiry is the cheaper way to bound exposure.
+
+### MLS (RFC 9420) for group encryption
+
+The obvious question, given groups here already use numbered epochs that rotate
+on membership change and messages that name the epoch which sealed them. That is
+the same shape as MLS in outline, so the comparison is worth making explicitly
+rather than leaving people to wonder.
+
+MLS exists to provide forward secrecy and post-compromise security through a
+ratchet tree. That is its reason to be; the rest of what it does can be done more
+simply. Which puts it straight into the conflict described above, and the outcome
+is a fork with no good branch:
+
+- Keep history readable from a new device, which means retaining the ratchet
+  secrets, and the property MLS was adopted for is switched off. All of the
+  complexity, none of the benefit.
+- Take real forward secrecy, and server-side readable history goes. That is a
+  decision about what this app is, not a cryptographic upgrade.
+
+MLS does not resolve that tension, it relocates it.
+
+The costs are concrete as well. Every client is a leaf with its own key package,
+so it needs per-device identities, which is the same rewrite of the key model
+that rules out ratchets generally. There is no WebCrypto path to it, so it means
+a WASM library inside the one module where dependency count matters most, against
+a frontend whose entire runtime today is React and React-DOM. And it assumes a
+delivery service for ordering and an authentication service for credentials,
+where this server deliberately knows nothing except how to store an opaque blob
+and increment an integer.
+
+The scaling argument, which is the usual reason to reach for it, does not apply
+at this size. Sealing a key to each member is O(n) against MLS's O(log n), which
+at a cap of 20 is twenty operations against about five. That gap starts mattering
+in the hundreds, and group sizes in the hundreds are already ruled out below.
+
+What would reopen it: raising the cap past roughly fifty, or deciding to move to
+per-device identities for some other reason. **Post-compromise security is the
+one genuine gap**, and worth naming separately from forward secrecy, because
+there is nothing like it here at all: a stolen key stays useful forever and no
+amount of epoch rotation heals it. It is arguably the more valuable of the two
+properties for a self-hosted tool. It also requires discarding keys, so it sits
+behind the same trade.
 
 ### Group calls over an SFU
 
