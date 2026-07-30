@@ -94,3 +94,59 @@ jobs:
           releaseName: "Open Relay Desktop v__VERSION__"
           releaseDraft: true
           prerelease: false
+
+  # Publishes SHA256SUMS.txt alongside the installers.
+  #
+  # The updater verifies its own signature before applying an update, but that
+  # covers updates, not the first download. Somebody fetching a .dmg or a .msi
+  # by hand has nothing to check it against unless we publish one, so this
+  # closes that gap.
+  #
+  # It runs as its own job because the three build runners upload to the same
+  # release independently; checksums can only be computed once every one of them
+  # has finished.
+  checksums:
+    name: Publish checksums
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Publish SHA256SUMS.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # tauri-action derives the tag from desktop/package.json, so read it
+          # the same way rather than trusting GITHUB_REF_NAME, which is a branch
+          # name when this workflow is started by hand.
+          version=$(node -p "require('./desktop/package.json').version")
+          tag="desktop-v$version"
+          echo "Release: $tag"
+
+          # The release is still a DRAFT at this point. `gh release download`
+          # resolves drafts, but the REST endpoint /releases/tags/<tag> returns
+          # 404 for them, so do not "simplify" this into a gh api call.
+          mkdir -p dist-check && cd dist-check
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY"
+
+          # Hash what a person would actually download and run. The .sig files
+          # are the updater's signatures and latest.json is its manifest;
+          # neither is something you install, and hashing our own output file
+          # would be circular.
+          rm -f ./*.sig latest.json SHA256SUMS.txt
+          if [ -z "$(ls -A)" ]; then
+            echo "No installer artifacts found for $tag" >&2
+            exit 1
+          fi
+
+          sha256sum * > SHA256SUMS.txt
+          echo "----- SHA256SUMS.txt -----"
+          cat SHA256SUMS.txt
+
+          # --clobber so re-running the workflow replaces the file rather than
+          # failing on an asset that already exists.
+          gh release upload "$tag" SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" --clobber
