@@ -1,4 +1,5 @@
-# Keeps an informational GitHub release in step with the live web app version.
+# Keeps an informational GitHub release in step with the live web app version,
+# and posts the release notes to the Announcements discussion.
 #
 # The web app deploys via `git push vps` (not GitHub releases), so its release
 # here is purely a version marker. It is always a PRE-RELEASE so it can never
@@ -7,8 +8,8 @@
 # with a higher semver would steal "latest" and break auto-update).
 #
 # On every push to main it reads APP_VERSION from frontend/src/version.js and,
-# if no `v<version>` release exists yet, creates one. Idempotent: pushes that
-# don't change the version are a no-op. Never deletes anything.
+# if no `v<version>` release exists yet, creates one and announces it. Idempotent:
+# pushes that don't change the version are a no-op. Never deletes anything.
 
 name: Web release marker
 
@@ -19,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  discussions: write
 
 jobs:
   mark:
@@ -27,6 +29,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Create the web version marker if missing
+        id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -37,10 +40,12 @@ jobs:
             exit 1
           fi
           tag="v$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Live web app version: $version (tag $tag)"
 
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release $tag already exists; nothing to do."
+            echo "created=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -50,5 +55,80 @@ jobs:
             --title "Open Relay $tag (server + web app)" \
             --prerelease \
             --latest=false \
-            --notes "Version marker for the full self-hosted Open Relay stack ($version): the FastAPI backend, the React frontend, and the browser client together. Deployed at chat.openrelay.pl via git push, not distributed through GitHub releases (only the desktop client is), so this is a pre-release and never takes the \"latest\" badge from the desktop updater. Plain-English release notes are posted in the app's #whatsnew channel; the commit log has the detail behind them."
+            --notes "Version marker for the full self-hosted Open Relay stack ($version): the FastAPI backend, the React frontend, and the browser client together. Deployed at chat.openrelay.pl via git push, not distributed through GitHub releases (only the desktop client is), so this is a pre-release and never takes the \"latest\" badge from the desktop updater. Plain-English release notes are posted in the app's #whatsnew channel and in this repo's Announcements; the commit log has the detail behind them."
+          echo "created=true" >> "$GITHUB_OUTPUT"
           echo "Created pre-release $tag."
+
+      # Post the release notes to the Announcements discussion, once, the first
+      # time a version's release is created. The notes are the same plain-English
+      # text the app shows in #whatsnew, read straight from seed.py so the two
+      # can't drift. continue-on-error so a Discussions hiccup never reds the
+      # release marker, which is the load-bearing artifact.
+      - name: Announce the release
+        if: steps.release.outputs.created == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          # Pull the WHATSNEW entry for this version out of seed.py without
+          # importing the app (seed.py imports the DB layer). ast parses the
+          # module and reads the list literal, and adjacent-string concatenation
+          # collapses to one value, so this needs no backend dependencies.
+          python3 - <<'PY'
+          import ast, os, sys
+          version = os.environ["VERSION"]
+          tree = ast.parse(open("backend/app/seed.py", encoding="utf-8").read())
+          posts = None
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Assign) and any(
+                  isinstance(t, ast.Name) and t.id == "WHATSNEW_POSTS" for t in node.targets
+              ):
+                  posts = dict(ast.literal_eval(node.value))
+          if not posts:
+              sys.exit("WHATSNEW_POSTS not found in seed.py")
+          text = posts.get(version)
+          if not text:
+              sys.exit(f"no #whatsnew entry for {version}; add one before releasing")
+
+          lines = text.splitlines()
+          # First line is "<emoji> vX.Y.Z: Title"; the rest are "• " bullets.
+          heading = lines[0].strip()
+          body_lines = [("- " + l[1:].strip()) if l.strip().startswith("•") else l
+                        for l in lines[1:]]
+          body = "\n".join(
+              [f"## {heading}", ""]
+              + body_lines
+              + ["", "---", "",
+                 f"The self-hosted web app is live at chat.openrelay.pl. "
+                 f"Desktop builds are on the [releases page]"
+                 f"(https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases). "
+                 f"These notes also appear in the app's #whatsnew channel."]
+          )
+          with open("announce_body.md", "w", encoding="utf-8") as f:
+              f.write(body)
+          print(f"Prepared announcement for v{version}")
+          PY
+
+          owner="${GITHUB_REPOSITORY%/*}"
+          name="${GITHUB_REPOSITORY#*/}"
+
+          # Repo node id + the Announcements category id in one query.
+          meta=$(gh api graphql \
+            -f query='query($o:String!,$n:String!){repository(owner:$o,name:$n){id discussionCategories(first:25){nodes{id name}}}}' \
+            -F o="$owner" -F n="$name")
+          repoId=$(echo "$meta" | jq -r '.data.repository.id')
+          catId=$(echo "$meta" | jq -r '.data.repository.discussionCategories.nodes[] | select(.name=="Announcements") | .id')
+
+          if [ -z "$catId" ] || [ "$catId" = "null" ]; then
+            echo "No 'Announcements' category (renamed or Discussions off?); skipping the post." >&2
+            exit 0
+          fi
+
+          url=$(gh api graphql \
+            -f query='mutation($r:ID!,$c:ID!,$t:String!,$b:String!){createDiscussion(input:{repositoryId:$r,categoryId:$c,title:$t,body:$b}){discussion{url}}}' \
+            -F r="$repoId" -F c="$catId" -f t="Open Relay v$VERSION" -F b=@announce_body.md \
+            --jq '.data.createDiscussion.discussion.url')
+          echo "Announced: $url"
