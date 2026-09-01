@@ -27,3 +27,7 @@ Thumbs.db
 
 # Local-only planning docs (kept out of the repo)
 docs/DESKTOP_CLIENT_PLAN.md
+
+# Local Claude Code context. This is a PUBLIC repo and this file holds VPS,
+# SSH, and deploy details, so it must never be committed.
+CLAUDE.md
