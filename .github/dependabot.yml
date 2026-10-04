@@ -35,6 +35,16 @@ updates:
     labels: [dependencies, frontend]
     commit-message:
       prefix: deps
+    # vitest stays on the 5.0 line. Patches still come through, so a bad 5.0.x
+    # fixes itself; minors and majors do not, because moving a test runner is
+    # something to sit down with rather than merge on a Thursday. 5.0.2 was
+    # applied by hand rather than taken from the group PR, which is the kind of
+    # attention this one gets. Delete this block to go back to following it.
+    ignore:
+      - dependency-name: vitest
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-major
     groups:
       # react and react-dom must move together: npm refuses to resolve a tree
       # with react 19 and react-dom 18, so split PRs each fail to install. Same
